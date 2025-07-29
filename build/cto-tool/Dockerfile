@@ -53,7 +53,7 @@ RUN npm run build
 CMD [ "npm","run", "dev", "--", "--host", "0.0.0.0" ]
 EXPOSE 5173
 
-FROM python:3.12.3-slim-bookworm AS cto-tool
+FROM python:3.13.5-slim-bookworm AS cto-tool
 
 WORKDIR /app
 
