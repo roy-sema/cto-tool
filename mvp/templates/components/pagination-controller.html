@@ -1,0 +1,24 @@
+{# WARNING: code editors sometimes format this file breaking up the href into multiple lines, that will break them #}
+{% if page_obj.paginator.num_pages > 1 %}
+  <div class="text-center">
+    {# set to invisible to preserve spacing #}
+    <span class="{% if not page_obj.has_previous %}invisible{% endif %}">
+        <a class="text-blue hover:text-violet dark:hover:text-lightgrey mx-1" href="?page=1&{{ query_params }}">&laquo; First</a>
+        <a class="text-blue hover:text-violet dark:hover:text-lightgrey"
+           href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}&{{ query_params }}{% else %}#{% endif %}">
+          Prev
+        </a>
+      </span>
+
+    <span class="mx-4">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+    <span class="{% if not page_obj.has_next %}invisible{% endif %}">
+      <a class="text-blue hover:text-violet dark:hover:text-lightgrey mx-1"
+         href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}&{{ query_params }}{% else %}#{% endif %}">Next</a>
+      <a class="text-blue hover:text-violet dark:hover:text-lightgrey"
+         href="?page={{ page_obj.paginator.num_pages }}&{{ query_params }}">
+        Last &raquo;
+      </a>
+    </span>
+  </div>
+{% endif %}

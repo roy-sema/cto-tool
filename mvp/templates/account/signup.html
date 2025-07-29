@@ -1,0 +1,125 @@
+{% extends "account/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block h1 %}Create an account{% endblock %}
+
+{% block content %}
+
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
+    {% include "components/messages.html" with messages=messages only %}
+
+    {% if form.non_field_errors %}
+      {% include "components/alert-error.html" with message=form.non_field_errors only %}
+    {% endif %}
+
+    <form class="space-y-6" method="post" action="{{ url }}">
+      {% csrf_token %}
+      <div class="grid sm:grid-cols-2 gap-2">
+
+        <div>
+          <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.first_name.label }}</label>
+          {% if form.first_name.errors %}
+            {% include "components/alert-error.html" with message=form.first_name.errors only %}
+          {% endif %}
+          <div class="mt-2">
+            {{ form.first_name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6"|attr:"autofocus:autofocus" }}
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.last_name.label }}</label>
+          {% if form.last_name.errors %}
+            {% include "components/alert-error.html" with message=form.last_name.errors only %}
+          {% endif %}
+          <div class="mt-2">
+            {{ form.last_name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.email.label }}</label>
+        {% if form.email.errors %}
+          {% include "components/alert-error.html" with message=form.email.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.email|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+
+      {% if not invite_token %}
+      <div>
+        <label for="{{ form.organization_name.id_for_label }}" class="flex items-center gap-1 text-sm font-medium leading-6">
+          <span>{{ form.organization_name.label }}</span>
+          {% include "components/tooltip-icon.html" with message="This is what your account will be named" %}
+        </label>
+        {% if form.organization_name.errors %}
+          {% include "components/alert-error.html" with message=form.organization_name.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.organization_name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+      {% endif %}
+
+      <div>
+        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.password1.label }}</label>
+        {% if form.password1.errors %}
+            {% include "components/alert-error.html" with message=form.password1.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.password1|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+
+      <div>
+        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.password2.label }}</label>
+        {% if form.password2.errors %}
+            {% include "components/alert-error.html" with message=form.password2.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.password2|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+
+      <div>
+        <div>
+          {% if form.accept_terms.errors %}
+              {% include "components/alert-error.html" with message=form.accept_terms.errors only %}
+          {% endif %}
+          <div class="flex gap-2 sm:items-top">
+            {{ form.accept_terms|add_class:"shrink-0 mt-1 w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+            <label for="{{ form.accept_terms.id_for_label }}" class="block text-sm font-medium leading-6">
+              I agree to the <a class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey" href="https://www.semasoftware.com/legal/terms-and-conditions" target="_blank">Terms & Conditions</a> and the <a class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey" href="https://www.semasoftware.com/legal/privacy-policy" target="_blank">Privacy Policy</a>
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-1">
+          {% if form.consent_marketing_notifications.errors %}
+              {% include "components/alert-error.html" with message=form.consent_marketing_notifications.errors only %}
+          {% endif %}
+          <div class="flex gap-2 sm:items-top">
+            {{ form.consent_marketing_notifications|add_class:"shrink-0 mt-1 w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+            <label for="{{ form.consent_marketing_notifications.id_for_label }}" class="block text-sm font-medium leading-6">
+              I agree to receive marketing notifications with the latest updates and offers from Sema.
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" value="signup" class="flex w-full justify-center rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">Sign up</button>
+      </div>
+    </form>
+
+    <p class="mt-10 text-center text-sm text-gray-500">
+      Already have an account?
+      <a href="{% url 'account_login' %}" class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Sign in now</a>
+    </p>
+  </div>
+
+{% endblock %}

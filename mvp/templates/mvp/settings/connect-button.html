@@ -1,0 +1,36 @@
+{% load static %}
+
+<div class="inline-block mb-3">
+  {% if disabled %}
+    <button
+      disabled="disabled"
+      class="w-full rounded-t-md bg-lightgrey dark:bg-slate-600 px-3 py-1.5 text-sm font-semibold leading-6"
+    >
+      Connect {{ provider.name }}
+    </button>
+  {% else %}
+    <a
+      href="{% if provider.url %}{{ provider.url }}{% else %}{% url provider.view %}{% endif %}"
+      class="rounded-t-md bg-blue px-3 py-2 pr-4 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue"
+    >
+      <img
+        src="{% if provider.manual %}{% static 'images/vendor/heroicons/solid/briefcase.svg' %}{% else %}{% static 'images/vendor/heroicons/solid/cursor-arrow-rays.svg' %}{% endif %}"
+        class="w-4 sm:mr-1 mr-2 inline invert"
+      />
+      Connect {{ provider.name }}
+    </a>
+  {% endif %}
+
+  <div class="w-full rounded-b-md text-center px-3 py-1 border {% if disabled %}border-lightgrey dark:border-slate-600{% else %}border-blue{% endif %}">
+    <a
+      href="{% url 'contact' %}?message=Please%20send%20me%20information%20about%20{{ provider.name }}"
+      class="font-semibold text-xs text-blue hover:text-violet dark:hover:text-lightgrey"
+    >
+      <img
+        src="{% static 'images/vendor/heroicons/outline/question-mark-circle.svg' %}"
+        class="w-4 sm:mr-1 mr-2 inline dark:invert"
+      />
+      Learn More
+    </a>
+  </div>
+</div>

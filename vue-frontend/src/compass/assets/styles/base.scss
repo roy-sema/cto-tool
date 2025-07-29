@@ -1,0 +1,108 @@
+// Add this wrapper to avoid affecting AICM views
+.compass,
+.sip {
+  /*
+    PrimeVue
+    TODO: this class should be applied by default, but it's not.
+    Docs: https://primevue.org/tailwind/#extensions
+  */
+  .text-muted-color {
+    color: var(--p-text-muted-color);
+  }
+
+  /* Main structure */
+  .centered-wrapper {
+    --topbar-height: 76px;
+    @apply flex items-center justify-center;
+    min-height: calc(100vh - var(--topbar-height));
+  }
+
+  /* Date picker overrides */
+  .dp__theme_dark {
+    background: #020617;
+  }
+
+  .dp__theme_light .dp__input_wrap .dp__input {
+    border-color: #cbd5e1;
+  }
+
+  /* Insights accordion */
+  .insights .p-accordionheader,
+  .insights .p-accordioncontent-content {
+    @apply px-0;
+  }
+
+  .insights .p-accordionpanel:first-child .p-accordionheader {
+    @apply pt-0;
+  }
+
+  .insights .p-accordionheader {
+    @apply items-start;
+  }
+  .insights .p-accordionheader-toggle-icon {
+    @apply mt-1 size-3 shrink-0;
+  }
+
+  /* Accordions */
+  .inactive-accordion {
+    --p-accordion-header-active-hover-color: var(--p-text-muted-color);
+    --p-accordion-header-hover-color: var(--p-text-muted-color);
+    --p-accordion-header-active-color: var(--p-text-muted-color);
+
+    .p-accordionheader {
+      cursor: default;
+    }
+  }
+
+  /* Panels */
+  .no-header-panel {
+    > .p-panel-header {
+      @apply hidden;
+    }
+
+    > .p-panel-content-container .p-panel-content {
+      padding-top: var(--p-panel-header-padding);
+    }
+  }
+
+  .no-content-padding-panel {
+    > .p-panel-content-container .p-panel-content {
+      @apply p-0;
+    }
+  }
+
+  /* Progress bars */
+  .progress-green .p-progressbar-value {
+    background: theme("colors.green.700");
+  }
+
+  .progress-red .p-progressbar-value {
+    background: theme("colors.red.600");
+  }
+
+  .progress-yellow .p-progressbar-value {
+    background: theme("colors.amber.400");
+  }
+
+  .progress-orange .p-progressbar-value {
+    background: theme("colors.orange.400");
+  }
+
+  .progress-cyan .p-progressbar-value {
+    background: theme("colors.cyan.400");
+  }
+
+  /* Confirm dialog */
+  .p-dialog-footer {
+    @apply flex justify-center gap-4;
+
+    .p-button {
+      @apply w-14;
+    }
+  }
+
+  .break-word-all {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}

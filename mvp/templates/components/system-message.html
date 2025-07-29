@@ -1,0 +1,19 @@
+{% load static %}
+
+<div data-id="{{ message.public_id }}"{% if message.is_dismissible %} data-dismissable="true"{% endif %}" class="system-message py-2 px-4 bg-lightgrey dark:bg-slate-600 rounded-md mb-5 hidden">
+  <div class="flex justify-between items-center gap-3">
+    <p class="py-1">
+      {{ message.text }}
+      {% if message.read_more_link %}
+        <a href="{{ message.read_more_link }}" title="Read More" class="font-semibold text-blue">Read more</a>
+      {% endif %}
+    </p>
+    {% if message.is_dismissible %}
+      <div class="flex-shrink-0">
+        <button class="dismiss-system-message p-2">
+          <img src="{% static 'images/vendor/heroicons/outline/x-mark.svg' %}" class="w-4 dark:invert" />
+        </button>
+      </div>
+    {% endif %}
+  </div>
+</div>

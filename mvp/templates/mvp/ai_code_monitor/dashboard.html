@@ -1,0 +1,84 @@
+{% extends "mvp/base.html" %}
+
+{% load custom_filters %}
+{% load static %}
+{% load inline_static_tags %}
+{% load vue_utils %}
+
+{% block title %}GenAI Codebase Composition{% endblock %}
+
+{% block content %}
+  {% if repositories.count and not git.connected %}
+    <div class="mb-5">
+      {% url 'connections' as connections_url %}
+      {% include "components/alert-warning.html" with message="There are no active git connections. Please <a href='"|add:connections_url|add:"' class='font-semibold text-blue'>connect GitHub, Azure DevOps or BitBucket</a> to keep analyzing your repositories."|safe only %}
+    </div>
+  {% endif %}
+
+  {% include "components/messages.html" with messages=messages only %}
+
+  {% if repositories.has_processed_repositories %}
+    {% if not first_analysis_done %}
+      <div class="mb-4">
+        {% url 'contact' as contact_url %}
+        {% with message="Some of your repositories have been scanned, but we are still processing the others. Please check back later to view the complete data. We will notify you via email once processing is complete. If you have any questions, feel free to <a href='"|add:contact_url|add:"' class='font-semibold text-blue hover:text-violet dark:hover:text-lightgrey underline'>contact us</a>." %}
+          {% include "components/alert-info.html" with message=message|safe only %}
+        {% endwith %}
+      </div>
+
+    {% endif %}
+    <div id="vue-app"
+      data-ai-composition="{{ ai_composition|json_dumps }}"
+      data-cumulative-charts="{{ cumulative_charts|json_dumps }}"
+      data-daily-charts="{{ daily_charts|json_dumps }}"
+      data-evaluated-percentage="{{ repositories.evaluated_percentage }}"
+      data-org-first-date="{{ org_first_date|date:'m/d/Y' }}"
+      data-roi-data="{{ roi_data|json_dumps }}"
+      data-code-attestation-percentages="{{ code_attestation_percentages|json_dumps }}"
+      data-integrations="{{ integrations|json_dumps }}"
+      data-updated-at="{{ updated_at }}"
+    >
+    </div>
+    <script type="module" crossorigin src="{% vue_bundle_url 'app' %}"></script>
+
+    {% if analysis_limits %}
+      <div class="mt-5 text-center text-sm opacity-80">
+        Your organization is limited to
+        {% if analysis_limits.scans %}
+          {{ analysis_limits.scans }} scan
+          {{ analysis_limits.scans|pluralize }}{% if analysis_limits|length > 2 %},
+          {% endif %}
+        {% endif %}
+        {% if analysis_limits.repositories %}
+          {% if analysis_limits.scans and not analysis_limits.lines_per_repository %}
+            and {% endif %}
+          {{ analysis_limits.repositories }}
+          {{ analysis_limits.repositories|pluralize:"repository,repositories" }}
+        {% endif %}
+        {% if analysis_limits.lines_per_repository %}
+          {% if analysis_limits|length > 1 %} and {% endif %}
+          {{ analysis_limits.lines_per_repository }} lines per repository
+        {% endif %}
+      </div>
+      <div class="mt-1 text-center text-sm opacity-80">To upgrade your limits, please
+        <a
+          href="{% url 'contact' %}?message=Upgrade%20limits%20on%20AI%20Code%20Monitor"
+          class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">
+          Contact Us
+        </a>
+      </div>
+    {% endif %}
+  {% elif git.connected %}
+    <p class="mt-5">We are currently processing your repositories.</p>
+    <p class="mt-5">Kindly come back after some time. We will email you when we have
+      finished processing the repositories. In case of any queries, you can
+      <a href="{% url 'contact' %}"
+         class="font-semibold text-blue hover:text-violet dark:hover:text-lightgrey underline">
+        contact us
+      </a>
+      .
+    </p>
+  {% else %}
+    {% include "mvp/ai_code_monitor/connect-git-to-start.html" with analysis_limits=analysis_limits git=git only %}
+  {% endif %}
+{% endblock %}

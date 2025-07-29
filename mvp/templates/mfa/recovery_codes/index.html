@@ -1,0 +1,32 @@
+{% extends "account/base.html" %}
+
+{% load custom_filters %}
+{% load widget_tweaks %}
+
+{% block title %}Recovery Codes{% endblock %}
+
+{% block h1 %}Recovery Codes{% endblock %}
+
+{% block content %}
+
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+    {% include "components/messages.html" with messages=messages only %}
+
+    <p>These are recovery codes to login in case you ever lose access to your authenticator app. Please download or copy these codes and keep them in a safe place:</p>
+
+    <div class="mt-5 text-center">
+      {% for code in unused_codes %}
+        <code class="block">{{ code }}</code>
+      {% endfor %}
+    </div>
+
+    <div class="mt-5">
+      <a href="{% url 'mfa_download_recovery_codes' %}" target="_blank" download class="flex w-full justify-center rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">Download codes</a>
+    </div>
+
+    <p class="mt-10 text-center text-sm text-gray-500">
+      <a href="{% url 'root_redirect' %}" class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Continue to Home</a>
+    </p>
+  </div>
+
+{% endblock %}

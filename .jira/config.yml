@@ -1,0 +1,6 @@
+# https://github.com/atlassian/github-for-jira/blob/main/docs/deployments.md#environment-mapping
+deployments:
+  environmentMapping:
+    production:
+      - "OUTSIDE_DEPLOY_WINDOW"
+      - "ip-172-31-77-237"

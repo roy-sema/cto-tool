@@ -1,0 +1,33 @@
+{% load static %}
+{% load custom_filters %}
+
+<div
+  class="relative top-0 py-4 lg:py-5 border-r dark:border-slate-600 dark:bg-slate-900 lg:w-60 w-full h-full z-10 flex flex-col justify-between">
+  <div>
+    <button id="sidebar-close" class="absolute top-4 right-4 p-2 lg:hidden">
+      <img src="{% static 'images/vendor/heroicons/outline/x-mark.svg' %}"
+          class="w-5 dark:invert"/>
+    </button>
+
+    <div id="user-dropdown-sidebar-container" class="mx-4 mt-5 lg:hidden">
+      <!-- We use Teleport to inject here Vue's component -->
+    </div>
+  </div>
+
+  <div class="mt-10 mb-5 overflow-y-auto overflow-x-hidden">
+    {% include 'mvp/sidebar-menu.html' %}
+  </div>
+  {% if not tiny %}
+    {% if perms.mvp.can_view_ai_code_monitor %}
+      <div class="px-4">
+        {% include 'mvp/sidebar-gbom.html' %}
+      </div>
+    {% else %}
+      {# empty element so flex positions menu in the middle #}
+      <div></div>
+    {% endif %}
+  {% else %}
+    {# empty element so flex positions menu in the middle #}
+    <div></div>
+  {% endif %}
+</div>

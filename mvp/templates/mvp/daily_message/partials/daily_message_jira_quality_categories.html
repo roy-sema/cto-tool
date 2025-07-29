@@ -1,0 +1,9 @@
+<div>
+  <div style="font-weight: bold; margin-top: 10px">Quality Categories:</div>
+  <div style="display: flex; gap: 16px; margin-top: 10px; margin-bottom: 10px">
+    {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category="Advanced" values=True only %}
+    {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category="Mature" values=True only %}
+    {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category="Emerging" values=True only %}
+    {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category="Initial" values=True only %}
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<li
+  class="w-full p-4 hover:bg-blue hover:text-white group
+              {% if request.resolver_match.url_name == page_name or forceActive %}bg-cyan-50 dark:bg-slate-600{% else %}opacity-60 hover:opacity-100{% endif %}
+              {% if tiny %}text-center lg:flex lg:justify-center{% endif %}">
+  <a class="block w-full" href="{% url page_name %}" title="{{ label }}">
+    {% if icon %}
+    <img
+      src="{{ icon }}"
+      class="w-5 lg:w-6 inline group-hover:invert dark:invert"
+      alt="{{ label }}"
+    />
+    {% endif %}
+
+    {# do not add a line break to the following line, if you do then the tests fail #}
+    <span class="sidebar-item text-md ml-1 lg:text-sm {% if tiny %} lg:hidden {% endif %}">{{ label }}</span>
+  </a>
+</li>

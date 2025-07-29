@@ -1,0 +1,41 @@
+INITIATIVE ESTIMATION DETAILS
+
+Estimated Completion: {{ executive_summary.estimated_completion_date }} ({{ executive_summary.confidence_level }} Confidence)
+Estimated Range: {{ executive_summary.estimated_range }}
+Primary Factors: {{ executive_summary.primary_factors }}
+
+CALCULATION METHOD
+Data Sources: {{ text_data_sources_used }}
+Approach: {{ calculation_method.primary_calculation_approach }}
+{% if text_key_metrics_used %}
+Key Metrics:
+{{ text_key_metrics_used }}
+{% endif %}
+{% if text_formulas_applied %}
+Formulas Applied:
+{{ text_formulas_applied }}
+{% endif %}
+DATA ASSESSMENT
+Data Coverage: {{ data_relationship_assessment.data_coverage }}%
+Relationship Strength: {{ data_relationship_assessment.relationship_strength }}
+Key Gaps: {{ data_relationship_assessment.key_relationship_gaps }}
+
+VELOCITY ANALYSIS
+Historical Velocity: {{ velocity_analysis.historical_velocity }}
+Team Capacity: {{ velocity_analysis.team_capacity_factors }}
+Complexity: {{ velocity_analysis.complexity_assessment }}
+
+ACCELERATION RECOMMENDATIONS
+{% if text_highest_impact_recommendations %}
+Highest Impact Actions:
+{{ text_highest_impact_recommendations }}
+{% endif %}
+{% if text_resource_considerations %}
+Resource Considerations:
+{{ text_resource_considerations }}
+{% endif %}
+DATA IMPROVEMENT NEEDS
+{% if text_data_gaps %}
+Key Data Gaps: {{ text_data_gaps }}
+{% endif %}
+Impact: {{ additional_data_needs.confidence_impact }}

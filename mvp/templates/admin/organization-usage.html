@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Organization Usage</h1>
+<table style="width:100%">
+    <thead>
+        <tr>
+            <th rowspan="2">Organization</th>
+            <th rowspan="2">Connected Tools</th>
+            <th rowspan="2"># Repositories</th>
+            <th rowspan="2"># PRs</th>
+            <th rowspan="2"># Full Repo Scans</th>
+            <th rowspan="2">Last scan</th>
+            <th rowspan="2"># Users</th>
+            <th rowspan="2">Last Login</th>
+            <th colspan="3">All scans combined:</th>
+        </tr>
+        <tr>
+            <th>% Overall</th>
+            <th>% Pure</th>
+            <th>% Blended</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.organization }}</td>
+            <td>{{ row.connected_tools }}</td>
+            <td>{{ row.repo_count }}</td>
+            <td>{{ row.pr_count }}</td>
+            <td>{{ row.full_scan_count }}</td>
+            <td>{{ row.last_scan_date }}</td>
+            <td>{{ row.num_users }}</td>
+            <td>{{ row.last_login }}</td>
+            {% if row.percentages %}
+                <td>{{ row.percentages.overall }}</td>
+                <td>{{ row.percentages.pure }}</td>
+                <td>{{ row.percentages.blended }}</td>
+            {% else %}
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

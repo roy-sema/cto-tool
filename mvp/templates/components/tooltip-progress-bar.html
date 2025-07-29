@@ -1,0 +1,17 @@
+<div class="text-xs font-light w-full"
+     data-te-toggle="popover"
+     data-te-placement="top"
+     data-te-trigger="hover focus"
+     data-te-title="{{ title }}"
+     data-te-content="{{ content }}"
+>
+  <div class="w-full bg-neutral-200 dark:bg-slate-600 rounded-full overflow-clip">
+    <div
+      class="bg-blue p-0.5 text-center text-xs font-medium leading-none text-primary-100 "
+      style="width: {% widthratio numerator denominator 100 %}%">
+      <span class="mx-1">
+        {% widthratio numerator denominator 100 %}%
+      </span>
+    </div>
+  </div>
+</div>

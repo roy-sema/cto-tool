@@ -1,0 +1,79 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 10s
+    scrapers:
+      memory: {}
+      cpu: {}
+      load: {}
+      disk: {}
+      filesystem: {}
+      network: {}
+      paging: {}
+      processes: {}
+      system: {}
+
+processors:
+  batch:
+    timeout: 500ms
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+  resourcedetection:
+    detectors:
+      - env
+      - system
+
+exporters:
+  debug:
+    verbosity: basic
+  otlp/traces:
+    endpoint: "api.honeycomb.io:443"
+    headers:
+        x-honeycomb-team: ${env:HONEYCOMB_TEAM}
+        x-honeycomb-dataset: ${env:HONEYCOMB_DATASET}
+  otlp/metrics:
+      endpoint: "api.honeycomb.io:443"
+      headers:
+        x-honeycomb-team: ${env:HONEYCOMB_TEAM}
+        x-honeycomb-dataset: ${env:HONEYCOMB_DATASET}
+  otlp/logs:
+      endpoint: "api.honeycomb.io:443"
+      headers:
+        x-honeycomb-team: ${env:HONEYCOMB_TEAM}
+        x-honeycomb-dataset: ${env:HONEYCOMB_DATASET}
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - otlp/traces
+    metrics:
+      receivers:
+        - hostmetrics
+        - otlp
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - batch
+      exporters:
+        - otlp/metrics
+    logs:
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - otlp/logs

@@ -1,0 +1,34 @@
+{% load static %}
+
+<!doctype html>
+<html>
+<head>
+  <title>There was a problem</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+  <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}" >
+  <script src="{% static 'js/vendor/tailwind.min.js' %}"></script>
+  {% include 'components/tailwind-config.html' %}
+  {% include 'components/posthog-snippet.html' %}
+  {% include "components/document360_widget.html" %}
+</head>
+<body class="bg-white text-dark dark:bg-slate-800 dark:text-white">
+  <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+      <h1 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight">No Organizations</h1>
+      <h2 class="mt-5 text-center text-xl font-bold leading-9 tracking-tight">Your user doesn't belong to any organization.</h2>
+    </div>
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+      <p class="text-center text-md">Please contact your administrator to make sure it's not an error.</p>
+      <div class="mt-5 text-center">
+        <div class="font-semibold leading-6 text-blue text-sm hover:text-violet dark:hover:text-lightgrey">
+          {% include 'components/logout-form.html' %}
+        </div>
+      </div>
+      <img src="{% static 'images/sema-logo.svg' %}" alt="Sema logo" class="mt-10 mx-auto h-6 w-auto dark:hidden">
+      <img src="{% static 'images/sema-logo-dark.svg' %}" alt="Sema logo" class="mt-10 mx-auto h-6 w-auto hidden dark:block">
+    </div>
+  </div>
+</body>
+</html>

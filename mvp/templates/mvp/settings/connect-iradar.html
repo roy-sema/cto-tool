@@ -1,0 +1,44 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}Settings - Connect iRADAR{% endblock %}
+
+{% block content %}
+    <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Settings</h1>
+
+    <h2 class="text-xl md:text-2xl mb-4 font-semibold">Connect iRADAR</h2>
+
+    {% include "components/messages.html" with messages=messages only %}
+
+    <form action="{% url 'connect_iradar' %}" method="post" class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            {% include "components/alert-error.html" with message=form.non_field_errors only %}
+        {% endif %}
+
+        <p class="mt-5 text-sm">Type your username and password for iRADAR. We'll use them to get an access token and connect to their API.</p>
+
+        <div class="mt-5">
+            <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium leading-6">Username</label>
+            {% if form.username.errors %}
+                {% include "components/alert-error.html" with message=form.username.errors only %}
+            {% endif %}
+            <div class="mt-2">
+                {{ form.username|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 p-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+            </div>
+        </div>
+        <div class="mt-5">
+            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium leading-6">Password</label>
+
+            {% if form.password.errors %}
+                {% include "components/alert-error.html" with message=form.password.errors only %}
+            {% endif %}
+            <div class="mt-2">
+                {{ form.password|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+            </div>
+        </div>
+        <button type="submit" value="submit" class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">Connect</button>
+    </form>
+
+{% endblock %}

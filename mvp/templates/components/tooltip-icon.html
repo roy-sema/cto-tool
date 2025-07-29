@@ -1,0 +1,11 @@
+{% load static %}
+<img
+  src={% if icon %}{{ icon }}{% else %}"{% static 'images/vendor/heroicons/outline/question-mark-circle.svg' %}"{% endif %}
+  class="w-5 inline opacity-80 dark:invert cursor-help"
+  data-te-toggle="popover"
+  data-te-placement="{% if placement %}{{ placement }}{% else %}top{% endif %}"
+  data-te-html="true"
+  {% if title %}data-te-title="{{ title }}"{% endif %}
+  data-te-content="{{ message }}"
+  data-te-trigger="hover focus"
+/>

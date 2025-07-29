@@ -1,0 +1,18 @@
+{% load static %}
+{% load custom_filters %}
+
+<ul class="w-full mt-3 flex flex-col content-center justify-between gap-2">
+  {% if perms.mvp.can_view_ai_code_monitor %}
+    {% static "images/vendor/heroicons/outline/presentation-chart-bar.svg" as dashboard_icon %}
+    {% include "components/sidebar-menu-item.html" with tiny=tiny page_name="dashboard" label="Dashboard" icon=dashboard_icon %}
+  {% endif %}
+
+  {% if perms.mvp.can_view_pull_request_scans %}
+    {% static "images/vendor/heroicons/outline/circle-stack.svg" as repository_groups_icon %}
+    {# HACK There is an extra space after "Repository Groups " to differentiate it between settings/Repository Groups for tests #}
+    {% include "components/sidebar-menu-item.html" with tiny=tiny page_name="repository_groups_dashboard" label="Repository Groups " icon=repository_groups_icon %}
+
+    {% static "images/vendor/heroicons/outline/user-group.svg" as developer_groups_icon %}
+    {% include "components/sidebar-menu-item.html" with tiny=tiny page_name="developer_groups_dashboard" label="Developer Groups <sup>BETA</sup>" icon=developer_groups_icon %}
+  {% endif %}
+</ul>

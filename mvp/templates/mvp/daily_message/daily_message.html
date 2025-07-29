@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Message - {{ organization.name }}</title>
+  <style>
+    details > summary {
+      list-style: none;
+    }
+    summary {
+      cursor: pointer;
+      background-color: #f5f5f5;
+      padding: 12px 15px;
+      margin: 30px 0 20px 0;
+      border-left: 5px solid #0066cc;
+      border-left-color: #ff5252;
+    }
+  </style>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f9f9f9">
+  <div style="padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid #dddddd">
+    <h1>SIP-Daily Message - {{ organization.name }}</h1>
+    <div style="margin-bottom: 10px; color: #666666">Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}</div>
+    <div style="margin-bottom: 10px; color: #666666">Organization: {{ organization.name }}</div>
+  </div>
+
+  {% if no_commits_message %}
+    <p>No commits found throughout the system since the last update.</p>
+  {% else %}
+
+    <div style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; padding: 20px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1)">
+      <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 15px 0; color: #333">Table of Contents</h2>
+      <ul style="list-style-type: none; padding: 0; margin: 0">
+        {% if data.anomaly_insights_and_risks.10 %}
+          <li style="margin-bottom: 8px"><a href="#significance-level-10" style="color: #0066cc; text-decoration: none">Significance Level 10</a></li>
+        {% endif %}
+        {% if data.anomaly_insights_and_risks.9  %}
+          <li style="margin-bottom: 8px"><a href="#significance-level-9" style="color: #0066cc; text-decoration: none">Significance Level 9</a></li>
+        {% endif %}
+        {% if data.anomaly_insights_and_risks.8  %}
+          <li style="margin-bottom: 8px"><a href="#significance-level-8" style="color: #0066cc; text-decoration: none">Significance Level 8</a></li>
+        {% endif %}
+        {% if data.anomaly_insights_and_risks.7  %}
+          <li style="margin-bottom: 8px"><a href="#significance-level-7" style="color: #0066cc; text-decoration: none">Significance Level 7</a></li>
+        {% endif %}
+        {% if data.jira_completeness_score %}
+          <li style="margin-bottom: 8px"><a href="#jira-score" style="color: #0066cc; text-decoration: none">Ticket Completeness Score</a></li>
+        {% endif %}
+        {% if data.aggregated_anomaly_insights %}
+          <li style="margin-bottom: 8px"><a href="#aggregated-insights" style="color: #0066cc; text-decoration: none">Aggregated Anomaly Insights</a></li>
+        {% endif %}
+      </ul>
+    </div>
+
+    <div style="background-color: #f5f5f5; padding: 15px; margin-bottom: 30px; border-bottom: 1px solid #dddddd; border-left: 5px solid #0066cc">
+      <h2 style="font-size: 20px; font-weight: bold; margin: 0; color: #333">ANOMALY INSIGHTS - CODE & JIRA</h2>
+    </div>
+
+  {% if data.anomaly_insights_and_risks.10 %}
+    <details open id="significance-level-10">
+      <summary>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #333">Significance Level 10</h3>
+      </summary>
+      {% for insight in data.anomaly_insights_and_risks.10 %}
+      {% include "mvp/daily_message/partials/daily_message_insight_item.html" with item=insight id_prepend="ceo-attention" id=forloop.counter only %}
+      {% endfor %}
+    </details>
+  {% endif %}
+
+  {% if data.anomaly_insights_and_risks.9 %}
+    <details open id="significance-level-9">
+      <summary>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #333">Significance Level 9</h3>
+      </summary>
+      {% for insight in data.anomaly_insights_and_risks.9 %}
+      {% include "mvp/daily_message/partials/daily_message_insight_item.html" with item=insight id_prepend="cto-attention" id=forloop.counter only %}
+      {% endfor %}
+    </details>
+  {% endif %}
+
+  {% if data.anomaly_insights_and_risks.8  %}
+    <details open id="significance-level-8">
+      <summary>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #333">Significance Level 8</h3>
+      </summary>
+      {% for insight in data.anomaly_insights_and_risks.8 %}
+      {% include "mvp/daily_message/partials/daily_message_insight_item.html" with item=insight id_prepend="director-attention" id=forloop.counter only %}
+      {% endfor %}
+    </details>
+  {% endif %}
+
+  {% if data.anomaly_insights_and_risks.7  %}
+    <details open id="significance-level-7">
+      <summary>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #333">Significance Level 7</h3>
+      </summary>
+      {% for insight in data.anomaly_insights_and_risks.7 %}
+      {% include "mvp/daily_message/partials/daily_message_insight_item.html" with item=insight id_prepend="team-lead-attention" id=forloop.counter only %}
+      {% endfor %}
+    </details>
+  {% endif %}
+
+  {% if data.jira_quality_summary %}
+   <details open id="jira-score">
+    <summary>
+      <h2 style="font-size: 20px; font-weight: bold; margin: 0; color: #333">TICKET COMPLETENESS SCORE</h2>
+    </summary>
+    <div style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; padding: 12px 15px">
+      <div style="display: flex; gap: 8px; align-items: center">
+        <div style="font-size: 20px; font-weight: bold">Overall Score {{ data.jira_quality_summary.all_projects.average_score|floatformat:0 }}/100</div>
+        {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category=data.jira_quality_summary.all_projects.quality_category values=True bold=True only %}
+      </div>
+      <div style="margin-top: 30px; margin-bottom: 40px">
+        {% include "mvp/daily_message/partials/daily_message_jira_quality_categories.html" %}
+      </div>
+      {% with by_stage=data.jira_completeness_summary.by_stage|default:data.jira_quality_summary.all_projects.by_stage by_category=data.jira_completeness_summary.by_category|default:data.jira_quality_summary.all_projects.by_category %}
+          {% include "mvp/daily_message/partials/daily_message_jira_quality_by_stage_and_category.html" with by_stage=by_stage by_category=by_category only %}
+      {% endwith %}
+      <div>
+      {% for project in data.jira_quality_summary.by_project %}
+        <h2 style="margin-top: 30px; font-size: 20px; font-weight: bold; color: #333">Project: {{ project.project }} ({{ project.project_name }})</h2>
+        <hr />
+        <div style="margin-top: 20px; display: flex; gap: 8px; align-items: center">
+          <div style="font-size: 20px; font-weight: bold">Ticket Completeness Score {{ project.average_score|floatformat:0 }}/100</div>
+          {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category=project.quality_category values=True bold=True only %}
+        </div>
+        <div style="margin-top: 30px; margin-bottom: 40px">
+          {% include "mvp/daily_message/partials/daily_message_jira_quality_categories.html" %}
+        </div>
+        {% include "mvp/daily_message/partials/daily_message_jira_quality_by_stage_and_category.html" with by_stage=project.by_stage by_category=project.by_category only %}
+
+        <h2 style="font-weight: bold; margin-top: 30px">Sample Tickets</h2>
+        <hr style="margin-top: 10px; margin-bottom: 20px"/>
+        {% if project.sample_tickets.top_3 %}
+        <div style="margin-top: 25px; margin-bottom: 25px">
+          {% for item in project.sample_tickets.top_3 %}
+            {% include "mvp/daily_message/partials/daily_message_jira_completeness_item.html" with item=item id_prepend=item.issue_key|add:"-top-3" id=forloop.counter only %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if project.sample_tickets.bottom_3 %}
+        <div style="margin-bottom: 25px">
+          {% for item in project.sample_tickets.bottom_3 %}
+            {% include "mvp/daily_message/partials/daily_message_jira_completeness_item.html" with item=item id_prepend=item.issue_key|add:"-bottom-3" id=forloop.counter only %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      {% endfor %}
+      </div>
+    </div>
+   </details>
+  {% endif %}
+
+  {% if data.aggregated_anomaly_insights %}
+    <details open id="aggregated-insights">
+      <summary>
+        <h2 style="font-size: 20px; font-weight: bold; margin: 0; color: #333">AGGREGATED ANOMALY INSIGHTS - CODE</h2>
+      </summary>
+      <div id="summary--aggregated-anomaly-insights" style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; padding: 12px 15px">
+        <h3>Summary</h3>
+        {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=data.aggregated_anomaly_insights.summary only %}
+      </div>
+      <div style="display: flex; width: 100%; margin-bottom: 20px">
+        <div class="no-copy-clipboard" style="margin-left: auto; color: #0066cc; cursor: pointer" onclick="copyText('summary--aggregated-anomaly-insights')" >copy</div>
+      </div>
+      <div style="margin-bottom: 40px">
+      {% for group_of_insights in data.aggregated_anomaly_insights.groups_of_insights %}
+        {% with outer_counter=forloop.counter|stringformat:"s" %}
+        <div style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; padding: 12px 15px">
+          <p><span style="margin-bottom: 5px; font-weight: bold">Similarity Reason:</span> {{ group_of_insights.similarity_reason }}</p>
+        {% for insight in group_of_insights.details_of_insights %}
+          {% with inner_counter=forloop.counter|stringformat:"s" %}
+          {% with combined_id="aggregated-"|add:outer_counter|add:"-"|add:inner_counter %}
+            {% include "mvp/daily_message/partials/daily_message_insight_item.html" with id_prepend="aggregated-insights" id=combined_id item=insight only %}
+          {% endwith %}
+          {% endwith %}
+        {% endfor %}
+        </div>
+        {% endwith %}
+      {% endfor %}
+      </div>
+    </details>
+  {% endif %}
+
+  {% endif %}
+</body>
+</html>

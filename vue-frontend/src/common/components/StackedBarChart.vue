@@ -1,0 +1,115 @@
+<script setup lang="ts">
+import { colors as defaultColors } from "@/common/apexcharts/config";
+import type { ApexOptions } from "apexcharts";
+import { cloneDeep, snakeCase } from "lodash";
+import { computed, onMounted, ref } from "vue";
+import { default as ApexChart } from "vue3-apexcharts";
+
+const props = withDefaults(
+  defineProps<{
+    id: string;
+    title: string;
+    data: any;
+    colors?: string[];
+    maxY?: number | null;
+    height?: number;
+    loading?: boolean;
+    showTotals?: boolean;
+    tooltipSuffix?: string;
+  }>(),
+  {
+    height: 350,
+    tooltipSuffix: "%",
+  },
+);
+
+const defaultOptions: ApexOptions = {
+  chart: {
+    type: "bar",
+    stacked: true,
+    fontFamily: "Inter, sans-serif",
+    redrawOnParentResize: true,
+    toolbar: {
+      show: true,
+      export: {
+        csv: {
+          filename: snakeCase(props.title),
+          headerCategory: "Date",
+        },
+      },
+    },
+    zoom: { enabled: false },
+    width: "100%",
+  },
+  colors: props.colors || defaultColors,
+  dataLabels: { enabled: false },
+  plotOptions: {
+    bar: {
+      dataLabels: {
+        total: {
+          enabled: props.showTotals,
+        },
+      },
+    },
+  },
+  xaxis: { type: "datetime" },
+  yaxis: { decimalsInFloat: 0 },
+  tooltip: {
+    x: { format: "dd MMM" },
+    y: { formatter: (value: number) => `${value}${props.tooltipSuffix}` },
+  },
+  legend: {
+    position: "bottom",
+    offsetY: 5,
+  },
+  fill: { opacity: 1 },
+};
+
+const ready = ref(false);
+
+const series = computed(() => props.data?.series || []);
+
+const chartOptions = computed(() => {
+  const options = cloneDeep(defaultOptions);
+
+  (options.chart as ApexChart).id = props.id;
+  (options.xaxis as ApexXAxis).categories = props.data.categories;
+  if (props.maxY) {
+    (options.yaxis as ApexYAxis).max = props.maxY;
+  }
+  options.dataLabels = { enabled: series.value.length > 1 };
+
+  return options;
+});
+
+onMounted(() => {
+  // fix resizing issue
+  setTimeout(() => (ready.value = true), 0);
+});
+</script>
+
+<template>
+  <div class="chart-container mb-2">
+    <div class="mb-3 flex items-center justify-between">
+      <h4 class="font-semibold">{{ title }}</h4>
+      <div class="mr-1">
+        <ProgressSpinner v-if="loading" class="!size-5" />
+      </div>
+    </div>
+    <!-- Set height to prevent resize issues due to vertical scroll change -->
+    <div
+      class="relative rounded-xl border border-lightgrey p-2 shadow-md dark:border-slate-600"
+      :style="`min-height: ${height}px;`"
+    >
+      <ApexChart v-if="ready" :options="chartOptions" :series="series" :height="height" />
+      <div
+        v-if="data.no_data || !series"
+        class="z-2 absolute inset-0 flex items-center justify-center rounded-xl bg-black bg-opacity-30 p-5"
+      >
+        <p class="transform text-center text-xl font-bold text-white md:text-2xl">
+          {{ data.no_data ? "No data reported" : "No data available yet." }}
+        </p>
+      </div>
+    </div>
+  </div>
+</template>

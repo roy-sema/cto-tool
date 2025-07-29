@@ -1,0 +1,350 @@
+storage:
+  - - put
+    - users/admin
+    - username: admin
+      password: PLACEHOLDER_FOR_ADMIN_PASSWORD_HASH
+      full_name: Administrator
+      email: admin@semasoftware.com
+      active: 1
+      modified: 1735689600
+      created: 1735689600
+      salt: salty
+      privileges:
+        admin: 1
+  - - listCreate
+    - global/users
+    - page_size: 100
+  - - listPush
+    - global/users
+    - username: admin
+  - - listCreate
+    - global/plugins
+    - {}
+  - - listPush
+    - global/plugins
+    - id: shellplug
+      title: Shell Script
+      enabled: 1
+      command: bin/shell-plugin.js
+      username: admin
+      modified: 1735689600
+      created: 1735689600
+      params:
+        - id: script
+          type: textarea
+          title: Shell Script
+          value: |
+            #!/bin/bash
+
+            echo "Hello!"
+        - id: annotate
+          type: checkbox
+          title: Annotate Success
+          value: 0
+        - id: json
+          type: checkbox
+          title: JSON Output
+          value: 0
+  - - listCreate
+    - global/categories
+    - {}
+  - - listPush
+    - global/categories
+    - id: general
+      title: General
+      enabled: 1
+      color: green
+      max_concurrent: 0
+      username: admin
+      modified: 1735689600
+      created: 1735689600
+  - - listPush
+    - global/categories
+    - id: ctotool
+      title: 'cto-tool jobs'
+      enabled: 1
+      color: blue
+      max_concurrent: 0
+      username: admin
+      modified: 1735689600
+      created: 1735689600
+  - - listPush
+    - global/categories
+    - id: aiengine
+      title: 'ai_engine jobs'
+      enabled: 1
+      color: pink
+      max_concurrent: 0
+      username: admin
+      modified: 1735689600
+      created: 1735689600
+  - - listCreate
+    - global/server_groups
+    - {}
+  - - listPush
+    - global/server_groups
+    - id: allgrp
+      title: All Servers
+      enabled: 1
+      hostname: ^(.+)$
+      username: admin
+      modified: 1735689600
+      created: 1735689600
+  - - listCreate
+    - global/api_keys
+    - {}
+  - - listPush
+    - global/api_keys
+    - id: githubactions
+      title: Github Actions
+      description: API key for Github Actions
+      enabled: 1
+      active: "1"
+      key: PLACEHOLDER_FOR_API_KEY
+      username: admin
+      modified: 1735689600
+      created: 1735689600
+      privileges:
+        create_events: 1
+        run_events: 1
+        abort_events: 1
+  - - listCreate
+    - global/schedule
+    - {}
+
+  - - listPush
+    - global/schedule
+    - id: job001
+      title: Update permissions
+      notes: 'Set files & folders owner to cto-tool:www-data and permissions to "ug+rwX"'
+      enabled: 1
+      category: ctotool
+      plugin: shellplug
+      params:
+        script: |-
+          #!/bin/bash
+          # Escaping from Cronicle container
+          /usr/bin/nsenter --target 1 --mount --uts --ipc --net /bin/bash -c '
+          set -e
+          echo "Im $(whoami) on ${HOSTNAME}"
+          echo "$(date) Executing chown -R cto-tool:www-data"
+          time find /home/cto-tool/gbom-precomputed /home/cto-tool/repositories -mindepth 1 -maxdepth 1 -print0 | xargs -0 --verbose --no-run-if-empty -P80 --max-args 1 chown -R cto-tool:www-data
+          echo "$(date) Executing chmod -R ug+rwX"
+          time find /home/cto-tool/gbom-precomputed -mindepth 1 -maxdepth 1 -print0 | xargs -0 --verbose --no-run-if-empty -P80 --max-args 1 chmod -R ug+rwX
+          '
+        annotate: 0
+        json: 0
+      timing:
+        minutes: [0,10,20,30,40,50]
+      max_children: 1
+      timeout: 3600
+      queue_max: 10
+      timezone: UTC
+      target: cronicle.infra.semasoftware.com
+      algo: random
+      retries: 0
+      retry_delay: 0
+      detached: 0
+      queue: 0
+      chain: ""
+      chain_error: ""
+      notify_success: ""
+      notify_fail: ""
+      web_hook: ""
+      log_max_size: 0
+      memory_limit: 1099511627776
+
+  - - listPush
+    - global/schedule
+    - id: job002
+      title: ai_engine cron
+      notes: 'Executing sudo -u cto-tool /home/cto-tool/cron_ai_engine.sh'
+      enabled: 1
+      category: aiengine
+      plugin: shellplug
+      params:
+        script: |-
+          #!/bin/bash
+          # Escaping from Cronicle container
+          /usr/bin/nsenter --target 1 --mount --uts --ipc --net /bin/bash -c '
+          set -e
+          echo "Im $(whoami) on ${HOSTNAME}"
+          echo "$(date) Executing sudo -u cto-tool /home/cto-tool/cron_ai_engine.sh"
+          sudo -u cto-tool /home/cto-tool/cron_ai_engine.sh
+          '
+        annotate: 0
+        json: 0
+      timing:
+        minutes: [0,15,30,45]
+      max_children: 1
+      timeout: 36000
+      queue_max: 10
+      timezone: UTC
+      target: cronicle.infra.semasoftware.com
+      algo: random
+      retries: 0
+      retry_delay: 0
+      detached: 0
+      queue: 0
+      chain: ""
+      chain_error: ""
+      notify_success: ""
+      notify_fail: ""
+      web_hook: ""
+      log_max_size: 0
+      memory_limit: 1099511627776
+
+  - - listPush
+    - global/schedule
+    - id: job003
+      title: cto-tool cron.sh
+      notes: 'Executing sudo -u cto-tool /home/cto-tool/cto-tool/cron.sh'
+      enabled: 1
+      category: ctotool
+      plugin: shellplug
+      params:
+        script: |-
+          #!/bin/bash
+          # Escaping from Cronicle container
+          /usr/bin/nsenter --target 1 --mount --uts --ipc --net /bin/bash -c '
+          set -e
+          echo "Im $(whoami) on ${HOSTNAME}"
+          echo "$(date) Executing sudo -u cto-tool /home/cto-tool/cto-tool/cron.sh"
+          sudo -u cto-tool /home/cto-tool/cto-tool/cron.sh
+          '
+        annotate: 0
+        json: 0
+      timing:
+        minutes: [0]
+        hours: [4]
+      max_children: 1
+      timeout: 0
+      queue_max: 10
+      timezone: UTC
+      target: cronicle.infra.semasoftware.com
+      algo: random
+      retries: 0
+      retry_delay: 0
+      detached: 0
+      queue: 0
+      chain: ""
+      chain_error: ""
+      notify_success: ""
+      notify_fail: ""
+      web_hook: ""
+      log_max_size: 0
+      memory_limit: 1099511627776
+
+  - - listPush
+    - global/schedule
+    - id: job004
+      title: cto-tool cron_pull_requests.sh
+      notes: 'Executing sudo -u cto-tool /home/cto-tool/cron_pull_requests.sh'
+      enabled: 1
+      category: ctotool
+      plugin: shellplug
+      params:
+        script: |-
+          #!/bin/bash
+          # Escaping from Cronicle container
+          /usr/bin/nsenter --target 1 --mount --uts --ipc --net /bin/bash -c '
+          set -e
+          echo "Im $(whoami) on ${HOSTNAME}"
+          echo "$(date) Executing sudo -u cto-tool /home/cto-tool/cron_pull_requests.sh"
+          sudo -u cto-tool /home/cto-tool/cron_pull_requests.sh
+          '
+        annotate: 0
+        json: 0
+      timing:
+        minutes: [0,15,30,45]
+      max_children: 1
+      timeout: 21600
+      queue_max: 10
+      timezone: UTC
+      target: cronicle.infra.semasoftware.com
+      algo: random
+      retries: 0
+      retry_delay: 0
+      detached: 0
+      queue: 0
+      chain: ""
+      chain_error: ""
+      notify_success: ""
+      notify_fail: ""
+      web_hook: ""
+      log_max_size: 0
+      memory_limit: 1099511627776
+
+  - - listPush
+    - global/schedule
+    - id: job005
+      title: cto-tool cron_minute.sh
+      notes: 'Executing sudo -u cto-tool /home/cto-tool/cron_minute.sh'
+      enabled: 1
+      category: ctotool
+      plugin: shellplug
+      params:
+        script: |-
+          #!/bin/bash
+          # Escaping from Cronicle container
+          /usr/bin/nsenter --target 1 --mount --uts --ipc --net /bin/bash -c '
+          set -e
+          echo "Im $(whoami) on ${HOSTNAME}"
+          echo "$(date) Executing sudo -u cto-tool /home/cto-tool/cron_minute.sh"
+          sudo -u cto-tool /home/cto-tool/cron_minute.sh
+          '
+        annotate: 0
+        json: 0
+      timing:
+        # =_\\ facepalm
+        minutes: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59]
+      max_children: 1
+      timeout: 300
+      queue_max: 10
+      timezone: UTC
+      target: cronicle.infra.semasoftware.com
+      algo: random
+      retries: 0
+      retry_delay: 0
+      detached: 0
+      queue: 0
+      chain: ""
+      chain_error: ""
+      notify_success: ""
+      notify_fail: ""
+      web_hook: ""
+      log_max_size: 0
+      memory_limit: 1099511627776
+
+  - - listPush
+    - global/schedule
+    - id: contextualization_script_job
+      title: contextualization_script.sh execution
+      notes: 'Execute contextualization scripts for given organization'
+      enabled: 0
+      category: general
+      plugin: shellplug
+      params:
+        script: |-
+          #!/bin/bash
+          # this entire param content will be replaced by API call
+          '
+        annotate: 0
+        json: 0
+      max_children: 1
+      timeout: 0
+      queue_max: 10
+      timezone: UTC
+      target: cronicle.infra.semasoftware.com
+      algo: random
+      retries: 0
+      retry_delay: 0
+      detached: 0
+      queue: 1
+      chain: ""
+      chain_error: ""
+      notify_success: ""
+      notify_fail: ""
+      web_hook: ""
+      log_max_size: 0
+      memory_limit: 1099511627776

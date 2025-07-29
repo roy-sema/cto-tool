@@ -1,0 +1,21 @@
+{% extends "mvp/base.html" %}
+
+{% load custom_filters %}
+{% load static %}
+{% load vue_utils %}
+
+{% block title %}GenAI Codebase Composition{% endblock %}
+
+{% block content %}
+  <div id="vue-app"
+    data-developers-count="{{ developers_count }}"
+    data-merge-developers-url="{% url 'other_settings' %}"
+    data-org-first-date="{{ org_first_date }}"
+    data-default-time-window-days="{{ default_time_window_days }}"
+    data-updated-at="{{ updated_at }}"
+  ></div>
+
+  <script type="module" crossorigin src="{% vue_bundle_url 'app' %}"></script>
+
+
+{% endblock %}

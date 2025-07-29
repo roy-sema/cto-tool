@@ -1,0 +1,119 @@
+{% load inline_static_tags %}
+{% load widget_tweaks %}
+
+{% if form.errors %}
+  {% include "components/alert-error.html" with message=form.errors only %}
+{% endif %}
+
+<form action="./{% if not form.instance.id %}#create-rule{% endif %}"
+    method="post"
+    class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md mb-20 max-w-3xl">
+  {% csrf_token %}
+  {{ formset.management_form }}
+
+  <div class="mb-5 flex items-center gap-12">
+    <label for="{{ form.name.id_for_label }}"
+          class="block text-sm font-medium leading-6 w-12 shrink-0">{{ form.name.label }}</label>
+
+    {% if form.name.errors %}
+      {% include "components/alert-error.html" with message=form.name.errors only %}
+    {% endif %}
+
+    {{ form.name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+  </div>
+
+  <div class="mb-5 flex items-center gap-12">
+    <label for="{{ form.description.id_for_label }}"
+          class="block text-sm font-medium leading-6 w-12 shrink-0">{{ form.description.label }}</label>
+
+    {% if form.description.errors %}
+      {% include "components/alert-error.html" with message=form.description.errors only %}
+    {% endif %}
+
+    {{ form.description|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+  </div>
+
+  <hr class="h-px my-5 bg-gray-200 border-0">
+
+  <div class="mb-5 flex items-center text-sm">
+    {% if form.condition_mode.errors %}
+      {% include "components/alert-error.html" with message=form.condition_mode.errors only %}
+    {% endif %}
+
+    <div class="flex items-center gap-2 whitespace-nowrap">
+      <span class="font-bold">IF</span>
+      {{ form.condition_mode|add_class:"inline-block rounded-md bg-white dark:bg-slate-600 border-0 py-1 px-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue text-sm leading-6" }}
+      of these conditions are met:
+    </div>
+  </div>
+
+  <div class="mb-5 text-sm">
+    <div id="form-conditions-list">
+      {% for condition_form in formset %}
+        {% if condition_form.errors %}
+          {% include "components/alert-error.html" with message="Please fill all inputs in condition" only %}
+        {% endif %}
+
+        <div class="my-2 py-2 px-4 bg-lightgrey dark:bg-slate-700 rounded-md mb-5 {% if forloop.last %}hidden template{% else %}condition{% endif %}">
+          <div class="flex items-center gap-3 justify-between">
+            <div class="leading-8">
+              <span class="whitespace-nowrap mr-1">The codebase's</span>
+              {{ condition_form.code_type|add_class:"inline-block rounded-md bg-white dark:bg-slate-600 border-0 py-1 px-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue text-sm leading-6" }}
+              <span class="mx-1">is</span>
+              {{ condition_form.operator|add_class:"inline-block rounded-md bg-white dark:bg-slate-600 border-0 py-1 px-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue text-sm leading-6" }}
+              <span class="whitespace-nowrap">
+                {{ condition_form.percentage|add_class:"inline-block rounded-md bg-white dark:bg-slate-600 border-0 py-0.5 px-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue text-sm leading-6" }}
+                %
+              </span>
+            </div>
+            <button class="inline-block shrink-0 cursor-pointer place-items-center py-1.5 px-2.5 rounded-md border border-gray-300 dark:border-slate-400 bg-white dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-500 delete-btn">
+              <img src="/static/images/vendor/heroicons/outline/trash.svg" class="w-4 h-4 dark:invert">
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+
+      {% for condition_form in formset %}
+        {% if condition_form.instance.id %}
+          {{ condition_form.public_id }}
+        {% endif %}
+      {% endfor %}
+    </div>
+    <a href="#" class="mr-2 text-sm text-blue font-semibold hover:text-violet dark:hover:text-lightgrey" id="add-btn">
+      + Add Condition
+    </a>
+  </div>
+
+  <div class="mb-5 flex items-center text-sm">
+    {% if form.risk.errors %}
+      {% include "components/alert-error.html" with message=form.risk.errors only %}
+    {% endif %}
+
+    <div class="flex items-center gap-2 whitespace-nowrap">
+      <span class="font-bold">THEN</span> risk is
+      {{ form.risk|add_class:"inline-block rounded-md bg-white dark:bg-slate-600 border-0 py-1 px-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue text-sm leading-6" }}
+    </div>
+  </div>
+
+  <hr class="h-px my-5 bg-gray-200 border-0">
+
+  <div class="mb-5">
+    {% if form.apply_organization.errors %}
+      {% include "components/alert-error.html" with message=form.apply_organization.errors only %}
+    {% endif %}
+
+    <div class="flex items-center gap-2">
+      {{ form.apply_organization|add_class:"w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+      <label for="{{ form.apply_organization.id_for_label }}"
+            class="block text-sm font-medium leading-6"
+      >{{ form.apply_organization.label }}</label>
+    </div>
+    <div class="pl-6 text-xs text-gray-900 dark:text-gray-300 mt-0.5">{{ form.apply_organization.help_text }}</div>
+  </div>
+
+  <button type="submit"
+          class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+    {% if form.instance.id %}Save{% else %}Create{% endif %} rule
+  </button>
+</form>
+<script>{% inline_javascript 'js/rule-editor.js' %}</script>

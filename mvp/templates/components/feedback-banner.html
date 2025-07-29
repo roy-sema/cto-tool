@@ -1,0 +1,14 @@
+{% load static %}
+{% load inline_static_tags %}
+
+<div id="feedback-banner" class="py-2 px-4 bg-lightgrey dark:bg-slate-600 rounded-md mb-5 hidden">
+  <div class="flex justify-between items-center gap-3">
+    <p>Questions or Feedback? <a href="{% url 'contact' %}" title="Send us feedback" class="font-semibold text-blue">Let us know</a>.</p>
+    <div class="flex-shrink-0">
+      <button id="close-feedback-banner" class="p-2">
+        <img src="{% static 'images/vendor/heroicons/outline/x-mark.svg' %}" class="w-4 dark:invert" />
+      </button>
+    </div>
+  </div>
+</div>
+<script>{% inline_javascript 'js/feedback-banner.js' %}</script>

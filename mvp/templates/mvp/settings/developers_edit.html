@@ -1,0 +1,83 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load inline_static_tags %}
+{% load widget_tweaks %}
+
+{% block title %}Edit Developer alias{% endblock title %}
+
+{% block content %}
+  <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Settings</h1>
+  <h2 class="text-xl md:text-2xl mb-4 font-semibold">Edit Developer alias</h2>
+
+  <form action="./"
+        method="post"
+        class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md mb-20 max-w-3xl">
+    {% csrf_token %}
+
+    <div class="mb-5 flex items-start gap-12">
+      <label for="author_name" class="block text-sm font-medium leading-6 w-12 shrink-0">Name</label>
+      <div>
+        <span>{{ author.name }}</span>
+        {% if author.email %}
+          <div class="text-xs text-gray-500">{{ author.email }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="checkbox-list">
+      <div class="flex items-center gap-12">
+        <label for="alias" class="block text-sm font-medium leading-6 w-12 shrink-0">Alias</label>
+        <p class="text-sm">Selected developers will be treated as the same developer:</p>
+      </div>
+      <div class="mb-2 ml-24 text-right text-xs">
+        <span>
+          Selected: <span class="checkbox-list-num-selected">{{ author.author_set.all|length }}</span>/{{ other_authors|length }}
+        </span>
+        <button type="button"
+        class="checkbox-list-select-all rounded-md bg-blue px-1.5 py-.5 text-xs font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+          Select All
+        </button>
+        <button type="button"
+        class="checkbox-list-select-none rounded-md bg-blue px-1.5 py-.5 text-xs font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+          Select None
+        </button>
+      </div>
+      <div class="ml-24 pr-2 max-h-96 overflow-y-auto overflow-x-hidden">
+        {% for other_author in other_authors %}
+          <div class="flex items-start">
+            <input type="checkbox"
+                  name="developers"
+                  value="{{ other_author.public_id }}"
+                  id="author-{{ other_author.public_id }}"
+                  {% if other_author in author.author_set.all %}checked{% endif %}
+                  class="w-4 h-4 mt-1 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 mt-1.5">
+            <div class="flex flex-col justify-between w-full ml-2">
+              <div class="flex justify-between items-center">
+                <label for="author-{{ other_author.public_id }}"
+                      class="text-sm font-medium text-gray-900 dark:text-gray-300 my-1">
+                  {{ other_author.name }}
+                </label>
+                <div class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                  {% if other_author.linked_author %}
+                    {% include "components/pill.html" with text=other_author.linked_author.name only %}
+                  {% else %}
+                    {% include "components/pill.html" with text="Unlinked" only %}
+                  {% endif %}
+                </div>
+              </div>
+              {% if other_author.email %}
+                <div class="text-xs text-gray-500">{{ other_author.email }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="submit"
+            class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+      Save
+    </button>
+  </form>
+  <script>{% inline_javascript 'js/checkbox-list.js' %}</script>
+{% endblock content %}

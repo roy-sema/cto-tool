@@ -1,0 +1,21 @@
+{% extends 'admin/index.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="app-custom module">
+    <table>
+      <caption>
+        Custom Views
+      </caption>
+      <tbody>
+        <tr class="model-group">
+            <th scope="row"><a href="{% url 'admin:organization-usage' %}">Organization Usage</a></th>
+            <td></td>
+            <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {{ block.super }}
+{% endblock %}

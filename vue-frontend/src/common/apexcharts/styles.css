@@ -1,0 +1,49 @@
+div.apexcharts-canvas > svg {
+  background: transparent !important;
+}
+
+.dark div.apexcharts-canvas text {
+  fill: #f7f7f7;
+}
+
+.dark div.apexcharts-canvas text.apexcharts-text.apexcharts-yaxis-annotation-label {
+  fill: #333333;
+}
+
+.dark .apexcharts-legend-text {
+  color: #f7f7f7 !important;
+}
+
+.dark .apexcharts-tooltip.apexcharts-theme-light,
+.dark .apexcharts-menu {
+  color: #fff;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid #333;
+}
+
+.dark .apexcharts-theme-light .apexcharts-menu-item:hover {
+  background: #0f172a;
+}
+
+.dark .apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {
+  background: rgba(15, 23, 42, 0.7);
+  border-bottom: 1px solid #333;
+}
+
+.dark .apexcharts-xaxistooltip.apexcharts-theme-light,
+.dark .apexcharts-yaxistooltip.apexcharts-theme-light {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+
+.dark .apexcharts-xaxistooltip-bottom.apexcharts-theme-light:after,
+.dark .apexcharts-xaxistooltip-bottom.apexcharts-theme-light:before,
+.dark .apexcharts-xaxistooltip-top.apexcharts-theme-light:after,
+.dark .apexcharts-xaxistooltip-top.apexcharts-theme-light:before,
+.dark .apexcharts-yaxistooltip-left.apexcharts-theme-light:after,
+.dark .apexcharts-yaxistooltip-left.apexcharts-theme-light:before,
+.dark .apexcharts-yaxistooltip-right.apexcharts-theme-light:after,
+.dark .apexcharts-yaxistooltip-right.apexcharts-theme-light:before {
+  border-right-color: rgba(0, 0, 0, 0.5);
+}

@@ -1,0 +1,60 @@
+<div class="mt-5">
+  <h3 class="text-xl font-semibold">Welcome to your free trial</h3>
+
+  <p class="my-3">
+    Connect your GitHub, Azure DevOps or BitBucket account to analyze
+    {% if analysis_limits.repositories or analysis_limits.lines_per_repository %}
+      a portion of your code: up to
+      {% if analysis_limits.repositories %}
+        {{ analysis_limits.repositories }}
+        {{ analysis_limits.repositories|pluralize:"repository,repositories" }}
+        {% if analysis_limits.lines_per_repository %} and {% else %}.{% endif %}
+      {% endif %}
+      {% if analysis_limits.lines_per_repository %}
+        {{ analysis_limits.lines_per_repository }} lines per repository.
+      {% endif %}
+    {% else %}
+      your code.
+    {% endif %}
+  </p>
+
+  <div class="my-5 flex flex-col gap-5 md:flex-row">
+    <div
+      class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+      <h4 class="text-lg font-semibold">GitHub</h4>
+      <a href="{{ git.github_url }}"
+         class="block mx-auto w-full text-center sm:w-64 mt-5 mb-8 rounded-md bg-blue px-4 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+        Connect GitHub
+      </a>
+      <p class="my-5">
+        We will redirect you to GitHub to authorize the connection.
+      </p>
+      <p class="my-5">Then, please select the repositories you want to analyze.</p>
+    </div>
+
+    <div
+      class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+      <h4 class="text-lg font-semibold">Azure DevOps</h4>
+      <a href="{% url 'connect_azure_devops' %}"
+         class="block mx-auto w-full text-center sm:w-64 mt-5 mb-8 rounded-md bg-blue px-4 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+        Connect Azure DevOps
+      </a>
+      <p class="my-5">Follow the instructions to manually set up the connection.</p>
+      <p class="my-5">Then, configure which repositories you want to analyze.</p>
+    </div>
+
+    <div
+      class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+      <h4 class="text-lg font-semibold">BitBucket</h4>
+      <a href="{% url 'connect_bitbucket' %}"
+         class="block mx-auto w-full text-center sm:w-64 mt-5 mb-8 rounded-md bg-blue px-4 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+        Connect BitBucket
+      </a>
+      <p class="my-5">Follow the instructions to manually set up the connection.</p>
+      <p class="my-5">Then, configure which repositories you want to analyze.</p>
+    </div>
+  </div>
+  <p class="my-5">
+    You will receive an email when the results are ready in your dashboard.
+  </p>
+</div>

@@ -1,0 +1,224 @@
+name: cto-tool-infrastructure
+services:
+  traefik:
+    image: "traefik:v3.4"
+    restart: always
+    depends_on:
+      oauth2-proxy:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    ports:
+      - "0.0.0.0:4430:4430"
+      - "8080"
+    networks:
+      - traefiknet
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "${PWD}/traefik/traefik_dynamic.yaml:/etc/traefik/traefik_dynamic.yaml:ro"
+    deploy:
+      mode: global
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 60s
+      rollback_config:
+        order: stop-first
+      update_config:
+        order: stop-first
+    command:
+      - "--log.level=DEBUG"
+      - "--global.sendAnonymousUsage=false"
+      - "--serverstransport.insecureskipverify=true"
+      - "--api=true"
+      - "--api.dashboard=false"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/traefik_dynamic.yaml"
+      - "--providers.file.watch=true"
+
+
+      - "--entryPoints.http.address=:8000"
+      - "--entryPoints.https.address=:4430"
+
+      - "--metrics.otlp=true"
+      - "--metrics.otlp.addEntryPointsLabels=true"
+      - "--metrics.otlp.addRoutersLabels=true"
+      - "--metrics.otlp.grpc.endpoint=otel-collector:4317"
+      - "--metrics.otlp.grpc=true"
+      - "--metrics.otlp.grpc.insecure=true"
+
+      - "--tracing.serviceName=traefik"
+      - "--tracing.otlp=true"
+      - "--tracing.otlp.grpc.endpoint=otel-collector:4317"
+      - "--tracing.otlp.grpc=true"
+      - "--tracing.otlp.grpc.insecure=true"
+
+      - "--experimental.otlpLogs=true"
+      - "--log.otlp=false"
+      - "--log.otlp.grpc.endpoint=otel-collector:4317"
+      - "--log.otlp.grpc=true"
+      - "--log.otlp.grpc.insecure=true"
+
+      - "--accesslog.otlp=true"
+      - "--accesslog.otlp.grpc.endpoint=otel-collector:4317"
+      - "--accesslog.otlp.grpc=true"
+      - "--accesslog.otlp.grpc.insecure=true"
+
+  oauth2-proxy:
+    # Traefik+oauth2-proxy examples https://github.com/oauth2-proxy/oauth2-proxy/tree/master/contrib/local-environment/traefik
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
+    restart: always
+    ports:
+    - 4180
+    networks:
+     - traefiknet
+    env_file:
+      - path: ./oauth2-proxy/.env
+        required: true
+      - path: ~/.env.override
+        required: false
+    labels:
+      - "traefik.enable=true"
+    deploy:
+      mode: global
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 60s
+      rollback_config:
+        order: stop-first
+      update_config:
+        order: stop-first
+    develop:
+      watch:
+        - path: oauth2-proxy
+          action: restart
+
+  cronicle:
+    # cronicle project https://github.com/jhuckaby/Cronicle
+    # docker-cronicle project https://github.com/soulteary/docker-cronicle/tree/main
+    image: soulteary/cronicle:0.9.80
+    container_name: "cronicle"
+    restart: always
+    privileged: true
+    ipc: host
+    pid: host
+    depends_on:
+      oauth2-proxy:
+        condition: service_started
+      traefik:
+        condition: service_started
+    ports:
+      - 3012
+    networks:
+      - traefiknet
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./data/data:/opt/cronicle/data
+      - ./data/logs:/opt/cronicle/logs
+      - ./data/plugins:/opt/cronicle/plugins
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${PWD}/cronicle/setup.yaml:/opt/cronicle/conf/setup.yaml:ro"
+    extra_hosts:
+      - "cronicle.infra.semasoftware.com:127.0.0.1"
+    env_file:
+      - path: ./cronicle/.env
+        required: true
+      - path: ~/.env.override
+        required: false
+    labels:
+      - "traefik.enable=true"
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 60s
+    develop:
+      watch:
+        - path: cronicle
+          action: restart
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Cleaning up old data..."
+        rm -rf /opt/cronicle/data/sessions
+        rm -rf /opt/cronicle/data/users
+        rm -rf /opt/cronicle/data/global
+
+        echo "Converting YAML to JSON with environment variable substitution..."
+        apk add --no-cache yq
+        sed -e "s#PLACEHOLDER_FOR_ADMIN_PASSWORD_HASH#$$CRONICLE_ADMIN_PASSWORD_HASH#g" \
+            -e "s#PLACEHOLDER_FOR_API_KEY#$$CRONICLE_GITHUB_ACTIONS_API_KEY#g" \
+            /opt/cronicle/conf/setup.yaml > /tmp/setup_substituted.yaml
+        yq -o=json /tmp/setup_substituted.yaml > /opt/cronicle/conf/setup.json
+
+        echo "Starting Cronicle..."
+        node bin/docker-entrypoint.js
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3012/api/app/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "100m"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.129.1
+    restart: always
+    # uts - for hostname
+    uts: host
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "9201:9201"
+    networks:
+      - traefiknet
+    volumes:
+      - "${PWD}/otel-collector/otel-collector.yaml:/etc/otel-collector.yaml:ro"
+      # For host metrics collection
+      - /:/hostfs:ro
+    env_file:
+      - path: ./otel-collector/.env
+        required: true
+      - path: ~/.env.override
+        required: false
+    deploy:
+      mode: global
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 60s
+      rollback_config:
+        order: stop-first
+      update_config:
+        order: stop-first
+      resources:
+        limits:
+          memory: 2GB
+        reservations:
+          cpus: 0.01
+          memory: 512MB
+    develop:
+      watch:
+        - path: otel-collector
+          action: restart
+    command: [ "--config=/etc/otel-collector.yaml" ]
+
+networks:
+  traefiknet: {}

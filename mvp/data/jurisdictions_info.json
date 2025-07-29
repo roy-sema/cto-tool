@@ -1,0 +1,3925 @@
+{
+    "north america": {
+        "name": "North America"
+    },
+    "united states": {
+        "iso2": "us",
+        "iso3": "usa",
+        "name": "United States of America"
+    },
+    "canada": {
+        "iso2": "ca",
+        "iso3": "can",
+        "name": "Canada"
+    },
+    "mexico": {
+        "iso2": "mx",
+        "iso3": "mex",
+        "name": "Mexico"
+    },
+    "belize": {
+        "iso2": "bz",
+        "iso3": "blz",
+        "name": "Belize"
+    },
+    "costa rica": {
+        "iso2": "cr",
+        "iso3": "cri",
+        "name": "Costa Rica"
+    },
+    "el salvador": {
+        "iso2": "sv",
+        "iso3": "slv",
+        "name": "El Salvador"
+    },
+    "guatemala": {
+        "iso2": "gt",
+        "iso3": "gtm",
+        "name": "Guatemala"
+    },
+    "honduras": {
+        "iso2": "hn",
+        "iso3": "hnd",
+        "name": "Honduras"
+    },
+    "nicaragua": {
+        "iso2": "ni",
+        "iso3": "nic",
+        "name": "Nicaragua"
+    },
+    "panama": {
+        "iso2": "pa",
+        "iso3": "pan",
+        "name": "Panama"
+    },
+    "antigua and barbuda": {
+        "iso2": "ag",
+        "iso3": "atg",
+        "name": "Antigua and Barbuda"
+    },
+    "bahamas": {
+        "iso2": "bs",
+        "iso3": "bhs",
+        "name": "Bahamas"
+    },
+    "barbados": {
+        "iso2": "bb",
+        "iso3": "brb",
+        "name": "Barbados"
+    },
+    "cuba": {
+        "iso2": "cu",
+        "iso3": "cub",
+        "name": "Cuba"
+    },
+    "dominica": {
+        "iso2": "dm",
+        "iso3": "dma",
+        "name": "Dominica"
+    },
+    "dominican republic": {
+        "iso2": "do",
+        "iso3": "dom",
+        "name": "Dominican Republic"
+    },
+    "saint barthelemy": {
+        "iso2": "bl",
+        "iso3": "blm",
+        "name": "Saint Barth\u00e9lemy"
+    },
+    "saint helena, ascension and tristan da cunha": {
+        "iso2": "sh",
+        "iso3": "shn",
+        "name": "Saint Helena, Ascension and Tristan da Cunha"
+    },
+    "saint kitts and nevis": {
+        "iso2": "kn",
+        "iso3": "kna",
+        "name": "Saint Kitts and Nevis"
+    },
+    "saint lucia": {
+        "iso2": "lc",
+        "iso3": "lca",
+        "name": "Saint Lucia"
+    },
+    "saint martin (french part)": {
+        "iso2": "mf",
+        "iso3": "maf",
+        "name": "Saint Martin (French part)"
+    },
+    "sint maarten (dutch part)": {
+        "iso2": "sx",
+        "iso3": "sxm",
+        "name": "Sint Maarten (Dutch part)"
+    },
+    "saint pierre and miquelon": {
+        "iso2": "pm",
+        "iso3": "spm",
+        "name": "Saint Pierre and Miquelon"
+    },
+    "saint vincent and the grenadines": {
+        "iso2": "vc",
+        "iso3": "vct",
+        "name": "Saint Vincent and the Grenadines"
+    },
+    "turks and caicos islands": {
+        "iso2": "tc",
+        "iso3": "tca",
+        "name": "Turks and Caicos Islands"
+    },
+    "united states minor outlying islands": {
+        "iso2": "um",
+        "iso3": "umi",
+        "name": "United States Minor Outlying Islands"
+    },
+    "virgin islands (british)": {
+        "iso2": "vg",
+        "iso3": "vgb",
+        "name": "Virgin Islands (British)"
+    },
+    "virgin islands (us)": {
+        "iso2": "vi",
+        "iso3": "vir",
+        "name": "Virgin Islands (U.S.)"
+    },
+    "anguilla": {
+        "iso2": "ai",
+        "iso3": "aia",
+        "name": "Anguilla"
+    },
+    "bermuda": {
+        "iso2": "bm",
+        "iso3": "bmu",
+        "name": "Bermuda"
+    },
+    "cayman islands": {
+        "iso2": "ky",
+        "iso3": "cym",
+        "name": "Cayman Islands"
+    },
+    "greenland": {
+        "iso2": "gl",
+        "iso3": "grl",
+        "name": "Greenland"
+    },
+    "grenada": {
+        "iso2": "gd",
+        "iso3": "grd",
+        "name": "Grenada"
+    },
+    "guadeloupe": {
+        "iso2": "gp",
+        "iso3": "glp",
+        "name": "Guadeloupe"
+    },
+    "haiti": {
+        "iso2": "ht",
+        "iso3": "hti",
+        "name": "Haiti"
+    },
+    "martinique": {
+        "iso2": "mq",
+        "iso3": "mtq",
+        "name": "Martinique"
+    },
+    "montserrat": {
+        "iso2": "ms",
+        "iso3": "msr",
+        "name": "Montserrat"
+    },
+    "puerto rico": {
+        "iso2": "pr",
+        "iso3": "pri",
+        "name": "Puerto Rico"
+    },
+    "europe": {
+        "name": "Europe"
+    },
+    "aland islands": {
+        "iso2": "ax",
+        "iso3": "ala",
+        "name": "\u00c5land Islands"
+    },
+    "albania": {
+        "iso2": "al",
+        "iso3": "alb",
+        "name": "Albania"
+    },
+    "andorra": {
+        "iso2": "ad",
+        "iso3": "and",
+        "name": "Andorra"
+    },
+    "austria": {
+        "iso2": "at",
+        "iso3": "aut",
+        "name": "Austria"
+    },
+    "belarus": {
+        "iso2": "by",
+        "iso3": "blr",
+        "name": "Belarus"
+    },
+    "belgium": {
+        "iso2": "be",
+        "iso3": "bel",
+        "name": "Belgium"
+    },
+    "bosnia and herzegovina": {
+        "iso2": "ba",
+        "iso3": "bih",
+        "name": "Bosnia and Herzegovina"
+    },
+    "bulgaria": {
+        "iso2": "bg",
+        "iso3": "bgr",
+        "name": "Bulgaria"
+    },
+    "croatia": {
+        "iso2": "hr",
+        "iso3": "hrv",
+        "name": "Croatia"
+    },
+    "cyprus": {
+        "iso2": "cy",
+        "iso3": "cyp",
+        "name": "Cyprus"
+    },
+    "czech republic": {
+        "iso2": "cz",
+        "iso3": "cze",
+        "name": "Czech Republic"
+    },
+    "denmark": {
+        "iso2": "dk",
+        "iso3": "dnk",
+        "name": "Denmark"
+    },
+    "estonia": {
+        "iso2": "ee",
+        "iso3": "est",
+        "name": "Estonia"
+    },
+    "finland": {
+        "iso2": "fi",
+        "iso3": "fin",
+        "name": "Finland"
+    },
+    "france": {
+        "iso2": "fr",
+        "iso3": "fra",
+        "name": "France"
+    },
+    "germany": {
+        "iso2": "de",
+        "iso3": "deu",
+        "name": "Germany"
+    },
+    "greece": {
+        "iso2": "gr",
+        "iso3": "grc",
+        "name": "Greece"
+    },
+    "hungary": {
+        "iso2": "hu",
+        "iso3": "hun",
+        "name": "Hungary"
+    },
+    "iceland": {
+        "iso2": "is",
+        "iso3": "isl",
+        "name": "Iceland"
+    },
+    "ireland": {
+        "iso2": "ie",
+        "iso3": "irl",
+        "name": "Ireland"
+    },
+    "italy": {
+        "iso2": "it",
+        "iso3": "ita",
+        "name": "Italy"
+    },
+    "kosovo": {
+        "iso2": "xk",
+        "iso3": "xxk",
+        "name": "Kosovo"
+    },
+    "latvia": {
+        "iso2": "lv",
+        "iso3": "lva",
+        "name": "Latvia"
+    },
+    "liechtenstein": {
+        "iso2": "li",
+        "iso3": "lie",
+        "name": "Liechtenstein"
+    },
+    "lithuania": {
+        "iso2": "lt",
+        "iso3": "ltu",
+        "name": "Lithuania"
+    },
+    "luxembourg": {
+        "iso2": "lu",
+        "iso3": "lux",
+        "name": "Luxembourg"
+    },
+    "malta": {
+        "iso2": "mt",
+        "iso3": "mlt",
+        "name": "Malta"
+    },
+    "moldova": {
+        "iso2": "md",
+        "iso3": "mda",
+        "name": "Moldovo"
+    },
+    "monaco": {
+        "iso2": "mc",
+        "iso3": "mco",
+        "name": "Monaco"
+    },
+    "montenegro": {
+        "iso2": "me",
+        "iso3": "mne",
+        "name": "Montenegro"
+    },
+    "netherlands": {
+        "iso2": "nl",
+        "iso3": "nld",
+        "name": "Netherlands"
+    },
+    "north macedonia": {
+        "iso2": "mk",
+        "iso3": "mkd",
+        "name": "North Macedonia"
+    },
+    "norway": {
+        "iso2": "no",
+        "iso3": "nor",
+        "name": "Norway"
+    },
+    "poland": {
+        "iso2": "pl",
+        "iso3": "pol",
+        "name": "Poland"
+    },
+    "portugal": {
+        "iso2": "pt",
+        "iso3": "prt",
+        "name": "Portugal"
+    },
+    "romania": {
+        "iso2": "ro",
+        "iso3": "rou",
+        "name": "Romania"
+    },
+    "russia": {
+        "iso2": "ru",
+        "iso3": "rus",
+        "name": "Russian Federation"
+    },
+    "san marino": {
+        "iso2": "sm",
+        "iso3": "smr",
+        "name": "San Marino"
+    },
+    "serbia": {
+        "iso2": "rs",
+        "iso3": "srb",
+        "name": "Serbia"
+    },
+    "slovakia": {
+        "iso2": "sk",
+        "iso3": "svk",
+        "name": "Slovakia"
+    },
+    "slovenia": {
+        "iso2": "si",
+        "iso3": "svn",
+        "name": "Slovenia"
+    },
+    "spain": {
+        "iso2": "es",
+        "iso3": "esp",
+        "name": "Spain"
+    },
+    "svalbard and jan mayen": {
+        "iso2": "sj",
+        "iso3": "sjm",
+        "name": "Svalbard and Jan Mayen"
+    },
+    "sweden": {
+        "iso2": "se",
+        "iso3": "swe",
+        "name": "Sweden"
+    },
+    "switzerland": {
+        "iso2": "ch",
+        "iso3": "che",
+        "name": "Switzerland"
+    },
+    "ukraine": {
+        "iso2": "ua",
+        "iso3": "ukr",
+        "name": "Ukraine"
+    },
+    "united kingdom": {
+        "iso2": "gb",
+        "iso3": "gbr",
+        "name": "United Kingdom"
+    },
+    "vatican city": {
+        "iso2": "va",
+        "iso3": "vat",
+        "name": "Vatican City"
+    },
+    "faroe islands": {
+        "iso2": "fo",
+        "iso3": "fro",
+        "name": "Faroe Islands"
+    },
+    "gibraltar": {
+        "iso2": "gi",
+        "iso3": "gib",
+        "name": "Gibraltar"
+    },
+    "guernsey": {
+        "iso2": "gg",
+        "iso3": "ggy",
+        "name": "Guernsey"
+    },
+    "isle of man": {
+        "iso2": "im",
+        "iso3": "imn",
+        "name": "Isle of Man"
+    },
+    "jersey": {
+        "iso2": "je",
+        "iso3": "jey",
+        "name": "Jersey"
+    },
+    "asia": {
+        "name": "Asia"
+    },
+    "afghanistan": {
+        "iso2": "af",
+        "iso3": "afg",
+        "name": "Afghanistan"
+    },
+    "armenia": {
+        "iso2": "am",
+        "iso3": "arm",
+        "name": "Armenia"
+    },
+    "azerbaijan": {
+        "iso2": "az",
+        "iso3": "aze",
+        "name": "Azerbaijan"
+    },
+    "bahrain": {
+        "iso2": "bh",
+        "iso3": "bhr",
+        "name": "Bahrain"
+    },
+    "bangladesh": {
+        "iso2": "bd",
+        "iso3": "bgd",
+        "name": "Bangladesh"
+    },
+    "bhutan": {
+        "iso2": "bt",
+        "iso3": "btn",
+        "name": "Bhutan"
+    },
+    "brunei": {
+        "iso2": "bn",
+        "iso3": "brn",
+        "name": "Brunei"
+    },
+    "cambodia": {
+        "iso2": "kh",
+        "iso3": "khm",
+        "name": "Cambodia"
+    },
+    "china": {
+        "iso2": "cn",
+        "iso3": "chn",
+        "name": "China"
+    },
+    "georgia": {
+        "iso2": "ge",
+        "iso3": "geo",
+        "name": "Georgia"
+    },
+    "india": {
+        "iso2": "in",
+        "iso3": "ind",
+        "name": "India"
+    },
+    "indonesia": {
+        "iso2": "id",
+        "iso3": "idn",
+        "name": "Indonesia"
+    },
+    "iran": {
+        "iso2": "ir",
+        "iso3": "irn",
+        "name": "Iran (Islamic Republic of)"
+    },
+    "iraq": {
+        "iso2": "iq",
+        "iso3": "irq",
+        "name": "Iraq"
+    },
+    "israel": {
+        "iso2": "il",
+        "iso3": "isr",
+        "name": "Israel"
+    },
+    "japan": {
+        "iso2": "jp",
+        "iso3": "jpn",
+        "name": "Japan"
+    },
+    "jordan": {
+        "iso2": "jo",
+        "iso3": "jor",
+        "name": "Jordan"
+    },
+    "kazakhstan": {
+        "iso2": "kz",
+        "iso3": "kaz",
+        "name": "Kazakhstan"
+    },
+    "kuwait": {
+        "iso2": "kw",
+        "iso3": "kwt",
+        "name": "Kuwait"
+    },
+    "kyrgyzstan": {
+        "iso2": "kg",
+        "iso3": "kgz",
+        "name": "Kyrgyzstan"
+    },
+    "laos": {
+        "iso2": "la",
+        "iso3": "lao",
+        "name": "Lao People's Democratic Republic"
+    },
+    "lebanon": {
+        "iso2": "lb",
+        "iso3": "lbn",
+        "name": "Lebanon"
+    },
+    "malaysia": {
+        "iso2": "my",
+        "iso3": "mys",
+        "name": "Malaysia"
+    },
+    "maldives": {
+        "iso2": "mv",
+        "iso3": "mdv",
+        "name": "Maldives"
+    },
+    "mongolia": {
+        "iso2": "mn",
+        "iso3": "mng",
+        "name": "Mongolia"
+    },
+    "myanmar": {
+        "iso2": "mm",
+        "iso3": "mmr",
+        "name": "Myanmar"
+    },
+    "nepal": {
+        "iso2": "np",
+        "iso3": "npl",
+        "name": "Nepal"
+    },
+    "north korea": {
+        "iso2": "kp",
+        "iso3": "prk",
+        "name": "North Korea"
+    },
+    "oman": {
+        "iso2": "om",
+        "iso3": "omn",
+        "name": "Oman"
+    },
+    "pakistan": {
+        "iso2": "pk",
+        "iso3": "pak",
+        "name": "Pakistan"
+    },
+    "palestine": {
+        "iso2": "ps",
+        "iso3": "pse",
+        "name": "Palestine"
+    },
+    "philippines": {
+        "iso2": "ph",
+        "iso3": "phl",
+        "name": "Philippines"
+    },
+    "qatar": {
+        "iso2": "qa",
+        "iso3": "qat",
+        "name": "Qatar"
+    },
+    "saudi arabia": {
+        "iso2": "sa",
+        "iso3": "sau",
+        "name": "Saudi Arabia"
+    },
+    "singapore": {
+        "iso2": "sg",
+        "iso3": "sgp",
+        "name": "Singapore"
+    },
+    "south korea": {
+        "iso2": "kr",
+        "iso3": "kor",
+        "name": "South Korea"
+    },
+    "sri lanka": {
+        "iso2": "lk",
+        "iso3": "lka",
+        "name": "Sri Lanka"
+    },
+    "syria": {
+        "iso2": "sy",
+        "iso3": "syr",
+        "name": "Syrian Arab Republic"
+    },
+    "taiwan": {
+        "iso2": "tw",
+        "iso3": "twn",
+        "name": "Taiwan"
+    },
+    "tajikistan": {
+        "iso2": "tj",
+        "iso3": "tjk",
+        "name": "Tajikistan"
+    },
+    "thailand": {
+        "iso2": "th",
+        "iso3": "tha",
+        "name": "Thailand"
+    },
+    "timor-leste": {
+        "iso2": "tl",
+        "iso3": "tls",
+        "name": "Timor-Leste"
+    },
+    "turkey": {
+        "iso2": "tr",
+        "iso3": "tur",
+        "name": "T\u00fcrkiye"
+    },
+    "turkmenistan": {
+        "iso2": "tm",
+        "iso3": "tkm",
+        "name": "Turkmenistan"
+    },
+    "united arab emirates": {
+        "iso2": "ae",
+        "iso3": "are",
+        "name": "United Arab Emirates"
+    },
+    "uzbekistan": {
+        "iso2": "uz",
+        "iso3": "uzb",
+        "name": "Uzbekistan"
+    },
+    "vietnam": {
+        "iso2": "vn",
+        "iso3": "vnm",
+        "name": "Viet Nam"
+    },
+    "yemen": {
+        "iso2": "ye",
+        "iso3": "yem",
+        "name": "Yemen"
+    },
+    "british indian ocean territory": {
+        "iso2": "io",
+        "iso3": "iot",
+        "name": "British Indian Ocean Territory"
+    },
+    "christmas island": {
+        "iso2": "cx",
+        "iso3": "cxr",
+        "name": "Christmas Island"
+    },
+    "cocos (keeling) islands": {
+        "iso2": "cc",
+        "iso3": "cck",
+        "name": "Cocos (Keeling) Islands"
+    },
+    "hong kong": {
+        "iso2": "hk",
+        "iso3": "hkg",
+        "name": "Hong Kong"
+    },
+    "macao": {
+        "iso2": "mo",
+        "iso3": "mac",
+        "name": "Macao"
+    },
+    "south america": {
+        "name": "South America"
+    },
+    "argentina": {
+        "iso2": "ar",
+        "iso3": "arg",
+        "name": "Argentina"
+    },
+    "aruba": {
+        "iso2": "aw",
+        "iso3": "abw",
+        "name": "Aruba"
+    },
+    "bolivia": {
+        "iso2": "bo",
+        "iso3": "bol",
+        "name": "Bolivia"
+    },
+    "brazil": {
+        "iso2": "br",
+        "iso3": "bra",
+        "name": "Brazil"
+    },
+    "chile": {
+        "iso2": "cl",
+        "iso3": "chl",
+        "name": "Chile"
+    },
+    "colombia": {
+        "iso2": "co",
+        "iso3": "col",
+        "name": "Colombia"
+    },
+    "ecuador": {
+        "iso2": "ec",
+        "iso3": "ecu",
+        "name": "Ecuador"
+    },
+    "guyana": {
+        "iso2": "gy",
+        "iso3": "guy",
+        "name": "Guyana"
+    },
+    "paraguay": {
+        "iso2": "py",
+        "iso3": "pry",
+        "name": "Paraguay"
+    },
+    "peru": {
+        "iso2": "pe",
+        "iso3": "per",
+        "name": "Peru"
+    },
+    "suriname": {
+        "iso2": "sr",
+        "iso3": "sur",
+        "name": "Suriname"
+    },
+    "uruguay": {
+        "iso2": "uy",
+        "iso3": "ury",
+        "name": "Uruguay"
+    },
+    "venezuela": {
+        "iso2": "ve",
+        "iso3": "ven",
+        "name": "Venezuela (Bolivarian Republic of)"
+    },
+    "trinidad and tobago": {
+        "iso2": "tt",
+        "iso3": "tto",
+        "name": "Trinidad and Tobago"
+    },
+    "bonaire, sint eustatius and saba": {
+        "iso2": "bq",
+        "iso3": "bes",
+        "name": "Bonaire, Sint Eustatius and Saba"
+    },
+    "curacao": {
+        "iso2": "cw",
+        "iso3": "cuw",
+        "name": "Cura\u00e7ao"
+    },
+    "falkland islands (malvinas)": {
+        "iso2": "fk",
+        "iso3": "flk",
+        "name": "Falkland Islands (Malvinas)"
+    },
+    "french guiana": {
+        "iso2": "gf",
+        "iso3": "guf",
+        "name": "French Guiana"
+    },
+    "africa": {
+        "name": "Africa"
+    },
+    "algeria": {
+        "iso2": "dz",
+        "iso3": "dza",
+        "name": "Algeria"
+    },
+    "angola": {
+        "iso2": "ao",
+        "iso3": "ago",
+        "name": "Angola"
+    },
+    "benin": {
+        "iso2": "bj",
+        "iso3": "ben",
+        "name": "Benin"
+    },
+    "botswana": {
+        "iso2": "bw",
+        "iso3": "bwa",
+        "name": "Botswana"
+    },
+    "burkina faso": {
+        "iso2": "bf",
+        "iso3": "bfa",
+        "name": "Burkina Faso"
+    },
+    "burundi": {
+        "iso2": "bi",
+        "iso3": "bdi",
+        "name": "Burundi"
+    },
+    "cape verde": {
+        "iso2": "cv",
+        "iso3": "cpv",
+        "name": "Cabo Verde"
+    },
+    "cameroon": {
+        "iso2": "cm",
+        "iso3": "cmr",
+        "name": "Cameroon"
+    },
+    "central african republic": {
+        "iso2": "cf",
+        "iso3": "caf",
+        "name": "Central African Republic"
+    },
+    "chad": {
+        "iso2": "td",
+        "iso3": "tcd",
+        "name": "Chad"
+    },
+    "comoros": {
+        "iso2": "km",
+        "iso3": "com",
+        "name": "Comoros"
+    },
+    "congo": {
+        "iso2": "cg",
+        "iso3": "cog",
+        "name": "Congo"
+    },
+    "democratic republic of the congo": {
+        "iso2": "cd",
+        "iso3": "cod",
+        "name": "Congo, Democratic Republic of the"
+    },
+    "djibouti": {
+        "iso2": "dj",
+        "iso3": "dji",
+        "name": "Djibouti"
+    },
+    "egypt": {
+        "iso2": "eg",
+        "iso3": "egy",
+        "name": "Egypt"
+    },
+    "equatorial guinea": {
+        "iso2": "gq",
+        "iso3": "gnq",
+        "name": "Equatorial Guinea"
+    },
+    "eritrea": {
+        "iso2": "er",
+        "iso3": "eri",
+        "name": "Eritrea"
+    },
+    "eswatini": {
+        "iso2": "sz",
+        "iso3": "swz",
+        "name": "Eswatini"
+    },
+    "ethiopia": {
+        "iso2": "et",
+        "iso3": "eth",
+        "name": "Ethiopia"
+    },
+    "gabon": {
+        "iso2": "ga",
+        "iso3": "gab",
+        "name": "Gabon"
+    },
+    "gambia": {
+        "iso2": "gm",
+        "iso3": "gmb",
+        "name": "Gambia"
+    },
+    "ghana": {
+        "iso2": "gh",
+        "iso3": "gha",
+        "name": "Ghana"
+    },
+    "guinea": {
+        "iso2": "gn",
+        "iso3": "gin",
+        "name": "Guinea"
+    },
+    "guinea-bissau": {
+        "iso2": "gw",
+        "iso3": "gnb",
+        "name": "Guinea-Bissau"
+    },
+    "ivory coast": {
+        "iso2": "ci",
+        "iso3": "civ",
+        "name": "C\u00f4te d'Ivoire"
+    },
+    "jamaica": {
+        "iso2": "jm",
+        "iso3": "jam",
+        "name": "Jamaica"
+    },
+    "kenya": {
+        "iso2": "ke",
+        "iso3": "ken",
+        "name": "Kenya"
+    },
+    "lesotho": {
+        "iso2": "ls",
+        "iso3": "lso",
+        "name": "Lesotho"
+    },
+    "liberia": {
+        "iso2": "lr",
+        "iso3": "lbr",
+        "name": "Liberia"
+    },
+    "libya": {
+        "iso2": "ly",
+        "iso3": "lby",
+        "name": "Libya"
+    },
+    "madagascar": {
+        "iso2": "mg",
+        "iso3": "mdg",
+        "name": "Madagascar"
+    },
+    "malawi": {
+        "iso2": "mw",
+        "iso3": "mwi",
+        "name": "Malawi"
+    },
+    "mali": {
+        "iso2": "ml",
+        "iso3": "mli",
+        "name": "Mali"
+    },
+    "mauritania": {
+        "iso2": "mr",
+        "iso3": "mrt",
+        "name": "Mauritania"
+    },
+    "mauritius": {
+        "iso2": "mu",
+        "iso3": "mus",
+        "name": "Mauritius"
+    },
+    "morocco": {
+        "iso2": "ma",
+        "iso3": "mar",
+        "name": "Morocco"
+    },
+    "mozambique": {
+        "iso2": "mz",
+        "iso3": "moz",
+        "name": "Mozambique"
+    },
+    "namibia": {
+        "iso2": "na",
+        "iso3": "nam",
+        "name": "Namibia"
+    },
+    "niger": {
+        "iso2": "ne",
+        "iso3": "ner",
+        "name": "Niger"
+    },
+    "nigeria": {
+        "iso2": "ng",
+        "iso3": "nga",
+        "name": "Nigeria"
+    },
+    "rwanda": {
+        "iso2": "rw",
+        "iso3": "rwa",
+        "name": "Rwanda"
+    },
+    "sao tome and principe": {
+        "iso2": "st",
+        "iso3": "stp",
+        "name": "Sao Tome and Principe"
+    },
+    "senegal": {
+        "iso2": "sn",
+        "iso3": "sen",
+        "name": "Senegal"
+    },
+    "seychelles": {
+        "iso2": "sc",
+        "iso3": "syc",
+        "name": "Seychelles"
+    },
+    "sierra leone": {
+        "iso2": "sl",
+        "iso3": "sle",
+        "name": "Sierra Leone"
+    },
+    "somalia": {
+        "iso2": "so",
+        "iso3": "som",
+        "name": "Somalia"
+    },
+    "south africa": {
+        "iso2": "za",
+        "iso3": "zaf",
+        "name": "South Africa"
+    },
+    "south sudan": {
+        "iso2": "ss",
+        "iso3": "ssd",
+        "name": "South Sudan"
+    },
+    "sudan": {
+        "iso2": "sd",
+        "iso3": "sdn",
+        "name": "Sudan"
+    },
+    "tanzania": {
+        "iso2": "tz",
+        "iso3": "tza",
+        "name": "Tanzania"
+    },
+    "togo": {
+        "iso2": "tg",
+        "iso3": "tgo",
+        "name": "Togo"
+    },
+    "tunisia": {
+        "iso2": "tn",
+        "iso3": "tun",
+        "name": "Tunisia"
+    },
+    "uganda": {
+        "iso2": "ug",
+        "iso3": "uga",
+        "name": "Uganda"
+    },
+    "western sahara": {
+        "iso2": "eh",
+        "iso3": "esh",
+        "name": "Western Sahara"
+    },
+    "zambia": {
+        "iso2": "zm",
+        "iso3": "zmb",
+        "name": "Zambia"
+    },
+    "zimbabwe": {
+        "iso2": "zw",
+        "iso3": "zwe",
+        "name": "Zimbabwe"
+    },
+    "mayotte": {
+        "iso2": "yt",
+        "iso3": "myt",
+        "name": "Mayotte"
+    },
+    "reunion": {
+        "iso2": "re",
+        "iso3": "reu",
+        "name": "R\u00e9union"
+    },
+    "oceania": {
+        "name": "Oceania"
+    },
+    "australia": {
+        "iso2": "au",
+        "iso3": "aus",
+        "name": "Australia"
+    },
+    "new zealand": {
+        "iso2": "nz",
+        "iso3": "nzl",
+        "name": "New Zealand"
+    },
+    "fiji": {
+        "iso2": "fj",
+        "iso3": "fji",
+        "name": "Fiji"
+    },
+    "kiribati": {
+        "iso2": "ki",
+        "iso3": "kir",
+        "name": "Kiribati"
+    },
+    "marshall islands": {
+        "iso2": "mh",
+        "iso3": "mhl",
+        "name": "Marshall Islands"
+    },
+    "micronesia": {
+        "iso2": "fm",
+        "iso3": "fsm",
+        "name": "Micronesia"
+    },
+    "nauru": {
+        "iso2": "nr",
+        "iso3": "nru",
+        "name": "Nauru"
+    },
+    "new caledonia": {
+        "iso2": "nc",
+        "iso3": "ncl",
+        "name": "New Caledonia"
+    },
+    "niue": {
+        "iso2": "nu",
+        "iso3": "niu",
+        "name": "Niue"
+    },
+    "palau": {
+        "iso2": "pw",
+        "iso3": "plw",
+        "name": "Palau"
+    },
+    "papua new guinea": {
+        "iso2": "pg",
+        "iso3": "png",
+        "name": "Papua New Guinea"
+    },
+    "samoa": {
+        "iso2": "ws",
+        "iso3": "wsm",
+        "name": "Samoa"
+    },
+    "solomon islands": {
+        "iso2": "sb",
+        "iso3": "slb",
+        "name": "Solomon Islands"
+    },
+    "tokelau": {
+        "iso2": "tk",
+        "iso3": "tkl",
+        "name": "Tokelau"
+    },
+    "tonga": {
+        "iso2": "to",
+        "iso3": "ton",
+        "name": "Tonga"
+    },
+    "tuvalu": {
+        "iso2": "tv",
+        "iso3": "tuv",
+        "name": "Tuvalu"
+    },
+    "vanuatu": {
+        "iso2": "vu",
+        "iso3": "vut",
+        "name": "Vanuatu"
+    },
+    "wallis and futuna": {
+        "iso2": "wf",
+        "iso3": "wlf",
+        "name": "Wallis and Futuna"
+    },
+    "american samoa": {
+        "iso2": "as",
+        "iso3": "asm",
+        "name": "American Samoa"
+    },
+    "cook islands": {
+        "iso2": "ck",
+        "iso3": "cok",
+        "name": "Cook Islands"
+    },
+    "french polynesia": {
+        "iso2": "pf",
+        "iso3": "pyf",
+        "name": "French Polynesia"
+    },
+    "guam": {
+        "iso2": "gu",
+        "iso3": "gum",
+        "name": "Guam"
+    },
+    "heard island and mcdonald islands": {
+        "iso2": "hm",
+        "iso3": "hmd",
+        "name": "Heard Island and McDonald Islands"
+    },
+    "northern mariana islands": {
+        "iso2": "mp",
+        "iso3": "mnp",
+        "name": "Northern Mariana Islands"
+    },
+    "pitcairn": {
+        "iso2": "pn",
+        "iso3": "pcn",
+        "name": "Pitcairn"
+    },
+    "norfolk island": {
+        "iso2": "nf",
+        "iso3": "nfk",
+        "name": "Norfolk Island"
+    },
+    "antarctica": {
+        "iso2": "aq",
+        "iso3": "ata",
+        "name": "Antarctica"
+    },
+    "south georgia and the south sandwich islands": {
+        "iso2": "gs",
+        "iso3": "sgs",
+        "name": "South Georgia and the South Sandwich Islands"
+    },
+    "bouvet island": {
+        "iso2": "bv",
+        "iso3": "bvt",
+        "name": "Bouvet Island"
+    },
+    "french southern territories": {
+        "iso2": "tf",
+        "iso3": "atf",
+        "name": "French Southern Territories"
+    },
+    "victoria": {
+        "name": "Victoria"
+    },
+    "tasmania": {
+        "name": "Tasmania"
+    },
+    "queensland": {
+        "name": "Queensland"
+    },
+    "new south wales": {
+        "name": "New South Wales"
+    },
+    "south australia": {
+        "name": "South Australia"
+    },
+    "western australia": {
+        "name": "Western Australia"
+    },
+    "northern territory": {
+        "name": "Northern Territory"
+    },
+    "australian capital territory": {
+        "name": "Australian Capital Territory"
+    },
+    "burgenland": {
+        "name": "Burgenland"
+    },
+    "karnten": {
+        "name": "Karnten"
+    },
+    "niederosterreich": {
+        "name": "Niederosterreich"
+    },
+    "oberosterreich": {
+        "name": "Oberosterreich"
+    },
+    "salzburg": {
+        "name": "Salzburg"
+    },
+    "steiermark": {
+        "name": "Steiermark"
+    },
+    "tirol": {
+        "name": "Tirol"
+    },
+    "vorarlberg": {
+        "name": "Vorarlberg"
+    },
+    "wien": {
+        "name": "Wien"
+    },
+    "antwerpen": {
+        "name": "Antwerpen"
+    },
+    "hainaut": {
+        "name": "Hainaut"
+    },
+    "liege": {
+        "name": "Liege"
+    },
+    "limburg": {
+        "name": "Limburg"
+    },
+    "luxembourg be": {
+        "name": "Luxembourg (be)"
+    },
+    "namur": {
+        "name": "Namur"
+    },
+    "oost-vlaanderen": {
+        "name": "Oost-Vlaanderen"
+    },
+    "west-vlaanderen": {
+        "name": "West-Vlaanderen"
+    },
+    "brussels": {
+        "name": "Brussels"
+    },
+    "brabant wallon": {
+        "name": "Brabant Wallon"
+    },
+    "vlaams-brabant": {
+        "name": "Vlaams-Brabant"
+    },
+    "burgas": {
+        "name": "Burgas"
+    },
+    "sofiya-grad": {
+        "name": "Sofiya-Grad"
+    },
+    "khaskovo": {
+        "name": "Khaskovo"
+    },
+    "lovech": {
+        "name": "Lovech"
+    },
+    "montana": {
+        "name": "Montana"
+    },
+    "plovdiv": {
+        "name": "Plovdiv"
+    },
+    "razgrad": {
+        "name": "Razgrad"
+    },
+    "sofiya": {
+        "name": "Sofiya"
+    },
+    "varna": {
+        "name": "Varna"
+    },
+    "blagoevgrad": {
+        "name": "Blagoevgrad"
+    },
+    "dobrich": {
+        "name": "Dobrich"
+    },
+    "gabrovo ": {
+        "name": "Gabrovo "
+    },
+    "kurdzhali": {
+        "name": "Kurdzhali"
+    },
+    "kyustendil": {
+        "name": "Kyustendil"
+    },
+    "pazardzhik": {
+        "name": "Pazardzhik"
+    },
+    "pernik": {
+        "name": "Pernik"
+    },
+    "pleven": {
+        "name": "Pleven"
+    },
+    "ruse": {
+        "name": "Ruse"
+    },
+    "shumen": {
+        "name": "Shumen"
+    },
+    "silistra": {
+        "name": "Silistra"
+    },
+    "sliven": {
+        "name": "Sliven"
+    },
+    "smolyan": {
+        "name": "Smolyan"
+    },
+    "stara zagora": {
+        "name": "Stara Zagora"
+    },
+    "turgovishte": {
+        "name": "Turgovishte"
+    },
+    "veliko turnovo": {
+        "name": "Veliko Turnovo"
+    },
+    "vidin": {
+        "name": "Vidin"
+    },
+    "vratsa": {
+        "name": "Vratsa"
+    },
+    "yambol": {
+        "name": "Yambol"
+    },
+    "quebec": {
+        "name": "Quebec"
+    },
+    "alberta": {
+        "name": "Alberta"
+    },
+    "ontario": {
+        "name": "Ontario"
+    },
+    "manitoba": {
+        "name": "Manitoba"
+    },
+    "nova scotia": {
+        "name": "Nova Scotia"
+    },
+    "saskatchewan": {
+        "name": "Saskatchewan"
+    },
+    "newfoundland and labrador": {
+        "name": "Newfoundland and Labrador"
+    },
+    "new brunswick": {
+        "name": "New Brunswick"
+    },
+    "british columbia": {
+        "name": "British Columbia"
+    },
+    "prince edward island": {
+        "name": "Prince Edward Island"
+    },
+    "northwest territories": {
+        "name": "Northwest Territories"
+    },
+    "yukon territory": {
+        "name": "Yukon Territory"
+    },
+    "nunavut": {
+        "name": "Nunavut"
+    },
+    "valparaiso": {
+        "name": "Valparaiso"
+    },
+    "aisen del general carlos ibanez del campo": {
+        "name": "Aisen del General Carlos Ibanez del Campo"
+    },
+    "antofagasta": {
+        "name": "Antofagasta"
+    },
+    "araucania": {
+        "name": "Araucania"
+    },
+    "atacama": {
+        "name": "Atacama"
+    },
+    "bio-bio": {
+        "name": "Bio-Bio"
+    },
+    "coquimbo": {
+        "name": "Coquimbo"
+    },
+    "libertador general bernardo o'higgins": {
+        "name": "Libertador General Bernardo O'Higgins"
+    },
+    "los lagos": {
+        "name": "Los Lagos"
+    },
+    "magallanes y de la antartica chilena": {
+        "name": "Magallanes y de la Antartica Chilena"
+    },
+    "maule": {
+        "name": "Maule"
+    },
+    "region metropolitana": {
+        "name": "Region Metropolitana"
+    },
+    "tarapaca": {
+        "name": "Tarapaca"
+    },
+    "anhui": {
+        "name": "Anhui"
+    },
+    "zhejiang": {
+        "name": "Zhejiang"
+    },
+    "jiangxi": {
+        "name": "Jiangxi"
+    },
+    "jiangsu": {
+        "name": "Jiangsu"
+    },
+    "jilin": {
+        "name": "Jilin"
+    },
+    "qinghai": {
+        "name": "Qinghai"
+    },
+    "fujian": {
+        "name": "Fujian"
+    },
+    "heilongjiang": {
+        "name": "Heilongjiang"
+    },
+    "henan": {
+        "name": "Henan"
+    },
+    "hebei": {
+        "name": "Hebei"
+    },
+    "hunan": {
+        "name": "Hunan"
+    },
+    "hubei": {
+        "name": "Hubei"
+    },
+    "xinjiang": {
+        "name": "Xinjiang"
+    },
+    "xizang": {
+        "name": "Xizang"
+    },
+    "gansu": {
+        "name": "Gansu"
+    },
+    "guangxi": {
+        "name": "Guangxi"
+    },
+    "guizhou": {
+        "name": "Guizhou"
+    },
+    "liaoning": {
+        "name": "Liaoning"
+    },
+    "nei mongol": {
+        "name": "Nei Mongol"
+    },
+    "ningxia": {
+        "name": "Ningxia"
+    },
+    "beijing": {
+        "name": "Beijing"
+    },
+    "shanghai": {
+        "name": "Shanghai"
+    },
+    "shanxi": {
+        "name": "Shanxi"
+    },
+    "shandong": {
+        "name": "Shandong"
+    },
+    "shaanxi": {
+        "name": "Shaanxi"
+    },
+    "sichuan": {
+        "name": "Sichuan"
+    },
+    "tianjin": {
+        "name": "Tianjin"
+    },
+    "yunnan": {
+        "name": "Yunnan"
+    },
+    "guangdong": {
+        "name": "Guangdong"
+    },
+    "hainan": {
+        "name": "Hainan"
+    },
+    "chongqing": {
+        "name": "Chongqing"
+    },
+    "bjelovarsko-bilogorska": {
+        "name": "Bjelovarsko-Bilogorska"
+    },
+    "brodsko-posavka": {
+        "name": "Brodsko-Posavka"
+    },
+    "dubrovacko-neretvanska": {
+        "name": "Dubrovacko-Neretvanska"
+    },
+    "istarska": {
+        "name": "Istarska"
+    },
+    "karlovacka": {
+        "name": "Karlovacka"
+    },
+    "koprivnicko-krizevacka": {
+        "name": "Koprivnicko-Krizevacka"
+    },
+    "krapinsko-zagorska": {
+        "name": "Krapinsko-Zagorska"
+    },
+    "licko-senjska": {
+        "name": "Licko-Senjska"
+    },
+    "medimurska": {
+        "name": "Medimurska"
+    },
+    "osjecko-baranjska": {
+        "name": "Osjecko-Baranjska"
+    },
+    "pozesko-slavonska": {
+        "name": "Pozesko-Slavonska"
+    },
+    "primorsko-goranska": {
+        "name": "Primorsko-Goranska"
+    },
+    "sibensko-kninska": {
+        "name": "Sibensko-Kninska"
+    },
+    "sisacko-moslavacka": {
+        "name": "Sisacko-Moslavacka"
+    },
+    "splitsko-dalmatinska": {
+        "name": "Splitsko-Dalmatinska"
+    },
+    "varazdinska": {
+        "name": "Varazdinska"
+    },
+    "viroviticko-podravska": {
+        "name": "Viroviticko-Podravska"
+    },
+    "vukovarsko-srijemska": {
+        "name": "Vukovarsko-Srijemska"
+    },
+    "zadarska": {
+        "name": "Zadarska"
+    },
+    "zagrebacka": {
+        "name": "Zagrebacka"
+    },
+    "grad zagreb": {
+        "name": "Grad Zagreb"
+    },
+    "famagusta": {
+        "name": "Famagusta"
+    },
+    "kyrenia": {
+        "name": "Kyrenia"
+    },
+    "larnaca": {
+        "name": "Larnaca"
+    },
+    "nicosia": {
+        "name": "Nicosia"
+    },
+    "limassol": {
+        "name": "Limassol"
+    },
+    "paphos": {
+        "name": "Paphos"
+    },
+    "hlavni mesto praha": {
+        "name": "Hlavni Mesto Praha"
+    },
+    "jihomoravsky kraj": {
+        "name": "Jihomoravsky Kraj"
+    },
+    "jihocesky kraj": {
+        "name": "Jihocesky Kraj"
+    },
+    "vysocina": {
+        "name": "Vysocina"
+    },
+    "karlovarsky kraj": {
+        "name": "Karlovarsky Kraj"
+    },
+    "kralovehradecky kraj": {
+        "name": "Kralovehradecky Kraj"
+    },
+    "liberecky kraj": {
+        "name": "Liberecky Kraj"
+    },
+    "olomoucky kraj": {
+        "name": "Olomoucky Kraj"
+    },
+    "moravskoslezsky kraj": {
+        "name": "Moravskoslezsky Kraj"
+    },
+    "pardubicky kraj": {
+        "name": "Pardubicky Kraj"
+    },
+    "plzensky kraj": {
+        "name": "Plzensky Kraj"
+    },
+    "stredocesky kraj": {
+        "name": "Stredocesky Kraj"
+    },
+    "ustecky kraj": {
+        "name": "Ustecky Kraj"
+    },
+    "zlinsky kraj": {
+        "name": "Zlinsky Kraj"
+    },
+    "arhus": {
+        "name": "Arhus"
+    },
+    "bornholm": {
+        "name": "Bornholm"
+    },
+    "frederiksborg": {
+        "name": "Frederiksborg"
+    },
+    "fyn": {
+        "name": "Fyn"
+    },
+    "kobenhavn": {
+        "name": "Kobenhavn"
+    },
+    "nordjylland": {
+        "name": "Nordjylland"
+    },
+    "ribe": {
+        "name": "Ribe"
+    },
+    "ringkobing": {
+        "name": "Ringkobing"
+    },
+    "roskilde": {
+        "name": "Roskilde"
+    },
+    "sonderjylland": {
+        "name": "Sonderjylland"
+    },
+    "storstrom": {
+        "name": "Storstrom"
+    },
+    "vejle": {
+        "name": "Vejle"
+    },
+    "vestsjalland": {
+        "name": "Vestsjalland"
+    },
+    "viborg": {
+        "name": "Viborg"
+    },
+    "fredericksberg": {
+        "name": "Fredericksberg"
+    },
+    "harjumaa": {
+        "name": "Harjumaa"
+    },
+    "hiiumaa": {
+        "name": "Hiiumaa"
+    },
+    "ida-virumaa": {
+        "name": "Ida-Virumaa"
+    },
+    "jarvamaa": {
+        "name": "Jarvamaa"
+    },
+    "jogevamaa": {
+        "name": "Jogevamaa"
+    },
+    "laanemaa": {
+        "name": "Laanemaa"
+    },
+    "laane-virumaa": {
+        "name": "Laane-Virumaa"
+    },
+    "parnumaa": {
+        "name": "Parnumaa"
+    },
+    "polvamaa": {
+        "name": "Polvamaa"
+    },
+    "raplamaa": {
+        "name": "Raplamaa"
+    },
+    "saaremaa": {
+        "name": "Saaremaa"
+    },
+    "tartumaa": {
+        "name": "Tartumaa"
+    },
+    "valgamaa": {
+        "name": "Valgamaa"
+    },
+    "viljandimaa": {
+        "name": "Viljandimaa"
+    },
+    "vorumaa": {
+        "name": "Vorumaa"
+    },
+    "ahvenanmaa": {
+        "name": "Ahvenanmaa"
+    },
+    "lappi": {
+        "name": "Lappi"
+    },
+    "oulu laani": {
+        "name": "Oulu Laani"
+    },
+    "etela-suomen laani": {
+        "name": "Etela-Suomen Laani"
+    },
+    "ita-suomen laani": {
+        "name": "Ita-Suomen Laani"
+    },
+    "lansi-suomen laani": {
+        "name": "Lansi-Suomen Laani"
+    },
+    "aquitaine": {
+        "name": "Aquitaine"
+    },
+    "auvergne": {
+        "name": "Auvergne"
+    },
+    "basse-normandie": {
+        "name": "Basse-Normandie"
+    },
+    "bourgogne": {
+        "name": "Bourgogne"
+    },
+    "bretagne": {
+        "name": "Bretagne"
+    },
+    "centre": {
+        "name": "Centre"
+    },
+    "champagne-ardenne": {
+        "name": "Champagne-Ardenne"
+    },
+    "corse": {
+        "name": "Corse"
+    },
+    "franche-comte": {
+        "name": "Franche-Comte"
+    },
+    "haute-normandie": {
+        "name": "Haute-Normandie"
+    },
+    "ile-de-france": {
+        "name": "Ile-De-France"
+    },
+    "languedoc-roussillon": {
+        "name": "Languedoc-Roussillon"
+    },
+    "limousin": {
+        "name": "Limousin"
+    },
+    "lorraine": {
+        "name": "Lorraine"
+    },
+    "midi-pyrenees": {
+        "name": "Midi-Pyrenees"
+    },
+    "nord-pas-de-calais": {
+        "name": "Nord-Pas-de-Calais"
+    },
+    "pays de la loire": {
+        "name": "Pays de la Loire"
+    },
+    "picardie": {
+        "name": "Picardie"
+    },
+    "poitou-charentes": {
+        "name": "Poitou-Charentes"
+    },
+    "provence-alpes-cote d'azur": {
+        "name": "Provence-Alpes-Cote d'Azur"
+    },
+    "rhone-alpes": {
+        "name": "Rhone-Alpes"
+    },
+    "alsace": {
+        "name": "Alsace"
+    },
+    "baden-wurttemberg": {
+        "name": "Baden-Wurttemberg"
+    },
+    "bayern": {
+        "name": "Bayern"
+    },
+    "bremen": {
+        "name": "Bremen"
+    },
+    "hamburg": {
+        "name": "Hamburg"
+    },
+    "hessen": {
+        "name": "Hessen"
+    },
+    "niedersachsen": {
+        "name": "Niedersachsen"
+    },
+    "nordrhein-westfalen": {
+        "name": "Nordrhein-Westfalen"
+    },
+    "rheinland-pfalz": {
+        "name": "Rheinland-Pfalz"
+    },
+    "saarland": {
+        "name": "Saarland"
+    },
+    "schleswig-holstein": {
+        "name": "Schleswig-Holstein"
+    },
+    "brandenburg": {
+        "name": "Brandenburg"
+    },
+    "mecklenburg-vorpommern": {
+        "name": "Mecklenburg-Vorpommern"
+    },
+    "sachsen": {
+        "name": "Sachsen"
+    },
+    "sachsen-anhalt": {
+        "name": "Sachsen-Anhalt"
+    },
+    "thuringen": {
+        "name": "Thuringen"
+    },
+    "berlin": {
+        "name": "Berlin"
+    },
+    "evros": {
+        "name": "Evros"
+    },
+    "rodhopi": {
+        "name": "Rodhopi"
+    },
+    "xanthi": {
+        "name": "Xanthi"
+    },
+    "drama": {
+        "name": "Drama"
+    },
+    "serrai": {
+        "name": "Serrai"
+    },
+    "kilkis": {
+        "name": "Kilkis"
+    },
+    "pella": {
+        "name": "Pella"
+    },
+    "florina": {
+        "name": "Florina"
+    },
+    "kastoria": {
+        "name": "Kastoria"
+    },
+    "grevena": {
+        "name": "Grevena"
+    },
+    "kozani": {
+        "name": "Kozani"
+    },
+    "imathia": {
+        "name": "Imathia"
+    },
+    "thessaloniki": {
+        "name": "Thessaloniki"
+    },
+    "kavala": {
+        "name": "Kavala"
+    },
+    "khalkidhiki": {
+        "name": "Khalkidhiki"
+    },
+    "pieria": {
+        "name": "Pieria"
+    },
+    "ioannina": {
+        "name": "Ioannina"
+    },
+    "thesprotia": {
+        "name": "Thesprotia"
+    },
+    "preveza": {
+        "name": "Preveza"
+    },
+    "arta": {
+        "name": "Arta"
+    },
+    "larisa": {
+        "name": "Larisa"
+    },
+    "trikala": {
+        "name": "Trikala"
+    },
+    "kardhitsa": {
+        "name": "Kardhitsa"
+    },
+    "magnisia": {
+        "name": "Magnisia"
+    },
+    "kerkira": {
+        "name": "Kerkira"
+    },
+    "levkas": {
+        "name": "Levkas"
+    },
+    "kefallinia": {
+        "name": "Kefallinia"
+    },
+    "zakinthos": {
+        "name": "Zakinthos"
+    },
+    "fthiotis": {
+        "name": "Fthiotis"
+    },
+    "evritania": {
+        "name": "Evritania"
+    },
+    "aitolia kai akarnania": {
+        "name": "Aitolia kai Akarnania"
+    },
+    "fokis": {
+        "name": "Fokis"
+    },
+    "voiotia": {
+        "name": "Voiotia"
+    },
+    "evvoia": {
+        "name": "Evvoia"
+    },
+    "attiki": {
+        "name": "Attiki"
+    },
+    "argolis": {
+        "name": "Argolis"
+    },
+    "korinthia": {
+        "name": "Korinthia"
+    },
+    "akhaia": {
+        "name": "Akhaia"
+    },
+    "ilia": {
+        "name": "Ilia"
+    },
+    "messinia": {
+        "name": "Messinia"
+    },
+    "arkadhia": {
+        "name": "Arkadhia"
+    },
+    "lakonia": {
+        "name": "Lakonia"
+    },
+    "khania": {
+        "name": "Khania"
+    },
+    "rethimni": {
+        "name": "Rethimni"
+    },
+    "iraklion (crete)": {
+        "name": "Iraklion (Crete)"
+    },
+    "lasithi": {
+        "name": "Lasithi"
+    },
+    "dhodhekanisos": {
+        "name": "Dhodhekanisos"
+    },
+    "samos": {
+        "name": "Samos"
+    },
+    "kikladhes": {
+        "name": "Kikladhes"
+    },
+    "khios": {
+        "name": "Khios"
+    },
+    "lesvos": {
+        "name": "Lesvos"
+    },
+    "bacs-kiskun": {
+        "name": "Bacs-Kiskun"
+    },
+    "baranya": {
+        "name": "Baranya"
+    },
+    "bekes": {
+        "name": "Bekes"
+    },
+    "borsod-abauj-zemplen": {
+        "name": "Borsod-Abauj-Zemplen"
+    },
+    "budapest": {
+        "name": "Budapest"
+    },
+    "csongrad": {
+        "name": "Csongrad"
+    },
+    "debrecen": {
+        "name": "Debrecen"
+    },
+    "fejer": {
+        "name": "Fejer"
+    },
+    "gyor-moson-sopron": {
+        "name": "Gyor-Moson-Sopron"
+    },
+    "hajdu-bihar": {
+        "name": "Hajdu-Bihar"
+    },
+    "heves": {
+        "name": "Heves"
+    },
+    "komarom-esztergom": {
+        "name": "Komarom-Esztergom"
+    },
+    "miskolc": {
+        "name": "Miskolc"
+    },
+    "nograd": {
+        "name": "Nograd"
+    },
+    "pees": {
+        "name": "Pees"
+    },
+    "pest": {
+        "name": "Pest"
+    },
+    "somogy": {
+        "name": "Somogy"
+    },
+    "szabolcs-szatmar-bereg": {
+        "name": "Szabolcs-Szatmar-Bereg"
+    },
+    "szeged": {
+        "name": "Szeged"
+    },
+    "jasz-nagykun-szolnok": {
+        "name": "Jasz-Nagykun-Szolnok"
+    },
+    "tolna": {
+        "name": "Tolna"
+    },
+    "vas": {
+        "name": "Vas"
+    },
+    "veszprem": {
+        "name": "Veszprem"
+    },
+    "zala": {
+        "name": "Zala"
+    },
+    "gyor": {
+        "name": "Gyor"
+    },
+    "bekescsaba": {
+        "name": "Bekescsaba"
+    },
+    "dunaujvaros": {
+        "name": "Dunaujvaros"
+    },
+    "eger": {
+        "name": "Eger"
+    },
+    "hodmezovasarhely": {
+        "name": "Hodmezovasarhely"
+    },
+    "kaposvar": {
+        "name": "Kaposvar"
+    },
+    "kecskemet": {
+        "name": "Kecskemet"
+    },
+    "nagykanizsa": {
+        "name": "Nagykanizsa"
+    },
+    "nyiregyhaza": {
+        "name": "Nyiregyhaza"
+    },
+    "sopron": {
+        "name": "Sopron"
+    },
+    "szekesfehervar": {
+        "name": "Szekesfehervar"
+    },
+    "szolnok": {
+        "name": "Szolnok"
+    },
+    "szombathely": {
+        "name": "Szombathely"
+    },
+    "tatabanya": {
+        "name": "Tatabanya"
+    },
+    "zalaegerszeg": {
+        "name": "Zalaegerszeg"
+    },
+    "andaman and nicobar islands": {
+        "name": "Andaman and Nicobar Islands"
+    },
+    "andhra pradesh": {
+        "name": "Andhra Pradesh"
+    },
+    "assam": {
+        "name": "Assam"
+    },
+    "bihar": {
+        "name": "Bihar"
+    },
+    "chandigarh": {
+        "name": "Chandigarh"
+    },
+    "dadra and nagar haveli": {
+        "name": "Dadra and Nagar Haveli"
+    },
+    "delhi": {
+        "name": "Delhi"
+    },
+    "gujarat": {
+        "name": "Gujarat"
+    },
+    "haryana": {
+        "name": "Haryana"
+    },
+    "himachal pradesh": {
+        "name": "Himachal Pradesh"
+    },
+    "jammu and kashmir": {
+        "name": "Jammu and Kashmir"
+    },
+    "kerala": {
+        "name": "Kerala"
+    },
+    "lakshadweep": {
+        "name": "Lakshadweep"
+    },
+    "madhya pradesh": {
+        "name": "Madhya Pradesh"
+    },
+    "maharashtra": {
+        "name": "Maharashtra"
+    },
+    "manipur": {
+        "name": "Manipur"
+    },
+    "meghalaya": {
+        "name": "Meghalaya"
+    },
+    "karnataka": {
+        "name": "Karnataka"
+    },
+    "nagaland": {
+        "name": "Nagaland"
+    },
+    "orissa": {
+        "name": "Orissa"
+    },
+    "pondicherry": {
+        "name": "Pondicherry"
+    },
+    "punjab": {
+        "name": "Punjab"
+    },
+    "rajasthan": {
+        "name": "Rajasthan"
+    },
+    "tamil nadu": {
+        "name": "Tamil Nadu"
+    },
+    "tripura": {
+        "name": "Tripura"
+    },
+    "uttar pradesh": {
+        "name": "Uttar Pradesh"
+    },
+    "west bengal": {
+        "name": "West Bengal"
+    },
+    "sikkim": {
+        "name": "Sikkim"
+    },
+    "arunachal pradesh": {
+        "name": "Arunachal Pradesh"
+    },
+    "mizoram": {
+        "name": "Mizoram"
+    },
+    "daman and diu": {
+        "name": "Daman and Diu"
+    },
+    "goa": {
+        "name": "Goa"
+    },
+    "uttarakhand": {
+        "name": "Uttarakhand"
+    },
+    "chhattisgarh": {
+        "name": "Chhattisgarh"
+    },
+    "jharkhand": {
+        "name": "Jharkhand"
+    },
+    "carlow": {
+        "name": "Carlow"
+    },
+    "cavan": {
+        "name": "Cavan"
+    },
+    "clare": {
+        "name": "Clare"
+    },
+    "cork": {
+        "name": "Cork"
+    },
+    "donegal": {
+        "name": "Donegal"
+    },
+    "dublin": {
+        "name": "Dublin"
+    },
+    "galway": {
+        "name": "Galway"
+    },
+    "kerry": {
+        "name": "Kerry"
+    },
+    "kildare": {
+        "name": "Kildare"
+    },
+    "kilkenny": {
+        "name": "Kilkenny"
+    },
+    "leitrim": {
+        "name": "Leitrim"
+    },
+    "laois": {
+        "name": "Laois"
+    },
+    "limerick": {
+        "name": "Limerick"
+    },
+    "longford": {
+        "name": "Longford"
+    },
+    "louth": {
+        "name": "Louth"
+    },
+    "mayo": {
+        "name": "Mayo"
+    },
+    "meath": {
+        "name": "Meath"
+    },
+    "monaghan": {
+        "name": "Monaghan"
+    },
+    "offaly": {
+        "name": "Offaly"
+    },
+    "roscommon": {
+        "name": "Roscommon"
+    },
+    "sligo": {
+        "name": "Sligo"
+    },
+    "tipperary": {
+        "name": "Tipperary"
+    },
+    "waterford": {
+        "name": "Waterford"
+    },
+    "westmeath": {
+        "name": "Westmeath"
+    },
+    "wexford": {
+        "name": "Wexford"
+    },
+    "wicklow": {
+        "name": "Wicklow"
+    },
+    "hadarom (southern)": {
+        "name": "HaDarom (Southern)"
+    },
+    "hamerkaz (central)": {
+        "name": "HaMerkaz (Central)"
+    },
+    "tel aviv": {
+        "name": "Tel Aviv"
+    },
+    "yerushalayim  (jerusalem)": {
+        "name": "Yerushalayim  (Jerusalem)"
+    },
+    "abruzzi": {
+        "name": "Abruzzi"
+    },
+    "basilicata": {
+        "name": "Basilicata"
+    },
+    "calabria": {
+        "name": "Calabria"
+    },
+    "campania": {
+        "name": "Campania"
+    },
+    "emilia-romagna": {
+        "name": "Emilia-Romagna"
+    },
+    "friuli-venezia giulia": {
+        "name": "Friuli-Venezia Giulia"
+    },
+    "lazio": {
+        "name": "Lazio"
+    },
+    "liguria": {
+        "name": "Liguria"
+    },
+    "lombardia": {
+        "name": "Lombardia"
+    },
+    "marche": {
+        "name": "Marche"
+    },
+    "molise": {
+        "name": "Molise"
+    },
+    "piemonte": {
+        "name": "Piemonte"
+    },
+    "puglia": {
+        "name": "Puglia"
+    },
+    "sardegna": {
+        "name": "Sardegna"
+    },
+    "sicilia": {
+        "name": "Sicilia"
+    },
+    "toscana": {
+        "name": "Toscana"
+    },
+    "trentino-alto adige": {
+        "name": "Trentino-Alto Adige"
+    },
+    "umbria": {
+        "name": "Umbria"
+    },
+    "valle d'aosta": {
+        "name": "Valle d'Aosta"
+    },
+    "veneto": {
+        "name": "Veneto"
+    },
+    "aichi": {
+        "name": "Aichi"
+    },
+    "akita": {
+        "name": "Akita"
+    },
+    "aomori": {
+        "name": "Aomori"
+    },
+    "chiba": {
+        "name": "Chiba"
+    },
+    "ehime": {
+        "name": "Ehime"
+    },
+    "fukui": {
+        "name": "Fukui"
+    },
+    "fukuoka": {
+        "name": "Fukuoka"
+    },
+    "fukushima": {
+        "name": "Fukushima"
+    },
+    "gifu": {
+        "name": "Gifu"
+    },
+    "gumma": {
+        "name": "Gumma"
+    },
+    "hiroshima": {
+        "name": "Hiroshima"
+    },
+    "hokkaido": {
+        "name": "Hokkaido"
+    },
+    "hyogo": {
+        "name": "Hyogo"
+    },
+    "ibaraki": {
+        "name": "Ibaraki"
+    },
+    "ishikawa": {
+        "name": "Ishikawa"
+    },
+    "iwate": {
+        "name": "Iwate"
+    },
+    "kagawa": {
+        "name": "Kagawa"
+    },
+    "kagoshima": {
+        "name": "Kagoshima"
+    },
+    "kanagawa": {
+        "name": "Kanagawa"
+    },
+    "kochi": {
+        "name": "Kochi"
+    },
+    "kumamoto": {
+        "name": "Kumamoto"
+    },
+    "kyoto": {
+        "name": "Kyoto"
+    },
+    "mie": {
+        "name": "Mie"
+    },
+    "miyagi": {
+        "name": "Miyagi"
+    },
+    "miyazaki": {
+        "name": "Miyazaki"
+    },
+    "nagano": {
+        "name": "Nagano"
+    },
+    "nagasaki": {
+        "name": "Nagasaki"
+    },
+    "nara": {
+        "name": "Nara"
+    },
+    "niigata": {
+        "name": "Niigata"
+    },
+    "oita": {
+        "name": "Oita"
+    },
+    "okayama": {
+        "name": "Okayama"
+    },
+    "osaka": {
+        "name": "Osaka"
+    },
+    "saga": {
+        "name": "Saga"
+    },
+    "saitama": {
+        "name": "Saitama"
+    },
+    "shiga": {
+        "name": "Shiga"
+    },
+    "shimane": {
+        "name": "Shimane"
+    },
+    "shizuoka": {
+        "name": "Shizuoka"
+    },
+    "tochigi": {
+        "name": "Tochigi"
+    },
+    "tokushima": {
+        "name": "Tokushima"
+    },
+    "tokyo": {
+        "name": "Tokyo"
+    },
+    "tottori": {
+        "name": "Tottori"
+    },
+    "toyama": {
+        "name": "Toyama"
+    },
+    "wakayama": {
+        "name": "Wakayama"
+    },
+    "yamagata": {
+        "name": "Yamagata"
+    },
+    "yamaguchi": {
+        "name": "Yamaguchi"
+    },
+    "yamanashi": {
+        "name": "Yamanashi"
+    },
+    "okinawa": {
+        "name": "Okinawa"
+    },
+    "aizjrayjkes rajons": {
+        "name": "Aizjrayjkes Rajons"
+    },
+    "aluksnes rajons": {
+        "name": "Aluksnes Rajons"
+    },
+    "balvu rajons": {
+        "name": "Balvu Rajons"
+    },
+    "bauskas rajons": {
+        "name": "Bauskas Rajons"
+    },
+    "cesu rajons": {
+        "name": "Cesu Rajons"
+    },
+    "daugavpils": {
+        "name": "Daugavpils"
+    },
+    "daugavpils rajons": {
+        "name": "Daugavpils Rajons"
+    },
+    "dobeles rajons": {
+        "name": "Dobeles Rajons"
+    },
+    "gulbenes rajons": {
+        "name": "Gulbenes Rajons"
+    },
+    "jekabpils rajons": {
+        "name": "Jekabpils Rajons"
+    },
+    "jelgava": {
+        "name": "Jelgava"
+    },
+    "jelgavas rajons": {
+        "name": "Jelgavas Rajons"
+    },
+    "jurmala": {
+        "name": "Jurmala"
+    },
+    "kraslavas rajons": {
+        "name": "Kraslavas Rajons"
+    },
+    "kuldigas rajons": {
+        "name": "Kuldigas Rajons"
+    },
+    "liepaja": {
+        "name": "Liepaja"
+    },
+    "liepajas rajons": {
+        "name": "Liepajas Rajons"
+    },
+    "limbazu rajons": {
+        "name": "Limbazu Rajons"
+    },
+    "ludzas rajons": {
+        "name": "Ludzas Rajons"
+    },
+    "madonas rajons": {
+        "name": "Madonas Rajons"
+    },
+    "ogres rajons": {
+        "name": "Ogres Rajons"
+    },
+    "preiju rajons": {
+        "name": "Preiju Rajons"
+    },
+    "rezekne": {
+        "name": "Rezekne"
+    },
+    "rezeknes rajons": {
+        "name": "Rezeknes Rajons"
+    },
+    "riga": {
+        "name": "Riga"
+    },
+    "rigas rajons": {
+        "name": "Rigas Rajons"
+    },
+    "saldus rajons": {
+        "name": "Saldus Rajons"
+    },
+    "talsu rajons": {
+        "name": "Talsu Rajons"
+    },
+    "tukuma rajons": {
+        "name": "Tukuma Rajons"
+    },
+    "valkas rajons": {
+        "name": "Valkas Rajons"
+    },
+    "valmieras rajons": {
+        "name": "Valmieras Rajons"
+    },
+    "ventspils": {
+        "name": "Ventspils"
+    },
+    "ventspils rajons": {
+        "name": "Ventspils Rajons"
+    },
+    "alytaus apskritis": {
+        "name": "Alytaus Apskritis"
+    },
+    "kauno apskritis": {
+        "name": "Kauno Apskritis"
+    },
+    "klaipedos apskritis": {
+        "name": "Klaipedos Apskritis"
+    },
+    "marijampoles apskritis": {
+        "name": "Marijampoles Apskritis"
+    },
+    "panevezio apskritis": {
+        "name": "Panevezio Apskritis"
+    },
+    "siauliu apskritis": {
+        "name": "Siauliu Apskritis"
+    },
+    "taurages apskritis": {
+        "name": "Taurages Apskritis"
+    },
+    "telsiu apskritis": {
+        "name": "Telsiu Apskritis"
+    },
+    "utenos apskritis": {
+        "name": "Utenos Apskritis"
+    },
+    "vilniaus apskritis": {
+        "name": "Vilniaus Apskritis"
+    },
+    "diekirch": {
+        "name": "Diekirch"
+    },
+    "grevenmacher": {
+        "name": "Grevenmacher"
+    },
+    "johor": {
+        "name": "Johor"
+    },
+    "kedah": {
+        "name": "Kedah"
+    },
+    "kelantan": {
+        "name": "Kelantan"
+    },
+    "melaka": {
+        "name": "Melaka"
+    },
+    "negeri sembilan": {
+        "name": "Negeri Sembilan"
+    },
+    "pahang": {
+        "name": "Pahang"
+    },
+    "perak": {
+        "name": "Perak"
+    },
+    "perlis": {
+        "name": "Perlis"
+    },
+    "pulau pinang": {
+        "name": "Pulau Pinang"
+    },
+    "sarawak": {
+        "name": "Sarawak"
+    },
+    "selangor": {
+        "name": "Selangor"
+    },
+    "terengganu": {
+        "name": "Terengganu"
+    },
+    "wilayah persekutuan": {
+        "name": "Wilayah Persekutuan"
+    },
+    "labuan": {
+        "name": "Labuan"
+    },
+    "sabah": {
+        "name": "Sabah"
+    },
+    "putrajaya": {
+        "name": "Putrajaya"
+    },
+    "drenthe": {
+        "name": "Drenthe"
+    },
+    "friesland": {
+        "name": "Friesland"
+    },
+    "gelderland": {
+        "name": "Gelderland"
+    },
+    "groningen": {
+        "name": "Groningen"
+    },
+    "limburg nl": {
+        "name": "Limburg (nl)"
+    },
+    "noord-brabant": {
+        "name": "Noord-Brabant"
+    },
+    "noord-holland": {
+        "name": "Noord-Holland"
+    },
+    "overijssel": {
+        "name": "Overijssel"
+    },
+    "utrecht": {
+        "name": "Utrecht"
+    },
+    "zeeland": {
+        "name": "Zeeland"
+    },
+    "zuid-holland": {
+        "name": "Zuid-Holland"
+    },
+    "flevoland": {
+        "name": "Flevoland"
+    },
+    "lagos": {
+        "name": "Lagos"
+    },
+    "bauchi": {
+        "name": "Bauchi"
+    },
+    "rivers": {
+        "name": "Rivers"
+    },
+    "abuja capital territory": {
+        "name": "Abuja Capital Territory"
+    },
+    "ogun": {
+        "name": "Ogun"
+    },
+    "ondo": {
+        "name": "Ondo"
+    },
+    "plateau": {
+        "name": "Plateau"
+    },
+    "akwa ibom": {
+        "name": "Akwa Ibom"
+    },
+    "cross river": {
+        "name": "Cross River"
+    },
+    "kaduna": {
+        "name": "Kaduna"
+    },
+    "anambra": {
+        "name": "Anambra"
+    },
+    "benue": {
+        "name": "Benue"
+    },
+    "borno": {
+        "name": "Borno"
+    },
+    "kano": {
+        "name": "Kano"
+    },
+    "kwara": {
+        "name": "Kwara"
+    },
+    "niger ng": {
+        "name": "Niger (ng)"
+    },
+    "oyo": {
+        "name": "Oyo"
+    },
+    "sokoto": {
+        "name": "Sokoto"
+    },
+    "abia": {
+        "name": "Abia"
+    },
+    "adamawa": {
+        "name": "Adamawa"
+    },
+    "delta": {
+        "name": "Delta"
+    },
+    "edo": {
+        "name": "Edo"
+    },
+    "enugu": {
+        "name": "Enugu"
+    },
+    "jigawa": {
+        "name": "Jigawa"
+    },
+    "kebbi": {
+        "name": "Kebbi"
+    },
+    "kogi": {
+        "name": "Kogi"
+    },
+    "osun": {
+        "name": "Osun"
+    },
+    "taraba": {
+        "name": "Taraba"
+    },
+    "yobe": {
+        "name": "Yobe"
+    },
+    "bayelsa": {
+        "name": "Bayelsa"
+    },
+    "ebonyi": {
+        "name": "Ebonyi"
+    },
+    "ekiti": {
+        "name": "Ekiti"
+    },
+    "gombe": {
+        "name": "Gombe"
+    },
+    "nassarawa": {
+        "name": "Nassarawa"
+    },
+    "zamfara": {
+        "name": "Zamfara"
+    },
+    "imo": {
+        "name": "Imo"
+    },
+    "katsina": {
+        "name": "Katsina"
+    },
+    "dolnoslaskie": {
+        "name": "Dolnoslaskie"
+    },
+    "kujawsko-pomorskie": {
+        "name": "Kujawsko-Pomorskie"
+    },
+    "lodzkie": {
+        "name": "Lodzkie"
+    },
+    "lubelskie": {
+        "name": "Lubelskie"
+    },
+    "lubuskie": {
+        "name": "Lubuskie"
+    },
+    "malopolskie": {
+        "name": "Malopolskie"
+    },
+    "mazowieckie": {
+        "name": "Mazowieckie"
+    },
+    "opolskie": {
+        "name": "Opolskie"
+    },
+    "podkarpackie": {
+        "name": "Podkarpackie"
+    },
+    "podlaskie": {
+        "name": "Podlaskie"
+    },
+    "pomorskie": {
+        "name": "Pomorskie"
+    },
+    "slaskie": {
+        "name": "Slaskie"
+    },
+    "swietokrzyskie": {
+        "name": "Swietokrzyskie"
+    },
+    "warminsko-mazurskie": {
+        "name": "Warminsko-Mazurskie"
+    },
+    "wielkopolskie": {
+        "name": "Wielkopolskie"
+    },
+    "zachodniopomorskie": {
+        "name": "Zachodniopomorskie"
+    },
+    "aveiro": {
+        "name": "Aveiro"
+    },
+    "beja": {
+        "name": "Beja"
+    },
+    "braga": {
+        "name": "Braga"
+    },
+    "braganca": {
+        "name": "Braganca"
+    },
+    "castelo branco": {
+        "name": "Castelo Branco"
+    },
+    "coimbra": {
+        "name": "Coimbra"
+    },
+    "evora": {
+        "name": "Evora"
+    },
+    "faro": {
+        "name": "Faro"
+    },
+    "madeira": {
+        "name": "Madeira"
+    },
+    "guarda": {
+        "name": "Guarda"
+    },
+    "leiria": {
+        "name": "Leiria"
+    },
+    "lisboa": {
+        "name": "Lisboa"
+    },
+    "portalegre": {
+        "name": "Portalegre"
+    },
+    "porto": {
+        "name": "Porto"
+    },
+    "santarem": {
+        "name": "Santarem"
+    },
+    "setubal": {
+        "name": "Setubal"
+    },
+    "viana do castelo": {
+        "name": "Viana do Castelo"
+    },
+    "vila real": {
+        "name": "Vila Real"
+    },
+    "viseu": {
+        "name": "Viseu"
+    },
+    "azores": {
+        "name": "Azores"
+    },
+    "alba": {
+        "name": "Alba"
+    },
+    "arad": {
+        "name": "Arad"
+    },
+    "arges": {
+        "name": "Arges"
+    },
+    "bacau": {
+        "name": "Bacau"
+    },
+    "bihor": {
+        "name": "Bihor"
+    },
+    "bistrita-nasaud": {
+        "name": "Bistrita-Nasaud"
+    },
+    "botosani": {
+        "name": "Botosani"
+    },
+    "braila": {
+        "name": "Braila"
+    },
+    "brasov": {
+        "name": "Brasov"
+    },
+    "bucuresti": {
+        "name": "Bucuresti"
+    },
+    "buzau": {
+        "name": "Buzau"
+    },
+    "caras-severin": {
+        "name": "Caras-Severin"
+    },
+    "cluj": {
+        "name": "Cluj"
+    },
+    "constanta": {
+        "name": "Constanta"
+    },
+    "covasna": {
+        "name": "Covasna"
+    },
+    "dambovita": {
+        "name": "Dambovita"
+    },
+    "dolj": {
+        "name": "Dolj"
+    },
+    "galati": {
+        "name": "Galati"
+    },
+    "gorj": {
+        "name": "Gorj"
+    },
+    "harghita": {
+        "name": "Harghita"
+    },
+    "hunedoara": {
+        "name": "Hunedoara"
+    },
+    "ialomita": {
+        "name": "Ialomita"
+    },
+    "iasi": {
+        "name": "Iasi"
+    },
+    "maramures": {
+        "name": "Maramures"
+    },
+    "mehedinti": {
+        "name": "Mehedinti"
+    },
+    "mures": {
+        "name": "Mures"
+    },
+    "neamt": {
+        "name": "Neamt"
+    },
+    "olt": {
+        "name": "Olt"
+    },
+    "prahova": {
+        "name": "Prahova"
+    },
+    "salaj": {
+        "name": "Salaj"
+    },
+    "satu mare": {
+        "name": "Satu Mare"
+    },
+    "sibiu": {
+        "name": "Sibiu"
+    },
+    "suceava": {
+        "name": "Suceava"
+    },
+    "teleorman": {
+        "name": "Teleorman"
+    },
+    "timis": {
+        "name": "Timis"
+    },
+    "tulcea": {
+        "name": "Tulcea"
+    },
+    "vaslui": {
+        "name": "Vaslui"
+    },
+    "valcea": {
+        "name": "Valcea"
+    },
+    "vrancea": {
+        "name": "Vrancea"
+    },
+    "calarasi": {
+        "name": "Calarasi"
+    },
+    "giurgiu": {
+        "name": "Giurgiu"
+    },
+    "banskobystricky": {
+        "name": "Banskobystricky"
+    },
+    "bratislavsky": {
+        "name": "Bratislavsky"
+    },
+    "kosicky": {
+        "name": "Kosicky"
+    },
+    "nitrinsky": {
+        "name": "Nitrinsky"
+    },
+    "presovsky": {
+        "name": "Presovsky"
+    },
+    "treciansky": {
+        "name": "Treciansky"
+    },
+    "trnavsky": {
+        "name": "Trnavsky"
+    },
+    "zilinsky": {
+        "name": "Zilinsky"
+    },
+    "ajdovscina": {
+        "name": "Ajdovscina"
+    },
+    "beltinci": {
+        "name": "Beltinci"
+    },
+    "bled": {
+        "name": "Bled"
+    },
+    "bohinj": {
+        "name": "Bohinj"
+    },
+    "borovnica": {
+        "name": "Borovnica"
+    },
+    "bovec": {
+        "name": "Bovec"
+    },
+    "brda": {
+        "name": "Brda"
+    },
+    "brezice": {
+        "name": "Brezice"
+    },
+    "brezovica": {
+        "name": "Brezovica"
+    },
+    "cankova-tisina": {
+        "name": "Cankova-Tisina"
+    },
+    "celje": {
+        "name": "Celje"
+    },
+    "cerklje na gorenjskem": {
+        "name": "Cerklje Na Gorenjskem"
+    },
+    "cerknica": {
+        "name": "Cerknica"
+    },
+    "cerkno": {
+        "name": "Cerkno"
+    },
+    "crensovci": {
+        "name": "Crensovci"
+    },
+    "crna na koroskem": {
+        "name": "Crna na Koroskem"
+    },
+    "crnomelj": {
+        "name": "Crnomelj"
+    },
+    "destrnik-trnovska vas": {
+        "name": "Destrnik-Trnovska Vas"
+    },
+    "divaca": {
+        "name": "Divaca"
+    },
+    "dobrepolje": {
+        "name": "Dobrepolje"
+    },
+    "dobrova-horjul-polhov gradec": {
+        "name": "Dobrova-Horjul-Polhov Gradec"
+    },
+    "dol pri ljubljani": {
+        "name": "Dol pri Ljubljani"
+    },
+    "domzale": {
+        "name": "Domzale"
+    },
+    "dornava": {
+        "name": "Dornava"
+    },
+    "dravograd": {
+        "name": "Dravograd"
+    },
+    "duplek": {
+        "name": "Duplek"
+    },
+    "gorenja vas-poljane": {
+        "name": "Gorenja Vas-Poljane"
+    },
+    "gorisnica": {
+        "name": "Gorisnica"
+    },
+    "gornja radgona": {
+        "name": "Gornja Radgona"
+    },
+    "gornji grad": {
+        "name": "Gornji Grad"
+    },
+    "gornji petrovci": {
+        "name": "Gornji Petrovci"
+    },
+    "grosuplje": {
+        "name": "Grosuplje"
+    },
+    "hodossalovci": {
+        "name": "HodosSalovci"
+    },
+    "hrastnik": {
+        "name": "Hrastnik"
+    },
+    "hrpelje-kozina": {
+        "name": "Hrpelje-Kozina"
+    },
+    "idrija": {
+        "name": "Idrija"
+    },
+    "ig": {
+        "name": "Ig"
+    },
+    "ilirska bistrica": {
+        "name": "Ilirska Bistrica"
+    },
+    "ivancna gorica": {
+        "name": "Ivancna Gorica"
+    },
+    "izola": {
+        "name": "Izola"
+    },
+    "jesenice": {
+        "name": "Jesenice"
+    },
+    "jursinci": {
+        "name": "Jursinci"
+    },
+    "kamnik": {
+        "name": "Kamnik"
+    },
+    "kanal": {
+        "name": "Kanal"
+    },
+    "kidricevo": {
+        "name": "Kidricevo"
+    },
+    "kobarid": {
+        "name": "Kobarid"
+    },
+    "kobilje": {
+        "name": "Kobilje"
+    },
+    "kocevje": {
+        "name": "Kocevje"
+    },
+    "komen": {
+        "name": "Komen"
+    },
+    "koper": {
+        "name": "Koper"
+    },
+    "kozje": {
+        "name": "Kozje"
+    },
+    "kranj": {
+        "name": "Kranj"
+    },
+    "kranjska gora": {
+        "name": "Kranjska Gora"
+    },
+    "krsko": {
+        "name": "Krsko"
+    },
+    "kungota": {
+        "name": "Kungota"
+    },
+    "kuzma": {
+        "name": "Kuzma"
+    },
+    "lasko": {
+        "name": "Lasko"
+    },
+    "lenart": {
+        "name": "Lenart"
+    },
+    "lendava": {
+        "name": "Lendava"
+    },
+    "litija": {
+        "name": "Litija"
+    },
+    "ljubljana": {
+        "name": "Ljubljana"
+    },
+    "ljubno": {
+        "name": "Ljubno"
+    },
+    "ljutomer": {
+        "name": "Ljutomer"
+    },
+    "logatec": {
+        "name": "Logatec"
+    },
+    "loska dolina": {
+        "name": "Loska Dolina"
+    },
+    "loski potok": {
+        "name": "Loski Potok"
+    },
+    "luce": {
+        "name": "Luce"
+    },
+    "lukovica": {
+        "name": "Lukovica"
+    },
+    "majsperk": {
+        "name": "Majsperk"
+    },
+    "maribor": {
+        "name": "Maribor"
+    },
+    "medvode": {
+        "name": "Medvode"
+    },
+    "menges": {
+        "name": "Menges"
+    },
+    "metlika": {
+        "name": "Metlika"
+    },
+    "mezica": {
+        "name": "Mezica"
+    },
+    "miren-kostanjevica": {
+        "name": "Miren-Kostanjevica"
+    },
+    "mislinja": {
+        "name": "Mislinja"
+    },
+    "moravce": {
+        "name": "Moravce"
+    },
+    "moravske toplice": {
+        "name": "Moravske Toplice"
+    },
+    "mozirje": {
+        "name": "Mozirje"
+    },
+    "murska sobota": {
+        "name": "Murska Sobota"
+    },
+    "muta": {
+        "name": "Muta"
+    },
+    "naklo": {
+        "name": "Naklo"
+    },
+    "nazarje": {
+        "name": "Nazarje"
+    },
+    "nova gorica": {
+        "name": "Nova Gorica"
+    },
+    "novo mesto": {
+        "name": "Novo Mesto"
+    },
+    "odranci": {
+        "name": "Odranci"
+    },
+    "ormoz": {
+        "name": "Ormoz"
+    },
+    "osilnica": {
+        "name": "Osilnica"
+    },
+    "pesnica": {
+        "name": "Pesnica"
+    },
+    "piran": {
+        "name": "Piran"
+    },
+    "pivka": {
+        "name": "Pivka"
+    },
+    "podcetrtek": {
+        "name": "Podcetrtek"
+    },
+    "podvelka-ribnica": {
+        "name": "Podvelka-Ribnica"
+    },
+    "postojna": {
+        "name": "Postojna"
+    },
+    "preddvor": {
+        "name": "Preddvor"
+    },
+    "ptuj": {
+        "name": "Ptuj"
+    },
+    "puconci": {
+        "name": "Puconci"
+    },
+    "race-fram": {
+        "name": "Race-Fram"
+    },
+    "radece": {
+        "name": "Radece"
+    },
+    "radenci": {
+        "name": "Radenci"
+    },
+    "radlje ob dravi": {
+        "name": "Radlje ob Dravi"
+    },
+    "radovljica": {
+        "name": "Radovljica"
+    },
+    "ravne-prevalje": {
+        "name": "Ravne-Prevalje"
+    },
+    "ribnica": {
+        "name": "Ribnica"
+    },
+    "rogasevci": {
+        "name": "Rogasevci"
+    },
+    "rogaska slatina": {
+        "name": "Rogaska Slatina"
+    },
+    "rogatec": {
+        "name": "Rogatec"
+    },
+    "ruse si": {
+        "name": "Ruse (si)"
+    },
+    "semic": {
+        "name": "Semic"
+    },
+    "sencur": {
+        "name": "Sencur"
+    },
+    "sentilj": {
+        "name": "Sentilj"
+    },
+    "sentjernej": {
+        "name": "Sentjernej"
+    },
+    "sentjur pri celju": {
+        "name": "Sentjur pri Celju"
+    },
+    "sevnica": {
+        "name": "Sevnica"
+    },
+    "sezana": {
+        "name": "Sezana"
+    },
+    "skocjan": {
+        "name": "Skocjan"
+    },
+    "skofja loka": {
+        "name": "Skofja Loka"
+    },
+    "skofljica": {
+        "name": "Skofljica"
+    },
+    "slovenj gradec": {
+        "name": "Slovenj Gradec"
+    },
+    "slovenska bistrica": {
+        "name": "Slovenska Bistrica"
+    },
+    "slovenske konjice": {
+        "name": "Slovenske Konjice"
+    },
+    "smarje pri jelsah": {
+        "name": "Smarje pri Jelsah"
+    },
+    "smartno ob paki": {
+        "name": "Smartno ob Paki"
+    },
+    "sostanj": {
+        "name": "Sostanj"
+    },
+    "starse": {
+        "name": "Starse"
+    },
+    "store": {
+        "name": "Store"
+    },
+    "sveti jurij": {
+        "name": "Sveti Jurij"
+    },
+    "tolmin": {
+        "name": "Tolmin"
+    },
+    "trbovlje": {
+        "name": "Trbovlje"
+    },
+    "trebnje": {
+        "name": "Trebnje"
+    },
+    "trzic": {
+        "name": "Trzic"
+    },
+    "turnisce": {
+        "name": "Turnisce"
+    },
+    "velenje": {
+        "name": "Velenje"
+    },
+    "velike lasce": {
+        "name": "Velike Lasce"
+    },
+    "videm": {
+        "name": "Videm"
+    },
+    "vipava": {
+        "name": "Vipava"
+    },
+    "vitanje": {
+        "name": "Vitanje"
+    },
+    "vodice": {
+        "name": "Vodice"
+    },
+    "vojnik": {
+        "name": "Vojnik"
+    },
+    "vrhnika": {
+        "name": "Vrhnika"
+    },
+    "vuzenica": {
+        "name": "Vuzenica"
+    },
+    "zagorje ob savi": {
+        "name": "Zagorje ob Savi"
+    },
+    "zalec": {
+        "name": "Zalec"
+    },
+    "zavrc": {
+        "name": "Zavrc"
+    },
+    "zelezniki": {
+        "name": "Zelezniki"
+    },
+    "ziri": {
+        "name": "Ziri"
+    },
+    "zrece": {
+        "name": "Zrece"
+    },
+    "islas baleares": {
+        "name": "Islas Baleares"
+    },
+    "la rioja": {
+        "name": "La Rioja"
+    },
+    "madrid": {
+        "name": "Madrid"
+    },
+    "murcia": {
+        "name": "Murcia"
+    },
+    "navarra": {
+        "name": "Navarra"
+    },
+    "asturias": {
+        "name": "Asturias"
+    },
+    "cantabria": {
+        "name": "Cantabria"
+    },
+    "andalucia": {
+        "name": "Andalucia"
+    },
+    "aragon": {
+        "name": "Aragon"
+    },
+    "canarias": {
+        "name": "Canarias"
+    },
+    "castilla-la mancha": {
+        "name": "Castilla-La Mancha"
+    },
+    "castilla y leon": {
+        "name": "Castilla y Leon"
+    },
+    "catalu": {
+        "name": "Catalu"
+    },
+    "extremadura": {
+        "name": "Extremadura"
+    },
+    "galicia": {
+        "name": "Galicia"
+    },
+    "pais vasco": {
+        "name": "Pais Vasco"
+    },
+    "valenciana": {
+        "name": "Valenciana"
+    },
+    "blekinge lan": {
+        "name": "Blekinge Lan"
+    },
+    "gavleborgs lan": {
+        "name": "Gavleborgs Lan"
+    },
+    "gotlands lan": {
+        "name": "Gotlands Lan"
+    },
+    "hallands lan": {
+        "name": "Hallands Lan"
+    },
+    "jamtlands lan": {
+        "name": "Jamtlands Lan"
+    },
+    "jonkopings lan": {
+        "name": "Jonkopings Lan"
+    },
+    "kalmar lan": {
+        "name": "Kalmar Lan"
+    },
+    "dalarnas lan": {
+        "name": "Dalarnas Lan"
+    },
+    "kronobergs lan": {
+        "name": "Kronobergs Lan"
+    },
+    "norrbottens lan": {
+        "name": "Norrbottens Lan"
+    },
+    "orebro lan": {
+        "name": "Orebro Lan"
+    },
+    "ostergotlands lan": {
+        "name": "Ostergotlands Lan"
+    },
+    "sodermanlands lan": {
+        "name": "Sodermanlands Lan"
+    },
+    "uppsala lan": {
+        "name": "Uppsala Lan"
+    },
+    "varmlands lan": {
+        "name": "Varmlands Lan"
+    },
+    "vasterbottens lan": {
+        "name": "Vasterbottens Lan"
+    },
+    "vasternorrlands lan": {
+        "name": "Vasternorrlands Lan"
+    },
+    "vastmanlands lan": {
+        "name": "Vastmanlands Lan"
+    },
+    "stockholms lan": {
+        "name": "Stockholms Lan"
+    },
+    "skane lan": {
+        "name": "Skane Lan"
+    },
+    "vastra gotaland": {
+        "name": "Vastra Gotaland"
+    },
+    "wales": {
+        "name": "Wales"
+    },
+    "scotland": {
+        "name": "Scotland"
+    },
+    "northern ireland": {
+        "name": "Northern Ireland"
+    },
+    "england": {
+        "name": "England"
+    },
+    "alabama": {
+        "name": "Alabama"
+    },
+    "alaska": {
+        "name": "Alaska"
+    },
+    "arizona": {
+        "name": "Arizona"
+    },
+    "arkansas": {
+        "name": "Arkansas"
+    },
+    "california": {
+        "name": "California"
+    },
+    "colorado": {
+        "name": "Colorado"
+    },
+    "connecticut": {
+        "name": "Connecticut"
+    },
+    "delaware": {
+        "name": "Delaware"
+    },
+    "district of columbia": {
+        "name": "District of Columbia"
+    },
+    "florida": {
+        "name": "Florida"
+    },
+    "georgia us": {
+        "name": "Georgia (us)"
+    },
+    "hawaii": {
+        "name": "Hawaii"
+    },
+    "idaho": {
+        "name": "Idaho"
+    },
+    "illinois": {
+        "name": "Illinois"
+    },
+    "indiana": {
+        "name": "Indiana"
+    },
+    "iowa": {
+        "name": "Iowa"
+    },
+    "kansas": {
+        "name": "Kansas"
+    },
+    "kentucky": {
+        "name": "Kentucky"
+    },
+    "louisiana": {
+        "name": "Louisiana"
+    },
+    "maine": {
+        "name": "Maine"
+    },
+    "maryland": {
+        "name": "Maryland"
+    },
+    "massachusetts": {
+        "name": "Massachusetts"
+    },
+    "michigan": {
+        "name": "Michigan"
+    },
+    "minnesota": {
+        "name": "Minnesota"
+    },
+    "mississippi": {
+        "name": "Mississippi"
+    },
+    "missouri": {
+        "name": "Missouri"
+    },
+    "montana us": {
+        "name": "Montana (us)"
+    },
+    "nebraska": {
+        "name": "Nebraska"
+    },
+    "nevada": {
+        "name": "Nevada"
+    },
+    "new hampshire": {
+        "name": "New Hampshire"
+    },
+    "new jersey": {
+        "name": "New Jersey"
+    },
+    "new mexico": {
+        "name": "New Mexico"
+    },
+    "new york": {
+        "name": "New York"
+    },
+    "north carolina": {
+        "name": "North Carolina"
+    },
+    "north dakota": {
+        "name": "North Dakota"
+    },
+    "ohio": {
+        "name": "Ohio"
+    },
+    "oklahoma": {
+        "name": "Oklahoma"
+    },
+    "oregon": {
+        "name": "Oregon"
+    },
+    "pennsylvania": {
+        "name": "Pennsylvania"
+    },
+    "rhode island": {
+        "name": "Rhode Island"
+    },
+    "south carolina": {
+        "name": "South Carolina"
+    },
+    "south dakota": {
+        "name": "South Dakota"
+    },
+    "tennessee": {
+        "name": "Tennessee"
+    },
+    "texas": {
+        "name": "Texas"
+    },
+    "utah": {
+        "name": "Utah"
+    },
+    "virginia": {
+        "name": "Virginia"
+    },
+    "washington": {
+        "name": "Washington"
+    },
+    "west virginia": {
+        "name": "West Virginia"
+    },
+    "wisconsin": {
+        "name": "Wisconsin"
+    },
+    "wyoming": {
+        "name": "Wyoming"
+    },
+    "vermont": {
+        "name": "Vermont"
+    }
+}

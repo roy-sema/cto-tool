@@ -1,0 +1,27 @@
+{% extends "mvp/base.html" %}
+
+{% load custom_filters %}
+{% load static %}
+{% load vue_utils %}
+
+{% block title %}Repository GenAI Composition - {{ repository_full_name }}{% endblock %}
+
+{% block sidebar %}
+  <div id="sidebar-container"
+       class="hidden w-full flex-grow lg:flex lg:w-20 lg:flex-shrink-0 lg:flex-grow-0">
+    {% include 'mvp/sidebar.html' with tiny=True %}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div id="vue-app"
+    data-repository-full-name="{{ repository_full_name }}"
+    data-repository-pk-encoded="{{ repository_pk_encoded }}"
+    data-commit-sha="{{ commit_sha }}"
+    data-code-generation-labels="{{ code_generation_labels|json_dumps }}"
+    data-user-email="{{ request.user.email }}"
+    data-organization-name="{{ request.current_organization.name }}"
+  ></div>
+
+  <script type="module" crossorigin src="{% vue_bundle_url 'app' %}"></script>
+{% endblock %}

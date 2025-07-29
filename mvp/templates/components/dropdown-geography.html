@@ -1,0 +1,33 @@
+<select name="{{ input_name }}" id="filter-location" data-te-select-init data-te-select-displayed-labels="2"
+        data-te-select-filter="true" multiple>
+  {% for geography in geographies %}
+    <option value="{{ geography.public_id }}"
+      {% if all_geographies_selected or geography.id in selected_geography_ids %}
+            selected{% endif %}>
+      {{ geography.name }}
+    </option>
+    {% if not geography.is_leaf and geography.code != "global" %}
+      <optgroup label="{{ geography.public_id }}">
+        {% for child in geography.get_children %}
+          <option value="{{ child.public_id }}"
+            {% if all_geographies_selected or child.id in selected_geography_ids %}
+                  selected
+            {% endif %} >
+            {{ child.name }}
+          </option>
+        {% endfor %}
+      </optgroup>
+    {% endif %}
+  {% endfor %}
+</select>
+
+{% if label %}
+  <label for="filter-location" data-te-select-label-ref>{{ label }}</label>
+{% endif %}
+
+
+<style>
+  label[data-te-select-option-group-label-ref] {
+    display: none;
+  }
+</style>

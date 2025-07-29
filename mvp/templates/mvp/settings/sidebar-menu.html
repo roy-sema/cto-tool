@@ -1,0 +1,27 @@
+{% load static %}
+{% load custom_filters %}
+
+<ul class="w-full mt-3 flex flex-col content-center justify-between gap-2">
+
+  {% if perms.mvp.can_edit_settings %}
+    {% if request.path|startswith:"/settings" %}
+      {% include "components/sidebar-menu-item.html" with page_name="settings" label="Organization Information" %}
+
+      {% if perms.mvp.can_edit_connections %}
+        {% include "components/sidebar-menu-item.html" with page_name="connections" label="Connections" %}
+      {% endif %}
+
+      {% if perms.mvp.can_edit_members %}
+        {% include "components/sidebar-menu-item.html" with page_name="users" label="Users" %}
+      {% endif %}
+
+      {% include "components/sidebar-menu-item.html" with page_name="repository_groups" label="Repository Groups" forceActive=request.resolver_match.url_name|ifinlist:"repository_groups,repository_group_edit" %}
+      {% if show_initiatives_menu %}
+        {% include "components/sidebar-menu-item.html" with page_name="initiatives" label="Initiatives" %}
+      {% endif %}
+      {% include "components/sidebar-menu-item.html" with page_name="daily_message" label="Daily Message" %}
+      {% include "components/sidebar-menu-item.html" with page_name="documents" label="Documents" %}
+      {% include "components/sidebar-menu-item.html" with page_name="other_settings" label="Other Settings" forceActive=request.resolver_match.url_name|ifinlist:"other_settings,rule_edit" %}
+    {% endif %}
+  {% endif %}
+</ul>

@@ -1,0 +1,93 @@
+{% load static %}
+{% load custom_filters %}
+{% load inline_static_tags %}
+{% load vue_utils %}
+
+<!doctype html>
+<html>
+<head>
+  <title>{% block title %}{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+  <link rel="stylesheet" href="{% static 'css/vendor/cookieconsent.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}" >
+
+  <script src="{% static 'js/vendor/tailwind.min.js' %}"></script>
+  <script src="{% static 'js/vendor/lodash.min.js' %}"></script>
+  <script src="{% static 'js/vendor/vue.global.prod.js' %}"></script>
+  {% include 'components/tailwind-config.html' %}
+  {% include 'components/posthog-snippet.html' %}
+  {% include "components/document360_widget.html" %}
+  <script>{% inline_javascript 'js/sidebar.js' %}</script>
+  <script>{% inline_javascript 'js/dark-mode.js' %}</script>
+</head>
+<body class="flex flex-col h-screen overflow-hidden bg-white dark:bg-slate-800 dark:text-white">
+<div id="sip-topbar" class="sip min-h-24 bg-white dark:bg-slate-900">
+  {# We use Teleport to inject a Vue component here #}
+</div>
+<div class="w-full flex flex-row flex-grow overflow-hidden">
+  {% block sidebar %}
+    <div id="sidebar-container"
+         class="hidden w-full flex-grow lg:flex lg:w-60 lg:flex-shrink-0 lg:flex-grow-0">
+      {% include 'mvp/sidebar.html' %}
+    </div>
+  {% endblock %}
+  <main id="main-container" role="main" class="w-full h-full flex-grow overflow-auto  bg-gray-50 dark:bg-slate-800 lg:relative lg:block">
+    <div class="pt-4 px-4 pb-20 lg:px-6">
+
+      {% if active_system_messages %}
+        {% for message in active_system_messages %}
+          {% include 'components/system-message.html' %}
+        {% endfor %}
+        <script>{% inline_javascript 'js/system-messages.js' %}</script>
+      {% endif %}
+
+      {% if request.resolver_match.url_name != 'contact' %}
+        {% include 'components/feedback-banner.html' %}
+      {% endif %}
+
+      {% block content %}{% endblock %}
+
+      {# This is used to provide Vue to views without explicity including it in the template #}
+      {# TODO: avoid double vue tag #}
+      <div id="vue-app-compat"></div>
+      <script type="module" crossorigin src="{% vue_bundle_url 'app' %}"></script>
+    </div>
+  </main>
+</div>
+<footer class="bg-dark mt-auto">
+  <div class="p-4 text-white mx-auto">
+    <div class="flex justify-between text-xs">
+      <img src="{% static 'images/sema-logo-dark.svg' %}" alt="Sema logo" class="w-12 lg:w-16">
+      <div class="flex gap-5 mx-2">
+        <a href="{% url 'contact' %}"
+           class="button font-semibold text-white hover:text-blue text-center">Contact us</a>
+        <a href="https://announcekit.co/semasoftware/release-notes/" target="_blank"
+           class="button font-semibold text-white hover:text-blue text-center">Release notes</a>
+        <div
+          title="<p>Sema publications should not be construed as legal advice on any specific facts or circumstances.</p>
+          <p>The contents are intended for general information purposes only. To request reprint permission for any of our publications, please use our “Contact Us” form.</p>
+          <p>The availability of this publication is not intended to create, and receipt of it does not constitute, an attorney-client relationship.</p>
+          <p>The views set forth herein are the personal views of the authors and do not necessarily reflect those of the Firm.</p>"
+          data-te-toggle="tooltip"
+          data-te-html="true"
+          data-te-boundary="window"
+          data-te-placement="top"
+          data-te-offset="[0, 10]"
+          class="button font-semibold text-white hover:text-blue text-center cursor-pointer"
+        >
+          Legal Disclaimer
+        </div>
+      </div>
+      <a class="text-center" href="">&copy;2025 Sema</a>
+    </div>
+  </div>
+</footer>
+<script defer src="{% static 'js/vendor/tw-elements.umd.min.js' %}"></script>
+<script>{% inline_javascript 'js/tw-elements-conf.js' %}</script>
+<script defer src="{% static 'js/vendor/cookieconsent.min.js' %}"></script>
+{% include 'components/cookie-consent-config.html' %}
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "account/base.html" %}
+
+{% load custom_filters %}
+{% load widget_tweaks %}
+
+{% block title %}Pilot Ended{% endblock %}
+
+{% block h1 %}Pilot Ended{% endblock %}
+
+{% block content %}
+
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+    <div class="bg-red-100 border border-red-400 text-sm text-red-700 px-4 py-3 rounded relative" role="alert">
+      It looks like your pilot period has ended. If you would like to extend your pilot, please drop us a line at
+      <a href="mailto:info@semasoftware.com" class="font-semibold text-blue hover:text-violet dark:hover:text-lightgrey" tabindex="-1">info@semasoftware.com</a>
+    </div>
+
+    <p class="mt-10 text-center text-sm text-gray-500">
+      <a href="{% url 'account_login' %}" class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Back to login</a>
+    </p>
+  </div>
+
+{% endblock %}

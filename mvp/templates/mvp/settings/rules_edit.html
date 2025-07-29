@@ -1,0 +1,16 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}
+  Edit Rule
+{% endblock title %}
+
+{% block content %}
+  <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Settings</h1>
+  <h2 class="text-xl md:text-2xl mb-4 font-semibold">Edit Rule</h2>
+
+  {% include "components/messages.html" with messages=messages only %}
+
+  {% include "mvp/settings/rules_form.html" %}
+{% endblock content %}

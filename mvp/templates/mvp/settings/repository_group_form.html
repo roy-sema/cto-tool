@@ -1,0 +1,225 @@
+{% load inline_static_tags %}
+{% load widget_tweaks %}
+{% load static %}
+
+<form action="./{% if not form.instance.id %}#create{% endif %}"
+      method="post"
+      class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md mb-20 max-w-3xl">
+  {% csrf_token %}
+
+  {% if form.name.errors %}
+    {% include "components/alert-error.html" with message=form.name.errors only %}
+  {% endif %}
+  <div class="mb-5 flex items-center gap-6">
+    <label for="{{ form.name.id_for_label }}"
+           class="block text-sm font-medium leading-6 w-20 shrink-0">{{ form.name.label }}</label>
+    {{ form.name|add_class:"block w-full rounded bg-white dark:bg-slate-600 border-0 px-3 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+  </div>
+
+  {% if form.usage_category.errors %}
+    {% include "components/alert-error.html" with message=form.usage_category.errors only %}
+  {% endif %}
+  <div class="mb-5 flex items-center gap-6">
+    <label for="usage_category"
+           class="block text-sm font-medium leading-6 w-20 shrink-0">Usage Category</label>
+    <div class="w-full">
+      <select data-te-select-init name="usage_category" id="usage_category">
+        <option selected disabled hidden></option>
+        {% for usage_category in usage_categories %}
+          <option value="{{ usage_category.id }}"
+                  data-te-select-secondary-text="{{ usage_category.description }}"
+                  {% if form.instance.usage_category == usage_category.id %}selected{% endif %}
+          >{{ usage_category.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {% if form.rules.errors %}
+    {% include "components/alert-error.html" with message=form.rules.errors only %}
+  {% endif %}
+  <div class="mb-5 flex items-center gap-6">
+    <label for="rules"
+           class="block text-sm font-medium leading-6 w-20 shrink-0">Rules</label>
+    <div class="w-full">
+      <select name="rules" id="rules" data-te-select-init multiple>
+        {% for rule in request.current_organization.rule_set_non_global %}
+          <option value="{{ rule.id }}"
+            {% if rule.description %}data-te-select-secondary-text="{{ rule.description }}"{% endif %}
+            {% if rule.id in form.instance.rule_ids %}selected{% endif %}
+          >
+            {{ rule.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {% if form.instance.id %}
+    <div class="checkbox-list">
+      <div class="mb-5 flex items-center justify-between gap-12">
+        <label for="repositories" class="block text-sm font-medium leading-6">Repositories</label>
+        <div class="text-xs">
+          <span>
+            Selected: <span
+            class="checkbox-list-num-selected">{{ form.instance.repository_set.all|length }}</span>/{{ org_repositories|length }}
+          </span>
+          <button type="button"
+                  class="checkbox-list-select-all rounded-md bg-blue px-1.5 py-.5 text-xs font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+            Select All
+          </button>
+          <button type="button"
+                  class="checkbox-list-select-none rounded-md bg-blue px-1.5 py-.5 text-xs font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+            Select None
+          </button>
+        </div>
+      </div>
+      <div class="ml-24 max-h-96 overflow-y-auto overflow-x-hidden pr-2 -mr-2">
+        {% for repository in org_repositories %}
+          <div class="flex items-center">
+            <input type="checkbox"
+                   name="repositories"
+                   value="{{ repository.public_id }}"
+                   id="repository-{{ repository.public_id }}"
+                   {% if repository in form.instance.repository_set.all %}checked{% endif %}
+                   class="w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+            <div class="flex justify-between w-full">
+              <label for="repository-{{ repository.public_id }}"
+                     class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 my-1">{{ repository.full_name }}</label>
+              <div class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                {% if repository.group %}
+                  {% include "components/pill.html" with text=repository.group.name only %}
+                {% else %}
+                  {% include "components/pill.html" with text="Ungrouped" only %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <hr class="my-5 border-lightgrey dark:border-slate-600">
+
+  {% if form.instance.id %}
+    <div class="checkbox-list">
+      <div class="mb-5 flex items-center justify-between gap-12">
+        <label for="projects" class="block text-sm font-medium leading-6">Jira Projects</label>
+        <div class="text-xs">
+          <span>
+            Selected: <span
+            class="checkbox-list-num-selected">{{ form.instance.jiraproject_set.all|length }}</span>/{{ org_projects|length }}
+          </span>
+          <button type="button"
+                  class="checkbox-list-select-all rounded-md bg-blue px-1.5 py-.5 text-xs font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+            Select All
+          </button>
+          <button type="button"
+                  class="checkbox-list-select-none rounded-md bg-blue px-1.5 py-.5 text-xs font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+            Select None
+          </button>
+        </div>
+      </div>
+      <div class="ml-24 max-h-96 overflow-y-auto overflow-x-hidden pr-2 -mr-2">
+        {% for project in org_projects %}
+          <div class="flex items-center">
+            <input type="checkbox"
+                   name="projects"
+                   value="{{ project.id }}"
+                   id="project-{{ project.id }}"
+                   {% if project in form.instance.jiraproject_set.all %}checked{% endif %}
+                   class="w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+            <div class="flex justify-between w-full">
+              <label for="project-{{ project.id }}"
+                     class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 my-1">{{ project.name }}</label>
+
+              <div class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                {% include "components/pill.html" with text=project.key only %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        <div class="text-xs text-gray-900 dark:text-gray-300 mt-1 justify-self-end">
+          Can't find a project? make sure it's selected on <a href="{% url 'connect_jira' %}" class="font-semibold text-blue hover:text-violet dark:hover:text-lightgrey">this page</a>
+        </div>
+      </div>
+    </div>
+    <hr class="my-5 border-lightgrey dark:border-slate-600">
+  {% endif %}
+
+
+
+  {% if form.time_spent_coding_percentage.errors %}
+    {% include "components/alert-error.html" with message=form.time_spent_coding_percentage.errors only %}
+  {% endif %}
+  {% include "components/range-input.html" with id="time_spent_coding_percentage" label=form.time_spent_coding_percentage.label description="Developers typically spend only a portion of their time coding. Set the estimated percentage for this group." sub_label="Time spent coding: " initial_value=form.time_spent_coding_percentage.value percentage=True min=0 max=100 only %}
+
+  {% if form.potential_productivity_improvement_label.errors %}
+    {% include "components/alert-error.html" with message=form.potential_productivity_improvement_label.errors only %}
+  {% endif %}
+  <div class="flex gap-6">
+    <label for="potential_productivity_improvement"
+           class="block text-sm font-medium leading-6 w-20 shrink-0">{{ form.potential_productivity_improvement_label.label }}</label>
+    <div class="w-full">
+      <div class="text-xs text-gray-900 dark:text-gray-300 mb-1">
+        Associate the Repository group with these productivity improvement% to calculate the ROI
+      </div>
+      <select name="potential_productivity_improvement_label"
+              id="potential_productivity_improvement" data-te-select-init>
+        {% for label in form.potential_productivity_improvement_label.field.choices %}
+          <option value="{{ label.0 }}"
+                  {% if label.0 in form.instance.potential_productivity_improvement_label %}selected{% endif %}
+          >
+            {{ label.1 }}
+          </option>
+        {% endfor %}
+      </select>
+      <div class="mt-2">
+        {% if form.potential_productivity_improvement_percentage.errors %}
+          {% include "components/alert-error.html" with message=form.potential_productivity_improvement_percentage.errors only %}
+        {% endif %}
+        {% include "components/range-input.html" with id="potential_productivity_improvement_percentage" sub_label="Productivity improvement: " initial_value=form.potential_productivity_improvement_percentage.value percentage=True min=0 max=100 only %}
+      </div>
+    </div>
+  </div>
+
+  {% if form.max_genai_code_usage_percentage.errors %}
+    {% include "components/alert-error.html" with message=form.max_genai_code_usage_percentage.errors only %}
+  {% endif %}
+  {% include "components/range-input.html" with id="max_genai_code_usage_percentage" label=form.max_genai_code_usage_percentage.label description="This is the recommended GenAI Code Usage % to maximize productivity for this repository group" sub_label="Minimum GenAI code usage necessary to achieve full ROI benefit: " initial_value=form.max_genai_code_usage_percentage.value percentage=True min=0 max=100 only %}
+
+  {% if form.num_developers.errors %}
+    {% include "components/alert-error.html" with message=form.num_developers.errors only %}
+  {% endif %}
+  <div class="mb-5 flex items-start gap-6 ">
+    <label for="{{ form.num_developers.id_for_label }}"
+           class="block text-sm font-medium leading-6 w-20 shrink-0">{{ form.num_developers.label }}</label>
+    <div class="flex-col gap-2">
+      <div class="text-xs text-gray-900 dark:text-gray-300 mb-1">Add the number of
+        developers on this product if you want to calculate the ROI impact in terms of $
+        and hours
+      </div>
+      {{ form.num_developers|add_class:"block w-full rounded bg-white dark:bg-slate-600 border-0 px-3 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+    </div>
+  </div>
+
+  <div class="text-sm">
+    <p>See the <a href="https://www.semasoftware.com/blog/roi-of-genai-in-the-sdlc-related-research" class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey" target="_blank">underlying research</a> behind these assumptions</p>
+  </div>
+
+  <button type="submit"
+          class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+    {% if form.instance.id %}Save{% else %}Create group{% endif %}
+  </button>
+</form>
+<script>{% inline_javascript 'js/checkbox-list.js' %}</script>
+{# TODO redo this page in Vue #}
+<script src="{% static 'js/repository-group-form.js' %}" defer></script>
+{{ potential_productivity_improvement_defaults|json_script }}
+
+<style>
+  div[data-te-select-option-ref] input + span {
+    padding-left: 1.5rem;
+  }
+</style>

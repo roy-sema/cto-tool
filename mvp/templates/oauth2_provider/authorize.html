@@ -1,0 +1,47 @@
+{% extends "account/base.html" %}
+
+{% load static %}
+
+{% block title %}Authorize{% endblock %}
+
+{% block content %}
+<form id="authorization-form" method="post" class="flex flex-col items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-xl space-y-8">
+        <h1 class="text-2xl font-extrabold text-center">Authorize {{ application.name }}?</h1>
+        {% if not error %}
+            {% csrf_token %}
+            {% for field in form %}
+                {% if field.is_hidden %}
+                    {{ field }}
+                {% endif %}
+            {% endfor %}
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div>
+                    <p class="mb-3 text-lg leading-6 font-medium">Application requires the following permissions</p>
+                    <ul class="mb-6 text-sm list-disc list-inside">
+                        {% for scope in scopes_descriptions %}
+                            <li>{{ scope }}</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="mt-6 flex justify-center space-x-4" id="submit-buttons-container">
+                        <button type="submit" value="Cancel" class="flex w-full justify-center rounded-md bg-slate-400 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-slate-500 dark:hover:bg-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray">Cancel</button>
+                        <button type="submit" name="allow" value="Authorize" class="flex w-full justify-center rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">Authorize</button>
+                    </div>
+                    <div id="cancel-message" class="hidden">
+                        {% include "components/alert-error.html" with message="Operation cancelled. You may close this window and return to VSCode." %}
+                    </div>
+                    <div id="allow-message" class="hidden">
+                        {% include "components/alert-success.html" with message="Authorization successful. You may close this window and return to VSCode." %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="rounded-md bg-red-50 p-4">
+                <h2 class="text-center text-sm font-medium text-red-800">Error: {{ error.error }}</h2>
+                <p class="text-center text-sm text-red-700">{{ error.description }}</p>
+            </div>
+        {% endif %}
+    </div>
+</form>
+<script src="{% static 'js/oauth2_provider/authorize.js' %}" defer></script>
+{% endblock %}

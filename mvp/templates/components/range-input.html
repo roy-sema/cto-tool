@@ -1,0 +1,24 @@
+<div class="mb-5 flex gap-6">
+  {% if label %}
+    <label for="{{ id }}"
+           class="block text-sm font-medium leading-6 w-20 shrink-0">{{ label }}</label>
+  {% endif %}
+  <div class="w-full">
+    {% if description %}
+      <div class="text-xs text-gray-900 dark:text-gray-300">{{ description }}</div>
+    {% endif %}
+    {% if sub_label %}
+      <span class="text-xs">{{ sub_label }}</span>
+    {% endif %}
+    <span class="text-xs">{{ initial_value }}{% if percentage %}%{% endif %}</span>
+    <input class="w-full accent-blue-600" type="range" name="{{ id }}" id="{{ id }}"
+           value="{{ initial_value }}" min="{{ min }}" max="{{ max }}"
+           oninput="this.previousElementSibling.innerText=`${this.value}{% if percentage %}%{% endif %}`"
+           {% if disabled %} disabled {% endif %}
+    />
+    <div class="-mt-1 flex w-full justify-between text-xs text-gray-600">
+      <span >{{ min }}{% if percentage %}%{% endif %}</span>
+      <span >{{ max }}{% if percentage %}%{% endif %}</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,8 @@
+sudo
+git
+git-lfs
+curl
+build-essential
+ca-certificates
+yq
+jq

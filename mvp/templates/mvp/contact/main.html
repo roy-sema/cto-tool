@@ -1,0 +1,42 @@
+{% extends "mvp/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}Contact{% endblock %}
+
+{% block sidebar %}
+{% endblock %}
+
+{% block content %}
+  <div class="w-full">
+    <h1 class="max-w-3xl mx-auto text-2xl md:text-3xl font-semibold">
+      Contact us
+    </h1>
+
+    {% if form.non_field_errors %}
+      {% include "components/alert-error.html" with message=form.non_field_errors only %}
+    {% else %}
+      {% include "components/messages.html" with messages=messages only %}
+    {% endif %}
+
+    <form class="max-w-3xl mx-auto " method="post" action="{{ url }}">
+      {% csrf_token %}
+
+      <p class="my-5">Thank you for sending us your questions or feedback.</p>
+
+      <div>
+        <label for="{{ form.message.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.message.label }}</label>
+        {% if form.message.errors %}
+          {% include "components/alert-error.html" with message=form.message.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.message|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" value="submit" class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">Send</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

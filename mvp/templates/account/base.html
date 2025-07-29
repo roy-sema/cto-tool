@@ -1,0 +1,39 @@
+{% load static %}
+{% load inline_static_tags %}
+
+<!doctype html>
+<html>
+<head>
+  <title>{% block title %}{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+  <link rel="stylesheet" href="{% static 'css/vendor/cookieconsent.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}" >
+
+  <script src="{% static 'js/vendor/tailwind.min.js' %}"></script>
+  {% include 'components/tailwind-config.html' %}
+  {% include 'components/posthog-snippet.html' %}
+  {% include "components/document360_widget.html" %}
+  <script>{% inline_javascript 'js/dark-mode.js' %}</script>
+</head>
+<body class="bg-white dark:bg-slate-800 dark:text-white">
+  <div class="absolute top-3 right-3">
+    {% include 'components/dropdown-dark-mode.html' with position="left" only %}
+  </div>
+
+  <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+      <img src="{% static 'images/sema-logo.svg' %}" alt="Sema logo" class="mx-auto h-10 w-auto dark:hidden">
+      <img src="{% static 'images/sema-logo-dark.svg' %}" alt="Sema logo" class="mx-auto h-10 w-auto hidden dark:block">
+      <h1 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-dark dark:text-white">{% block h1 %}{% endblock %}</h1>
+    </div>
+
+    {% block content %}{% endblock %}
+  </div>
+  <script defer src="{% static 'js/vendor/cookieconsent.min.js' %}"></script>
+  <script defer src="{% static 'js/vendor/tw-elements.umd.min.js' %}"></script>
+  {% include 'components/cookie-consent-config.html' %}
+</body>
+</html>

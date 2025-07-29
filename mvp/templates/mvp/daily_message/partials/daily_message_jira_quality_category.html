@@ -1,0 +1,11 @@
+<div style="{% if bold %}font-weight: bold{% endif %}">
+  {% if quality_category == "Advanced" %}
+    <span style="background-color: #e8f5e9; border-radius: 999px; padding: 5px 10px 5px 10px">{% if text %}{{ text }}{% else %}Advanced{% endif %} {% if values %}(76-100){% endif %}</span>
+  {% elif quality_category == "Mature" %}
+    <span style="background-color: #e3f2fd; border-radius: 999px; padding: 5px 10px 5px 10px">{% if text %}{{ text }}{% else %}Mature{% endif %} {% if values %}(51-75){% endif %}</span>
+  {% elif quality_category == "Emerging" %}
+    <span style="background-color: #fff3e0; border-radius: 999px; padding: 5px 10px 5px 10px">{% if text %}{{ text }}{% else %}Emerging{% endif %} {% if values %}(26-50){% endif %}</span>
+  {% elif quality_category == "Initial" %}
+    <span style="background-color: #ffebee; border-radius: 999px; padding: 5px 10px 5px 10px">{% if text %}{{ text }}{% else %}Initial{% endif %} {% if values %}(1-25){% endif %}</span>
+  {% endif %}
+</div>

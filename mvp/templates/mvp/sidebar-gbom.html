@@ -1,0 +1,24 @@
+{% load static %}
+
+<a
+  class="block w-40 lg:w-full lg:right-4 bg-white hover:bg-lightgrey rounded-xl pt-3 pb-2 px-4 border border-gray-200 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700"
+  href="{% url 'export_gbom' %}" title="Download" id="download-gbom" download
+>
+  <div class="text-lg mb-2 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-500">Download<br>GenAI Bill of<br>Materials</div>
+  <span class="download-indicator-idle inline-block cursor-pointer place-items-center p-2 bg-lightgrey dark:bg-slate-600 rounded-full">
+    <img src="{% static 'images/vendor/heroicons/outline/arrow-down-tray.svg' %}" class="w-4 dark:invert" />
+  </span>
+  <div class="download-indicator-loading hidden">
+      <div class="inline-block h-8 w-8 animate-spin rounded-full border-2 border-solid border-current border-e-transparent text-surface motion-reduce:animate-[spin_1.5s_linear_infinite] dark:text-white" role="status"></div>
+      <div class="download-email-message hidden mt-1 text-xs">This is taking a while... We'll email you when the GBOM is ready for download</div>
+  </div>
+  <span class="download-indicator-success hidden inline-block cursor-pointer place-items-center p-2 bg-green-400 rounded-full inline-flex gap-1 items-center">
+    <img src="{% static 'images/vendor/heroicons/outline/check.svg' %}" class="w-4" />
+    <span class="text-xs text-gray-800 pr-1">Downloaded</span>
+  </span>
+  <span class="download-indicator-error hidden inline-block cursor-pointer place-items-center p-2 bg-red-400 rounded-full inline-flex gap-1 items-center">
+    <img src="{% static 'images/vendor/heroicons/outline/x-mark.svg' %}" class="w-4" />
+    <span class="text-xs text-gray-800 pr-1">Error</span>
+  </span>
+</a>
+<script src="{% static 'js/download-gbom.js' %}" defer></script>

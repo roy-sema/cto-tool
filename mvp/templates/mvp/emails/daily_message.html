@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Message - {{ organization.name }}</title>
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.4; color: #2C3E50; margin: 0; padding: 20px; background-color: #FAFBFC;">
+
+  <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 8px; padding: 20px; border: 1px solid #E1E8ED;">
+
+    {% include "mvp/emails/partials/daily_message_header.html" with last_updated=last_updated organization=organization message_date=message_date site_domain=site_domain only %}
+  
+    {% if no_commits_message %}
+      <p>No commits found throughout the system since the last update.</p>
+    {% else %}
+
+    <!-- Filter Info -->
+    <div style="background: linear-gradient(135deg, #F8FAFB 0%, #EDF4F7 100%); padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; border-left: 3px solid #4A90A4;">
+      <div style="font-weight: 600; color: #1B365D; margin-bottom: 4px;">Your Configuration:</div>
+      <div>
+        <span>Product Groups:</span>
+        {% for product in data.user_configuration.product_groups %}
+          <span>{{ product }} </span>
+        {% endfor %}
+      </div>
+      <div>
+        <span>Significance Scores:</span>
+        {% for score in data.user_configuration.significance_scores %}
+          <span>{{ score|floatformat:0 }}{% if not forloop.last %}, {% endif %}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ANOMALY INSIGHTS SECTION -->
+    {% if data.aggregated_anomaly_insights_and_risks %}
+      <div style="margin-bottom: 40px;">
+        <div style="background-color: #f5f5f5; padding: 12px 15px; margin-bottom: 20px; border-left: 5px solid #4A90A4;">
+          <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: #1B365D;">Anomaly Insights</h2>
+        </div>
+
+        {% for insight in data.aggregated_anomaly_insights_and_risks %}
+          {% include "mvp/emails/partials/daily_message_insight_item.html" with insight=insight only %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- TICKET COMPLETENESS SCORE SECTION -->
+    {% if data.jira_completeness_summary %}
+      <div style="margin-bottom: 30px;">
+        <div style="background-color: #f5f5f5; padding: 12px 15px; margin-bottom: 20px; border-left: 5px solid #4A90A4;">
+          <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: #1B365D; display: inline-block;">Ticket Completeness Summary</h2>
+          <a href="{{ site_domain }}/product-roadmap-radar/ticket-completeness" style="font-size: 13px; font-weight: 500; color: #4A90A4; text-decoration: none; float: right;">View Dashboard →</a>
+          <div style="clear: both;"></div>
+        </div>
+
+        <!-- By Product Section -->
+        {% if data.jira_completeness_summary.by_projects %}
+          <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 15px; font-weight: 600; color: #2C3E50; margin: 0 0 12px 0;">By Product</h3>
+            <table style="width: 100%; border-collapse: separate; border-spacing: 5px; table-layout: fixed;">
+              <tr>
+                {% for project in data.jira_completeness_summary.by_projects %}
+                  {% include "mvp/emails/partials/daily_message_jira_completeness_summary_table_cell.html" with item=project only %}
+                {% endfor %}
+              </tr>
+            </table>
+          </div>
+        {% endif %}
+
+        <!-- By Stage Section -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 15px; font-weight: 600; color: #2C3E50; margin: 0 0 12px 0;">By Stage</h3>
+          <table style="width: 100%; border-collapse: separate; border-spacing: 5px; table-layout: fixed;">
+            <tr>
+              {% for stage in data.jira_completeness_summary.by_stage %}
+                {% include "mvp/emails/partials/daily_message_jira_completeness_summary_table_cell.html" with item=stage only %}
+              {% endfor %}
+            </tr>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Footer -->
+    <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #E1E8ED; font-size: 12px; color: #5A6C7D; text-align: center;">
+      <p style="margin: 0;">
+        To change your subscription preferences, visit the
+        <a href="{{ site_domain }}/settings/insights-notifications/" style="color: #4A90A4;">SIP Dashboard Settings</a>
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>

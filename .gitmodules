@@ -1,0 +1,3 @@
+[submodule "test_repos/r3J9xlXxZeyQ/r3J9xlXxZeyQ/last_commit_sha"]
+	path = test_repos/r3J9xlXxZeyQ/r3J9xlXxZeyQ/last_commit_sha
+	url = git@github.com:Semalab/last_commit_sha.git

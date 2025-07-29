@@ -1,0 +1,30 @@
+{% load static %}
+
+<div
+  class="w-full"
+  data-te-collapse-init
+  href="#groups-{{ id }}"
+  aria-expanded="false"
+  aria-controls="groups-{{ id }}"
+>
+  <div class="flex items-center gap-1 cursor-pointer">
+    <div>
+      <img src="{% static 'images/vendor/heroicons/solid/chevron-right.svg' %}" class="w-3 inline dark:invert arrow-right" />
+      <img src="{% static 'images/vendor/heroicons/solid/chevron-down.svg' %}" class="w-3 inline dark:invert arrow-down" />
+    </div>
+    <span>
+      {{ groups|length }}
+      {% if groups|length == 1 %}
+        {{ group_type }} group
+      {% else %}
+        {{ group_type }} groups
+      {% endif %}
+    </span>
+  </div>
+
+  <div class="my-3 pl-3 flex flex-wrap gap-1 !visible hidden"  data-te-collapse-item id="groups-{{ id }}">
+    {% for group in groups %}
+      {% include "components/pill.html" with text=group.name only %}
+    {% endfor %}
+  </div>
+</div>

@@ -1,0 +1,17 @@
+tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          blue: '#0081A7',
+          pink: '#E80673',
+          violet: '#2A113F',
+          lightgrey: '#F7F7F7',
+          dark: '#202020',
+        },
+        fontFamily: {
+          'sans': 'Inter, sans-serif',
+        },
+      }
+    }
+  };

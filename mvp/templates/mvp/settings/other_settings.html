@@ -1,0 +1,500 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}Other Settings{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Other Settings</h1>
+
+  {% include "components/messages.html" with messages=messages only %}
+
+  <form action="{% url 'other_settings' %}" method="post"
+        class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md max-w-3xl ">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      {% include "components/alert-error.html" with message=form.non_field_errors only %}
+    {% endif %}
+
+    <h3 class="text-lg md:text-xl mb-4 font-semibold">Industry & Organization Type</h3>
+
+    <div class="mt-5">
+      <div class="mt-4">
+        <label for="{{ form.industry.id_for_label }}"
+               class="block text-sm font-medium leading-6">Industry:</label>
+        {% if form.industry.errors %}
+          {% include "components/alert-error.html" with message=form.industry.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.industry|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 p-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+
+      <div class="mt-4">
+        {% if form.is_software_company.errors %}
+          {% include "components/alert-error.html" with message=form.is_software_company.errors only %}
+        {% endif %}
+
+        <div class="flex items-center gap-2 mt-5">
+          {{ form.is_software_company|add_class:"w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+          <label for="{{ form.is_software_company.id_for_label }}"
+                 class="block text-sm font-medium leading-6">
+            Software company
+          </label>
+        </div>
+        <div class="pl-6 text-xs text-gray-900 dark:text-gray-300 mt-0.5">
+          Is your organization a software company?
+        </div>
+      </div>
+    </div>
+
+    <hr class="h-px my-5 border-0 bg-lightgrey dark:bg-slate-600">
+
+    {# TODO: move these to connections view and make it configurable by provider #}
+
+    <h4 class="text-base md:text-lg mb-4 font-semibold">Git Integration</h4>
+
+    <div class="mt-4">
+      {% if form.status_check_enabled.errors %}
+        {% include "components/alert-error.html" with message=form.status_check_enabled.errors only %}
+      {% endif %}
+
+      <div class="flex items-center gap-2 mt-5">
+        {{ form.status_check_enabled|add_class:"w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+        <label for="{{ form.status_check_enabled.id_for_label }}"
+               class="block text-sm font-medium leading-6"
+        >Status checks</label>
+      </div>
+      <div class="pl-6 text-xs text-gray-900 dark:text-gray-300 mt-0.5">Analyze GenAI
+        composition of pull requests and report the results directly on GitHub,
+        Azure DevOps or BitBucket.
+      </div>
+    </div>
+
+    <div class="mt-4">
+      {% if form.status_check_enabled.errors %}
+        {% include "components/alert-error.html" with message=form.status_check_enabled.errors only %}
+      {% endif %}
+
+      <div class="flex items-center gap-2 mt-5">
+        {{ form.status_check_mark_as_failed|add_class:"w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+        <label for="{{ form.status_check_mark_as_failed.id_for_label }}"
+               class="block text-sm font-medium leading-6"
+        >
+          Mark status check as failed if
+          <a href="#genai-radar-rules" title="Settings rules"
+             class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">the
+            GenAI rules</a>
+          are not met
+          {% include "components/tooltip-icon.html" with message="<div class='flex flex-col text-start'><ul class='ml-4 list-disc'><li><strong>Disabled:</strong> status checks of pull requests are marked as <div class='inline-flex rounded-full px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 whitespace-nowrap align-text-top text-xs font-mono'><svg viewBox='0 0 16 16' width='16' height='16' class='inline-block' style='fill:#8d96a0'><path d='M5.75 4h4.5c.966 0 1.75.784 1.75 1.75v4.5A1.75 1.75 0 0 1 10.25 12h-4.5A1.75 1.75 0 0 1 4 10.25v-4.5C4 4.784 4.784 4 5.75 4Z'></path></svg> neutral</div> in GitHub if rules are not met.</li><li class='mt-1'><strong>Enabled:</strong> status checks of pull requests that don't meet the rules will be marked as <div class='inline-flex rounded-full px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 whitespace-nowrap align-text-top text-xs font-mono'><svg viewBox='0 0 16 16' width='16' height='16' class='inline-block' style='fill:#f85149'><path d='M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z'></path></svg> failed</div> in GitHub.</li></ul><div class='mt-3 text-sm'>NOTE: status checks will always be marked as <div class='inline-flex rounded-full px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 whitespace-nowrap align-text-top text-xs font-mono'><svg viewBox='0 0 16 16' width='16' height='16' class='inline-block' style='fill:#3fb950'><path d='M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'></path></svg> success</div> when the rules are met</div></div>" only %}
+        </label>
+      </div>
+      <div class="pl-6 text-xs text-gray-900 dark:text-gray-300 mt-0.5">When enabled,
+        status checks of pull requests that don't meet the rules will be marked as
+        "failed" in GitHub.
+      </div>
+    </div>
+
+    <hr class="h-px mt-10 mb-5 border-0 bg-lightgrey dark:bg-slate-600">
+
+    <h4 class="text-base md:text-lg mb-4 font-semibold">Codebase Information</h4>
+
+    <div class="grid md:grid-cols-2 gap-5">
+      <div>
+        <label for="{{ form.avg_developer_cost.id_for_label }}"
+               class="block text-sm font-medium leading-6">Average developer yearly
+          cost (including benefits):</label>
+        {% if form.avg_developer_cost.errors %}
+          {% include "components/alert-error.html" with message=form.avg_developer_cost.errors only %}
+        {% endif %}
+        <div class="relative mt-2">
+          <div
+            class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <span class="text-gray-500 dark:text-white sm:text-sm">$</span>
+          </div>
+          {{ form.avg_developer_cost|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 pl-7 pr-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+      <div>
+        <label for="{{ form.num_developers.id_for_label }}"
+               class="block text-sm font-medium leading-6">Number of current
+          developers:</label>
+        {% if form.num_developers.errors %}
+          {% include "components/alert-error.html" with message=form.num_developers.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.num_developers|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+      <div>
+        <label for="{{ form.all_time_developers.id_for_label }}"
+               class="block text-sm font-medium leading-6">Number of all time
+          developers:</label>
+        {% if form.all_time_developers.errors %}
+          {% include "components/alert-error.html" with message=form.all_time_developers.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.all_time_developers|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+      <div>
+        <label for="{{ form.num_code_lines.id_for_label }}"
+               class="block text-sm font-medium leading-6">Number of lines of
+          code:</label>
+        {% if form.num_code_lines.errors %}
+          {% include "components/alert-error.html" with message=form.num_code_lines.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.num_code_lines|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+        {% if not codacy_connected or codacy_num_lines is None %}
+          <div class="mt-2 text-xs">This information can be automatically populated if
+            you <a href="{% url 'connections' %}" class="font-semibold text-blue">connect
+              Codacy</a>.
+          </div>
+        {% elif form.instance.num_code_lines is not None and form.instance.num_code_lines != codacy_num_lines %}
+          <div class="mt-2 text-xs">Codacy reports
+            <strong>{{ codacy_num_lines }}</strong> number of lines. Erase the field
+            if you want to automatically use the number populated from Codacy.
+          </div>
+        {% else %}
+          <div class="mt-2 text-xs">This number has been populated automatically from
+            Codacy. Enter a number if you want to use a custom value.
+          </div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="{{ form.first_commit_date.id_for_label }}"
+               class="block text-sm font-medium leading-6">Date of the first commit
+          (YYYY-MM-DD):</label>
+        {% if form.first_commit_date.errors %}
+          {% include "components/alert-error.html" with message=form.first_commit_date.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.first_commit_date|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+      <div>
+        <label for="{{ form.tools_genai_monthly_cost.id_for_label }}"
+               class="block text-sm font-medium leading-6">{{ form.tools_genai_monthly_cost.label }}</label>
+        {% if form.tools_genai_monthly_cost.errors %}
+          {% include "components/alert-error.html" with message=form.tools_genai_monthly_cost.errors only %}
+        {% endif %}
+        <div class="relative mt-2">
+          <div
+            class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <span class="text-gray-500 dark:text-white sm:text-sm">$</span>
+          </div>
+          {{ form.tools_genai_monthly_cost|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 pl-7 pr-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" value="submit"
+            class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+      Save
+    </button>
+  </form>
+
+  <p class="mt-8 mb-2">This codebase is compared to other codebases with the following
+    characteristics:</p>
+  <p>{{ segment_description }}</p>
+
+  <hr class="h-px mt-10 mb-5 border-0 bg-lightgrey dark:bg-slate-600">
+
+  <h4 id="developer-groups" class="text-base md:text-lg mb-4 font-semibold">Developer Groups</h4>
+  
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl md:text-2xl font-semibold">Developer Groups <span
+      class="text-base md:text-xl ">({{ author_groups|length }})</span></h2>
+    <a href="#create"
+       class="mr-2 text-sm text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+      + Add Group
+    </a>
+  </div>
+  {% if not author_groups %}
+    <div class="py-2 px-4 bg-lightgrey dark:bg-slate-600 rounded-md mb-5">
+      <div class="flex justify-between items-center gap-3">
+        <p>Create a group to better organize your developers and utilize all the
+          features</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <div
+    class="mt-5 px-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+    <div class="overflow-x-auto">
+      <table class="mb-5 min-w-full text-left text-sm font-light">
+        <thead class="border-b font-medium gray:border-neutral-200">
+        <tr>
+          <th scope="col" class="pr-6 py-4">Group</th>
+          <th scope="col" class="px-6 py-4">Developers</th>
+          <th scope="col" class="px-6 py-4">Team Type</th>
+          <th scope="col" class="px-6 py-4">Developer Type</th>
+          <th scope="col" class="px-6 py-4">Rules</th>
+          <th scope="col" class="px-6 py-4"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for group in author_groups %}
+          <tr class="border-b gray:border-neutral-200">
+            <td class="pr-6 py-4 align-top">
+              {{ group.name }}
+            </td>
+            <td class="px-6 py-4 w-1/3 align-top">
+              {% include "mvp/settings/authors-collapsible.html" with id=group.public_id authors=group.author_list only %}
+            </td>
+            <td class="px-6 py-4 align-top">
+              {{ group.team_type }}
+            </td>
+            <td class="px-6 py-4 align-top">
+              {{ group.developer_type }}
+            </td>
+            <td class="px-6 py-4 align-top">
+              <div class="flex flex-wrap gap-1">
+                {% for rule in group.rule_list %}
+                  {% include "components/pill.html" with text=rule.name only %}
+                {% endfor %}
+              </div>
+            </td>
+            <td class="pl-6 py-4 align-top">
+              <a href="./developer-groups/{{ group.public_id }}"
+                 class="text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+                Edit
+              </a>
+              <form action="{% url 'other_settings' %}" method="post" class="max-w-lg">
+                {% csrf_token %}
+                <button type="submit" name="action" value="delete_developer_group"
+                        class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey"
+                        onclick="return confirm('Are you sure you want to delete this group? the developers in this group will be ungrouped.');">
+                  Delete
+                </button>
+                <input type="hidden" name="group_id" value="{{ group.public_id }}">
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        {% if ungrouped_authors %}
+          <tr class="border-b gray:border-neutral-200">
+            <td class="pr-6 py-4 align-top">
+              Ungrouped
+            </td>
+            <td class="px-6 py-4 w-1/3">
+              {% include "mvp/settings/authors-collapsible.html" with id="ungrouped" authors=ungrouped_authors only %}
+            </td>
+            <td class="px-6 py-4 align-top">
+              -
+            </td>
+            <td class="px-6 py-4 align-top">
+              -
+            </td>
+            <td class="px-6 py-4 align-top">
+              -
+            </td>
+            <td class="pl-6 py-4">&nbsp;</td>
+          </tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <a name="create"></a>
+  <h2 class="text-xl md:text-2xl mb-4 font-semibold mt-10">
+    Create group
+  </h2>
+
+  <form action="{% url 'other_settings' %}#create"
+        method="post"
+        class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md mb-20 max-w-3xl">
+    {% csrf_token %}
+
+    {% if author_group_form.name.errors %}
+      {% include "components/alert-error.html" with message=author_group_form.name.errors only %}
+    {% endif %}
+    <div class="mb-5 flex items-center gap-12">
+      <label for="{{ author_group_form.name.id_for_label }}"
+              class="block text-sm font-medium leading-6 w-28 shrink-0">{{ author_group_form.name.label }}</label>
+      {{ author_group_form.name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+    </div>
+
+    {% if author_group_form.team_type.errors %}
+      {% include "components/alert-error.html" with message=author_group_form.team_type.errors only %}
+    {% endif %}
+    <div class="mb-5 flex items-center gap-12">
+      <label for="{{ author_group_form.team_type.id_for_label }}"
+              class="block text-sm font-medium leading-6 w-28 shrink-0">{{ author_group_form.team_type.label }}</label>
+      {{ author_group_form.team_type|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+    </div>
+
+    {% if author_group_form.developer_type.errors %}
+      {% include "components/alert-error.html" with message=author_group_form.developer_type.errors only %}
+    {% endif %}
+    <div class="mb-5 flex items-center gap-12">
+      <label for="{{ author_group_form.developer_type.id_for_label }}"
+              class="block text-sm font-medium leading-6 w-28 shrink-0">{{ author_group_form.developer_type.label }}</label>
+      {{ author_group_form.developer_type|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+    </div>
+
+    {% if author_group_form.rules.errors %}
+      {% include "components/alert-error.html" with message=author_group_form.rules.errors only %}
+    {% endif %}
+    <div class="mb-5 flex items-center gap-12">
+      <label for="rules"
+              class="block text-sm font-medium leading-6 w-28 shrink-0">Rules</label>
+      <div class="w-full">
+        <select name="rules" id="rules" data-te-select-init multiple>
+          {% for rule in request.current_organization.rule_set_non_global %}
+            <option value="{{ rule.id }}"
+              {% if rule.description %}data-te-select-secondary-text="{{ rule.description }}"{% endif %}
+            >
+              {{ rule.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <button type="submit"
+            class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+      Create group
+    </button>
+  </form>
+
+  <hr class="h-px mt-10 mb-5 border-0 bg-lightgrey dark:bg-slate-600">
+
+  <h4 id="merge-developers" class="text-base md:text-lg mb-4 font-semibold">Merge Developers</h4>
+  
+  <h2 class="text-xl md:text-2xl font-semibold mb-4">Developers <span class="text-base md:text-xl ">({{ authors|length }})</span></h2>
+  {% if not authors %}
+    <div class="py-2 px-4 bg-lightgrey dark:bg-slate-600 rounded-md mb-5">
+      <div class="flex justify-between items-center gap-3">
+        <p>Developers will appear here once we start fetching data from your repositories.</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="mt-5 px-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+    <table class="mb-5 min-w-full text-left text-sm font-light">
+      <thead class="border-b font-medium gray:border-neutral-200">
+      <tr>
+        <th scope="col" class="pr-6 py-4">Developer</th>
+        <th scope="col" class="px-6 py-4">Alias</th>
+        <th scope="col" class="px-6 py-4"></th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for author in authors %}
+        <tr class="border-b gray:border-neutral-200">
+          <td class="pr-6 py-4 align-top">
+            {{ author.name }}
+            {% if author.email %}
+              <div class="text-xs text-gray-500">{{ author.email }}</div>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 w-1/3">
+            <div class="flex flex-wrap gap-1">
+            {% for linked_author in author.author_set.all %}
+              {% include "components/pill.html" with text=linked_author.name only %}
+            {% empty %}
+              -
+            {% endfor %}
+            </div>
+          </td>
+          <td class="pl-6 py-4 align-top">
+            <a href="./developers/{{ author.public_id }}" class="text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+              Edit alias
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="h-px mt-10 mb-5 border-0 bg-lightgrey dark:bg-slate-600">
+
+  <h4 id="genai-radar-rules" class="text-base md:text-lg mb-4 font-semibold">GenAI Radar Rules</h4>
+  
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl md:text-2xl font-semibold">Rules <span class="text-base md:text-xl ">({{ rules|length }})</span></h2>
+    <a href="#create-rule" class="mr-2 text-sm text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+      + Add Rule
+    </a>
+  </div>
+  {% if not rules %}
+    <div class="py-2 px-4 bg-lightgrey dark:bg-slate-600 rounded-md mb-5">
+      <div class="flex justify-between items-center gap-3">
+        <p>Create GenAI usage rules for your repositories.</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="mt-5 px-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+    <table class="mb-5 min-w-full text-left text-sm font-light">
+      <thead class="border-b font-medium gray:border-neutral-200">
+      <tr>
+        <th scope="col" class="pr-6 py-4">Rule</th>
+        <th scope="col" class="px-6 py-4">Description</th>
+        <th scope="col" class="px-6 py-4">Applies to</th>
+        <th scope="col" class="px-6 py-4"></th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for rule in rules %}
+        <tr class="border-b gray:border-neutral-200">
+          <td class="whitespace-nowrap pr-6 py-4">
+            {{ rule.name }}
+            {% if rule.description %}
+              <div class="text-xs text-gray-500">{{ rule.description }}</div>
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap px-6 py-4">
+            <div class="mb-1">{{ rule.rule_str }}</div>
+            <ul class="ml-5 list-disc">
+              {% for condition in rule.conditions.all %}
+              <li>{{ condition }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td scope="col" class="px-6 py-4 w-1/3">
+            {% if rule.apply_organization %}
+              Whole organization
+            {% elif rule.used_in_groups %}
+              {% if rule.repository_group_list %}
+                {% include "mvp/settings/groups-collapsible.html" with groups=rule.repository_group_list group_type="repository" id="repository-"|add:rule.public_id only %}
+              {% endif %}
+              {% if rule.author_group_list %}
+                {% include "mvp/settings/groups-collapsible.html" with groups=rule.author_group_list group_type="developer" id="developer-"|add:rule.public_id only %}
+              {% endif %}
+            {% else %}
+              Nowhere
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap pl-6 py-4">
+            <a href="{% url 'rule_edit' rule.public_id %}" class="text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+              Edit
+            </a>
+            <form action="{% url 'other_settings' %}" method="post" class="max-w-lg">
+              {% csrf_token %}
+              <button type="submit" name="action" value="delete_rule"
+                      class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey"
+                      onclick="return confirm('Are you sure you want to delete this rule?');">Delete
+              </button>
+              <input type="hidden" name="rule_id" value="{{ rule.public_id }}">
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="create-rule" class="text-xl md:text-2xl mb-4 font-semibold mt-10">
+    Create rule
+  </h2>
+
+  {% include "mvp/settings/rules_form.html" with form=rule_form formset=rule_formset %}
+
+{% endblock %}

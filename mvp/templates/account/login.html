@@ -1,0 +1,57 @@
+{% extends "account/base.html" %}
+
+{% load custom_filters %}
+{% load widget_tweaks %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block h1 %}Sign in to your account{% endblock %}
+
+{% block content %}
+
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+    {% include "components/messages.html" with messages=messages only %}
+
+    {% if form.errors %}
+      {% include "components/alert-error.html" with message="Your username and password didn't match. Please try again." only %}
+    {% endif %}
+
+    <form class="space-y-6" method="post" action="{% url 'account_login' %}?{{ request.GET.urlencode }}">
+      {% csrf_token %}
+      <div>
+        <label for="{{ form.login.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.login.label }}</label>
+        <div class="mt-2">
+          {{ form.login|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6"|attr:"autofocus:autofocus" }}
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between">
+          <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium leading-6">{{ form.password.label }}</label>
+          <div class="text-sm">
+            <a href="{% url 'account_reset_password' %}" class="font-semibold text-blue hover:text-violet dark:hover:text-lightgrey" tabindex="-1" >Forgot password?</a>
+          </div>
+        </div>
+        <div class="mt-2">
+          {{ form.password|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+
+      <div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" value="login" class="flex w-full justify-center rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">Sign in</button>
+      </div>
+    </form>
+
+    <p class="mt-10 text-center text-sm text-gray-500">
+      Don't have an account?
+      <a href="{% url 'signup' %}" class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Sign up now</a>
+    </p>
+
+    <p class="mt-5 text-center text-sm">
+      <a href="https://announcekit.co/semasoftware/release-notes/" target="_blank" class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Release notes</a>
+    </p>
+
+  </div>
+
+{% endblock %}

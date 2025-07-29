@@ -1,0 +1,51 @@
+http:
+  routers:
+    oauth2-proxy-route:
+      tls: true
+      entrypoints: https
+      rule: "Host(`oauth2-proxy.infra.semasoftware.com`)"
+      middlewares:
+        - auth-headers
+      service: oauth-backend
+    cronicle-https:
+      tls: true
+      entrypoints: https
+      rule: "Host(`cronicle.infra.semasoftware.com`)"
+      service: cronicle-backend
+      middlewares:
+        - oauth-auth-redirect  
+    cronicle-oauth2-route:
+      tls: true
+      entrypoints: https
+      rule: "Host(`cronicle.infra.semasoftware.com`) && PathPrefix(`/oauth2/`)"
+      middlewares:
+        - auth-headers
+      service: oauth-backend
+
+  services:
+    cronicle-backend:
+      loadBalancer:
+        servers:
+          - url: http://cronicle:3012
+    oauth-backend:
+      loadBalancer:
+        servers:
+          - url: http://oauth2-proxy:4180
+
+  middlewares:
+    auth-headers:
+      headers:
+        stsSeconds: 315360000
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        frameDeny: true
+    oauth-auth-redirect:
+      forwardAuth:
+        address: http://oauth2-proxy:4180
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Auth-Request-Access-Token
+          - Authorization

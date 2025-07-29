@@ -1,0 +1,11 @@
+{% if messages %}
+<div class="my-5">
+  {% for message in messages %}
+    {% if "success" in message.tags  %}
+      {% include "components/alert-success.html" with message=message only %}
+    {% else %}
+      {% include "components/alert-error.html" with message=message only %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}

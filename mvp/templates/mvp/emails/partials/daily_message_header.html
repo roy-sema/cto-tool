@@ -1,0 +1,22 @@
+<div style="margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #4A90A4;">
+  <h1 style="font-size: 20px; font-weight: 600; color: #1B365D; margin: 0; display: inline-block;">
+    SIP-Daily Message
+  </h1>
+  <div style="font-size: 13px; color: #5A6C7D; margin: 4px 0;">
+    Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}
+  </div>
+  <div style="display: flex; align-items: center; margin: 4px 0">
+    <div style="font-size: 13px; color: #5A6C7D">Organization: {{ organization.name }}</div>
+    {% if message_date %}
+      <a href="{{ site_domain }}/product-roadmap-radar/daily-message?date={{ message_date|date:"Y-m-d" }}"
+         style="margin-left: auto; font-size: 13px; font-weight: 500; color: #4A90A4; text-decoration: none; float: right;">
+        View Daily Message
+      </a>
+    {% else %}
+      <a href="{{ site_domain }}/product-roadmap-radar/daily-message"
+         style="margin-left: auto; font-size: 13px; font-weight: 500; color: #4A90A4; text-decoration: none; float: right;">
+        View Daily Message
+      </a>
+    {% endif %}
+  </div>
+</div>

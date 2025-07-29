@@ -1,0 +1,120 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}
+  Developer Groups
+{% endblock title %}
+
+{% block content %}
+  <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Settings</h1>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl md:text-2xl font-semibold">Developer Groups <span
+      class="text-base md:text-xl ">({{ author_groups|length }})</span></h2>
+    <a href="#create"
+       class="mr-2 text-sm text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+      + Add Group
+    </a>
+  </div>
+  {% if not author_groups %}
+    <div class="py-2 px-4 bg-lightgrey dark:bg-slate-600 rounded-md mb-5">
+      <div class="flex justify-between items-center gap-3">
+        <p>Create a group to better organize your developers and utilize all the
+          features</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if not request.POST %}
+    {% include "components/messages.html" with messages=messages only %}
+  {% endif %}
+
+  <div
+    class="mt-5 px-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+    <div class="overflow-x-auto">
+      <table class="mb-5 min-w-full text-left text-sm font-light">
+        <thead class="border-b font-medium gray:border-neutral-200">
+        <tr>
+          <th scope="col" class="pr-6 py-4">Group</th>
+          <th scope="col" class="px-6 py-4">Developers</th>
+          <th scope="col" class="px-6 py-4">Team Type</th>
+          <th scope="col" class="px-6 py-4">Developer Type</th>
+          <th scope="col" class="px-6 py-4">Rules</th>
+          <th scope="col" class="px-6 py-4"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for group in author_groups %}
+          <tr class="border-b gray:border-neutral-200">
+            <td class="pr-6 py-4 align-top">
+              {{ group.name }}
+            </td>
+            <td class="px-6 py-4 w-1/3 align-top">
+              {% include "mvp/settings/authors-collapsible.html" with id=group.public_id authors=group.author_list only %}
+            </td>
+            <td class="px-6 py-4 align-top">
+              {{ group.team_type }}
+            </td>
+            <td class="px-6 py-4 align-top">
+              {{ group.developer_type }}
+            </td>
+            <td class="px-6 py-4 align-top">
+              <div class="flex flex-wrap gap-1">
+                {% for rule in group.rule_list %}
+                  {% include "components/pill.html" with text=rule.name only %}
+                {% endfor %}
+              </div>
+            </td>
+            <td class="pl-6 py-4 align-top">
+              <a href="./{{ group.public_id }}"
+                 class="text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+                Edit
+              </a>
+              <form action="./" method="post" class="max-w-lg">
+                {% csrf_token %}
+                <button type="submit" name="action" value="delete_developer_group"
+                        class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey"
+                        onclick="return confirm('Are you sure you want to delete this group? the developers in this group will be ungrouped.');">
+                  Delete
+                </button>
+                <input type="hidden" name="group_id" value="{{ group.public_id }}">
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        {% if ungrouped_authors %}
+          <tr class="border-b gray:border-neutral-200">
+            <td class="pr-6 py-4 align-top">
+              Ungrouped
+            </td>
+            <td class="px-6 py-4 w-1/3">
+              {% include "mvp/settings/authors-collapsible.html" with id="ungrouped" authors=ungrouped_authors only %}
+            </td>
+            <td class="px-6 py-4 align-top">
+              -
+            </td>
+            <td class="px-6 py-4 align-top">
+              -
+            </td>
+            <td class="px-6 py-4 align-top">
+              -
+            </td>
+            <td class="pl-6 py-4">&nbsp;</td>
+          </tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <a name="create"></a>
+  <h2 class="text-xl md:text-2xl mb-4 font-semibold mt-10">
+    Create group
+  </h2>
+
+  {% if request.POST %}
+    {% include "components/messages.html" with messages=messages only %}
+  {% endif %}
+
+  {% include "mvp/settings/author_group_form.html" %}
+{% endblock content %}

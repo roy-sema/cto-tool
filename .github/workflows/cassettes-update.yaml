@@ -1,0 +1,100 @@
+name: Update cassettes
+
+on:
+  issue_comment:
+    types: [ created, edited, deleted ]
+  # uncomment if you in a process of debug and comment "contains(github.event.comment.body" inside job
+  #push:
+  #  branches: [ "add-vcr-autocommit" ]
+
+jobs:
+  update-cassettes:
+    name: Update E2E test cassettes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: contains(github.event.comment.body, '/update-cassettes')
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+      actions: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Get PR branch name
+        if: ${{ github.event.issue.pull_request }}
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.issue.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            core.setOutput('head_ref', pr.head.ref);
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.issue.pull_request && steps.pr.outputs.head_ref || github.ref }}
+          fetch-depth: 0
+          lfs: true
+          clean: false
+
+      - name: Get last successful workflow run
+        run: |
+          SUCCESS_RUN_ID=$(gh run list --status success --workflow "CI/CD" --branch ${{ github.event.issue.pull_request && steps.pr.outputs.head_ref || github.ref }} --limit 1 --json databaseId --jq '.[].databaseId')
+          if [ -z "$SUCCESS_RUN_ID" ]; then
+            echo "Error: No successful CI/CD run found for branch"
+            exit 1
+          fi
+          echo "SUCCESS_RUN_ID=$SUCCESS_RUN_ID" >> $GITHUB_ENV
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-pipeline-artifacts
+          run-id: ${{ env.SUCCESS_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
+
+      - name: Verify artifacts downloaded
+        run: |
+          if [ ! -d ".ci_cassettes" ]; then
+            echo "Error: .ci_cassettes directory not found in downloaded artifacts"
+            exit 1
+          fi
+
+      - name: Commit updated cassettes and comment
+        run: |
+          if git diff --quiet --exit-code .ci_cassettes; then
+            echo "No cassette changes detected."
+            gh pr comment ${{ github.event.pull_request.number || github.event.issue.number }} \
+              --body "ℹ️ No cassette changes detected. The cassettes are already up to date."
+            exit 0
+          fi
+
+          # capture diff stats
+          files=$(git diff --name-only .ci_cassettes | wc -l)
+          read adds dels <<< "$(git diff --numstat .ci_cassettes | awk '{a+=$1; d+=$2} END {print a, d}')"
+
+          # commit & push
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .ci_cassettes
+          
+          git commit -m "ci: update VCR cassettes (${files} files, +${adds}/-${dels})"
+          git push origin ${{ github.event.issue.pull_request && steps.pr.outputs.head_ref || github.ref }}
+
+          echo "FILES=$files" >> $GITHUB_ENV
+          echo "ADDS=$adds" >> $GITHUB_ENV
+          echo "DELS=$dels" >> $GITHUB_ENV
+
+      - name: Comment to PR
+        if: success()
+        run: |
+          gh pr comment ${{ github.event.pull_request.number || github.event.issue.number }} \
+            --body "🔄 **.ci_cassettes** updated: ${{ env.FILES }} files, +${{ env.ADDS }}/-${{ env.DELS }} lines (auto-recorded by CI)."

@@ -1,0 +1,33 @@
+{% if item.quality_category == "Advanced" %}
+  <td style="padding: 12px 16px; background: linear-gradient(135deg, rgba(205, 92, 76, 0.08) 0%, rgba(205, 92, 76, 0.04) 100%); border: 1px solid rgba(205, 92, 76, 0.2); vertical-align: top;">
+    <div style="font-size: 13px; font-weight: 500; color: #5A6C7D; margin-bottom: 4px;">{% if item.project_key %}{{ item.project_key }}{% else %}{{ item.stage }}{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: #A9CD71; margin: 0">{{ item.score|floatformat:0 }}</div>
+    {% if item.ticket_count %}
+    <div style="font-size: 12px; margin-top: 4px; color: #5A6C7D;">{{ item.ticket_count }} tickets</div>
+    {% endif %}
+  </td>
+{% elif item.quality_category == "Mature" %}
+  <td style="padding: 12px 16px; background: linear-gradient(135deg, rgba(212, 184, 106, 0.08) 0%, rgba(212, 184, 106, 0.04) 100%); border: 1px solid rgba(212, 184, 106, 0.2); vertical-align: top;">
+    <div style="font-size: 13px; font-weight: 500; color: #5A6C7D; margin-bottom: 4px;">{% if item.project_key %}{{ item.project_key }}{% else %}{{ item.stage }}{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: #D4B86A; margin: 0">{{ item.score|floatformat:0 }}</div>
+    {% if item.ticket_count %}
+    <div style="font-size: 12px; margin-top: 4px; color: #5A6C7D;">{{ item.ticket_count }} tickets</div>
+    {% endif %}
+  </td>
+{% elif item.quality_category == "Emerging" %}
+  <td style="padding: 12px 16px; background: linear-gradient(135deg, rgba(169, 205, 113, 0.08) 0%, rgba(169, 205, 113, 0.04) 100%); border: 1px solid rgba(169, 205, 113, 0.2); vertical-align: top;">
+    <div style="font-size: 13px; font-weight: 500; color: #5A6C7D; margin-bottom: 4px;">{% if item.project_key %}{{ item.project_key }}{% else %}{{ item.stage }}{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: #F2B962; margin: 0">{{ item.score|floatformat:0 }}</div>
+    {% if item.ticket_count %}
+    <div style="font-size: 12px; margin-top: 4px; color: #5A6C7D;">{{ item.ticket_count }} tickets</div>
+    {% endif %}
+  </td>
+{% elif item.quality_category == "Initial" %}
+  <td style="padding: 12px 16px; background: linear-gradient(135deg, rgba(205, 92, 76, 0.08) 0%, rgba(205, 92, 76, 0.04) 100%); border: 1px solid rgba(205, 92, 76, 0.2); vertical-align: top;">
+    <div style="font-size: 13px; font-weight: 500; color: #5A6C7D; margin-bottom: 4px;">{% if item.project_key %}{{ item.project_key }}{% else %}{{ item.stage }}{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: #CD5C4C; margin: 0">{{ item.score|floatformat:0 }}</div>
+    {% if item.ticket_count %}
+    <div style="font-size: 12px; margin-top: 4px; color: #5A6C7D;">{{ item.ticket_count }} tickets</div>
+    {% endif %}
+  </td>
+{% endif %}

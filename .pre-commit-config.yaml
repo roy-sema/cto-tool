@@ -1,0 +1,52 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.9
+    hooks:
+      - id: ruff
+        args:
+          - '--fix'
+          - '--exit-non-zero-on-fix'
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.7.15
+    hooks:
+      - id: uv-lock
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-yaml
+        args:
+          - '--unsafe'
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: detect-private-key
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd vue-frontend && npx prettier --ignore-unknown --write "${@#vue-frontend/}"' --
+        language: system
+        files: ^vue-frontend/
+
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd vue-frontend && npx eslint --fix "${@#vue-frontend/}"' --
+        language: system
+        files: ^vue-frontend/
+
+      - id: typecheck
+        name: typecheck
+        entry: bash -c 'cd vue-frontend && npm run type-check' --
+        language: system
+        files: ^vue-frontend/
+        stages: [pre-push]

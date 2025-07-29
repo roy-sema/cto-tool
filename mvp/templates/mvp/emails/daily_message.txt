@@ -1,0 +1,201 @@
+DAILY MESSAGE
+=============
+SIP-Daily Message - [{{ organization.name }}]
+Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}
+Organization - {{ organization.name }}
+
+{% if no_commits_message %}
+No commits found throughout the system since the last update.
+{% else %}
+
+ANOMALY INSIGHTS - CODE & JIRA
+===============================
+
+{% if data.anomaly_insights_and_risks.attention_level_ceo %}
+CEO's Attention (Score 10)
+--------------------------
+{% for item in data.anomaly_insights_and_risks.attention_level_ceo %}
+{% if item.repo %}Repository: {{ item.repo_full_name }}{% else %}Project: {{ item.project_name }}{% endif %}
+{% if item.group_name %}Group: {{ item.group_name }}{% endif %}
+Title: {{ insight.title|safe }}
+Insight:
+{{ item.insight|safe }}
+Category: {{ item.category }}
+Significance Score: {{ item.significance_score }}
+Confidence Level: {{ item.confidence_level }}
+Evidence:
+{{ item.evidence|safe }}
+Potential Next Steps: {{ item.resolution|safe }}
+{% if item.messages %}
+[ SkipAMeeting ]
+{% for message in item.messages %}
+Audience: {{ message.audience }}
+{{ message.message_for_audience|safe }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if data.anomaly_insights_and_risks.attention_level_cto_or_cpo %}
+CTO/CPO's Attention (Score 9)
+-----------------------------
+{% for item in data.anomaly_insights_and_risks.attention_level_ceo_or_cpo %}
+{% if item.repo %}Repository: {{ item.repo_full_name }}{% else %}Project: {{ item.project_name }}{% endif %}
+{% if item.group_name %}Group: {{ item.group_name }}{% endif %}
+Title: {{ insight.title|safe }}
+Insight:
+{{ item.insight|safe }}
+Category: {{ item.category }}
+Significance Score: {{ item.significance_score }}
+Confidence Level: {{ item.confidence_level }}
+Evidence:
+{{ item.evidence|safe }}
+Potential Next Steps: {{ item.resolution|safe }}
+{% if item.messages %}
+[ SkipAMeeting ]
+{% for message in item.messages %}
+Audience: {{ message.audience }}
+{{ message.message_for_audience|safe }}
+{% endfor %}
+{% endif %}
+
+{% if not forloop.last %}
+------------
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if data.anomaly_insights_and_risks.attention_level_director_or_manager %}
+Director/Manager's Attention (Score 8)
+--------------------------------------
+{% for item in data.anomaly_insights_and_risks.attention_level_director_or_manager %}
+{% if item.repo %}Repository: {{ item.repo_full_name }}{% else %}Project: {{ item.project_name }}{% endif %}
+{% if item.group_name %}Group: {{ item.group_name }}{% endif %}
+Title: {{ insight.title|safe }}
+Insight:
+{{ item.insight|safe }}
+Category: {{ item.category }}
+Significance Score: {{ item.significance_score }}
+Confidence Level: {{ item.confidence_level }}
+Evidence:
+{{ item.evidence|safe }}
+Potential Next Steps: {{ item.resolution|safe }}
+{% if item.messages %}
+[ SkipAMeeting ]
+{% for message in item.messages %}
+Audience: {{ message.audience }}
+{{ message.message_for_audience|safe }}
+{% endfor %}
+{% endif %}
+
+{% if not forloop.last %}
+------------
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if data.anomaly_insights_and_risks.attention_level_team_lead %}
+Team Lead’s Attention (score 7)
+-------------------------------
+{% for item in data.anomaly_insights_and_risks.attention_level_team_lead %}
+{% if item.repo %}Repository: {{ item.repo_full_name }}{% else %}Project: {{ item.project_name }}{% endif %}
+{% if item.group_name %}Group: {{ item.group_name }}{% endif %}
+Title: {{ insight.title|safe }}
+Insight:
+{{ item.insight|safe }}
+Category: {{ item.category }}
+Significance Score: {{ item.significance_score }}
+Confidence Level: {{ item.confidence_level }}
+Evidence:
+{{ item.evidence|safe }}
+Potential Next Steps: {{ item.resolution|safe }}
+{% if item.messages %}
+[ SkipAMeeting ]
+{% for message in item.messages %}
+Audience: {{ message.audience }}
+{{ message.message_for_audience|safe }}
+{% endfor %}
+{% endif %}
+
+{% if not forloop.last %}
+------------
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if data.jira_completeness_score %}
+TICKET COMPLETENESS SCORE
+=======================
+Current score {{ data.jira_completeness_score.average_score|floatformat:0 }}/100
+
+{% if data.jira_completeness_score.tickets_with_highest_score %}
+Tickets with highest score
+--------------------------
+{% for item in data.jira_completeness_score.tickets_with_highest_score %}
+Ticket: {{ item.ticket }}
+Completeness Score: {{ item.score }}
+Score Explanation: {{ item.explanation|safe }}
+{% endfor %}
+{% endif %}
+
+{% if data.jira_completeness_score.tickets_with_lowest_score %}
+Tickets with lowest score
+-------------------------
+{% for item in data.jira_completeness_score.tickets_with_lowest_score %}
+Ticket: {{ item.ticket }}
+Completeness Score: {{ item.score }}
+Score Explanation: {{ item.explanation|safe }}
+{% endfor %}
+{% endif %}
+
+{% endif %}
+
+{% if data.aggregated_anomaly_insights %}
+AGGREGATED ANOMALY INSIGHTS - CODE
+==================================
+Summary: {{ data.aggregated_anomaly_insights.summary }}
+
+Insights:
+---------
+{% for group_of_insights in data.aggregated_anomaly_insights.groups_of_insights %}
+Similarity Reason: {{ group_of_insights.similarity_reason }}
+
+{% for insight in group_of_insights.details_of_insights %}
+Insight-ID: {{ insight.unique_id }}
+{% if insight.repo %}Repository: {{ insight.repo_full_name }}{% else %}Project: {{ insight.project_name }}{% endif %}
+Title: {{ insight.title|safe }}
+Insight:
+{{ insight.insight|safe }}
+Category: {{ insight.category }}
+Significance Score: {{ insight.significance_score }}
+Confidence Level: {{ insight.confidence_level }}
+Evidence:
+{{ insight.evidence|safe }}
+Potential Next Steps: {{ insight.resolution|safe }}
+{% if insight.messages %}
+[ SkipAMeeting ]
+{% for message in insight.messages %}
+Audience: {{ message.audience }}
+{{ message.message_for_audience|safe }}
+{% endfor %}
+{% endif %}
+
+{% if not forloop.last %}
+------------
+{% endif %}
+
+{% endfor %}
+
+{% if not forloop.last %}
+------------
+{% endif %}
+
+{% endfor %}
+
+{% endif %}
+
+{% endif %}

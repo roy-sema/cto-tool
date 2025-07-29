@@ -1,0 +1,289 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}Members{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Settings</h1>
+
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl md:text-2xl font-semibold">Users <span class="text-base md:text-xl ">({{ num_members }})</span></h2>
+    <div>
+      <a href="#invite" class="mr-2 text-sm text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+        + Invite User
+      </a>
+      <a href="#bulk-invite" class="mr-2 text-sm text-blue font-semibold hover:text-violet dark:hover:text-lightgrey">
+        + Bulk Invite
+      </a>
+    </div>
+  </div>
+
+  {% include "components/alert-warning.html" with message="NOTE: users will have access to all repositories in the organization. Additional security configuration ability coming soon." %}
+
+  {% if num_members is 1 %}
+    <p class="my-2">
+      You can invite colleagues as SettingEditors to assist with setup.
+    </p>
+  {% endif %}
+
+  {% include "components/messages.html" with messages=messages only %}
+
+  <div class="mt-5 px-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+    <table class="mb-5 min-w-full text-left text-sm font-light">
+      <thead class="border-b font-medium gray:border-neutral-200">
+      <tr>
+        <th scope="col" class="pr-6 py-4">User</th>
+        <th scope="col" class="px-6 py-4">Role</th>
+        <th scope="col" class="px-6 py-4"></th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for member in members %}
+        <tr class="border-b gray:border-neutral-200">
+          <td class="whitespace-nowrap pr-6 py-4">
+            {{ member.first_name }} {{ member.last_name }}<br>
+            <span class="text-xs">{{ member.email }}</span>
+          </td>
+          <td class="whitespace-nowrap px-6 py-4">
+            {% if member.id is not user.id and not member.is_owner %}
+              <form id="role-form" action="./" method="post">
+                {% csrf_token %}
+                <select data-te-select-init name="role">
+                  {% for role in roles %}
+                    <option value="{{ role.id }}" data-te-select-secondary-text="{{ role.description }}"
+                      {% if role.id == member.role.id %} selected {% endif %}>
+                      {{ role.label }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" name="member_id" value="{{ member.public_id }}">
+                <button type="submit" name="action" value="update_member_role"
+                        class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Update
+                </button>
+              </form>
+            {% else %}
+              {{ member.role }}
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap px-6 py-4">
+            {% if member.id is not user.id %}
+              <form action="./" method="post" class="max-w-lg">
+                {% csrf_token %}
+                <button type="submit" name="action" value="delete_member"
+                        class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey"
+                        onclick="return confirm('Are you sure you want to remove this member?');">Remove
+                </button>
+                <input type="hidden" name="member_id" value="{{ member.public_id }}">
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if invitations %}
+    <a name="pending-invites"></a>
+    <h3 class="text-lg md:text-xl mb-4 font-semibold mt-20">Pending Invites</h3>
+    <div class="px-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md">
+      <table class="mb-5 min-w-full text-left text-sm font-light">
+        <thead class="border-b font-medium gray:border-neutral-200">
+        <tr>
+          {% if user.is_staff %}
+            <th scope="col" class="pr-6 py-4">Organization</th>
+          {% endif %}
+          <th scope="col" class="pr-6 py-4">Sent to</th>
+          <th scope="col" class="pr-6 py-4">Sent on</th>
+          <th scope="col" class="px-6 py-4">Role</th>
+          <th scope="col" class="px-6 py-4"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for invitation in invitations %}
+          <tr class="border-b gray:border-neutral-200">
+            {% if user.is_staff %}
+              <td class="whitespace-nowrap pr-6 py-4">{{ invitation.organization }}</td>
+            {% endif %}
+            <td class="whitespace-nowrap pr-6 py-4">
+              {{ invitation.first_name }} {{ invitation.last_name }}<br>
+              <span class="text-xs">{{ invitation.email }}</span>
+            </td>
+            <td class="whitespace-nowrap px-6 py-4">
+              {{ invitation.created_at }}
+              {% if invitation.resent_at %}
+                <br><span class="text-xs">Resent on {{ invitation.resent_at }}</span>
+              {% endif %}
+            </td>
+            <td class="whitespace-nowrap px-6 py-4">{{ invitation.role }}</td>
+            <td class="whitespace-nowrap px-6 py-4">
+              <form action="./" method="post" class="max-w-lg">
+                {% csrf_token %}
+                <button type="submit" name="action" value="resend_invitation"
+                        class="font-semibold leading-6 text-blue hover:text-violet dark:hover:text-lightgrey">Resend
+                  invitation
+                </button>
+                <input type="hidden" name="invitation_id" value="{{ invitation.public_id }}">
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  <div class="xl:flex gap-10">
+    <div class="xl:w-1/3">
+      <a name="invite"></a>
+      <h2 class="text-xl md:text-2xl mb-4 font-semibold mt-20">
+        Invite {% if user.is_staff %}user or{% endif %} member
+      </h2>
+
+      <form action="./#invite" method="post"
+            class="max-w-lg p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md mb-20">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          {% include "components/alert-error.html" with message=form.non_field_errors only %}
+        {% endif %}
+
+        {% if user.is_staff %}
+          <div class="mb-5">
+            <label for="{{ form.organization.id_for_label }}"
+                  class="block text-sm font-medium leading-6">{{ form.organization.label }}</label>
+            {% if form.organization.errors %}
+              {% include "components/alert-error.html" with message=form.organization.errors only %}
+            {% endif %}
+            <div class="my-2">
+              {{ form.organization|add_class:"block w-full rounded-md bg-white dark:bg-slate-600  border-0 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+            </div>
+            {% include "components/alert-warning.html" with message="Please double-check you're adding the user to the correct organization." only %}
+          </div>
+
+          <div class="mb-5">
+            <label for="{{ form.new_organization_name.id_for_label }}"
+                  class="block text-sm font-medium leading-6">{{ form.new_organization_name.label }}</label>
+            {% if form.new_organization_name.errors %}
+              {% include "components/alert-error.html" with message=form.new_organization_name.errors only %}
+            {% endif %}
+            <div class="mt-2">
+              {{ form.new_organization_name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="grid sm:grid-cols-2 gap-2">
+          <div>
+            <label for="{{ form.first_name.id_for_label }}"
+                  class="block text-sm font-medium leading-6">{{ form.first_name.label }}</label>
+            {% if form.first_name.errors %}
+              {% include "components/alert-error.html" with message=form.first_name.errors only %}
+            {% endif %}
+            <div class="mt-2">
+              {{ form.first_name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+            </div>
+          </div>
+
+          <div>
+            <label for="{{ form.last_name.id_for_label }}"
+                  class="block text-sm font-medium leading-6">{{ form.last_name.label }}</label>
+            {% if form.last_name.errors %}
+              {% include "components/alert-error.html" with message=form.last_name.errors only %}
+            {% endif %}
+            <div class="mt-2">
+              {{ form.last_name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <label for="{{ form.email.id_for_label }}"
+                class="block text-sm font-medium leading-6">{{ form.email.label }}</label>
+          {% if form.email.errors %}
+            {% include "components/alert-error.html" with message=form.email.errors only %}
+          {% endif %}
+          <div class="mt-2">
+            {{ form.email|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <label for="{{ form.role.id_for_label }}"
+                class="block text-sm font-medium leading-6 mb-1.5">{{ form.role.label }}</label>
+          {% if form.role.errors %}
+            {% include "components/alert-error.html" with message=form.role.errors only %}
+          {% endif %}
+          <div>
+            <select data-te-select-init name="{{ form.role.name }}">
+              {% for role in roles %}
+                <option value="{{ role.id }}"
+                        data-te-select-secondary-text="{{ role.description }}">{{ role.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" name="action" value="invite_member"
+                class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+          Invite
+        </button>
+      </form>
+    </div>
+
+    <div class="xl:w-1/3">
+      <a name="bulk-invite"></a>
+      <h2 class="text-xl md:text-2xl mb-4 font-semibold mt-20">
+        Bulk Invite
+      </h2>
+
+      <form action="./#bulk-invite" method="post"
+            class="max-w-lg p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md mb-20">
+        {% csrf_token %}
+        {% if bulk_form.non_field_errors %}
+          {% include "components/alert-error.html" with message=bulk_form.non_field_errors only %}
+        {% endif %}
+
+        <div>
+          <label for="{{ bulk_form.emails.id_for_label }}"
+                class="block text-sm font-medium leading-6">{{ bulk_form.emails.label }}</label>
+          {% if bulk_form.emails.errors %}
+            {% include "components/alert-error.html" with message=bulk_form.emails.errors only %}
+          {% endif %}
+          <div class="mt-2">
+            {{ bulk_form.emails|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <label for="{{ bulk_form.role.id_for_label }}"
+                class="block text-sm font-medium leading-6 mb-1.5">{{ bulk_form.role.label }}</label>
+          {% if bulk_form.role.errors %}
+            {% include "components/alert-error.html" with message=bulk_form.role.errors only %}
+          {% endif %}
+          <div>
+            <select data-te-select-init name="{{ bulk_form.role.name }}">
+              {% for role in roles %}
+                <option value="{{ role.id }}"
+                        data-te-select-secondary-text="{{ role.description }}">{{ role.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" name="action" value="bulk_invite"
+                class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+          Invite
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    div[data-te-select-form-outline-ref] > span {
+      width: 0.85rem;
+      margin-top: 0.25rem;
+    }
+  </style>
+
+{% endblock %}

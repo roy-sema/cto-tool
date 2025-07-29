@@ -1,0 +1,80 @@
+{% extends "mvp/settings/base.html" %}
+
+{% load widget_tweaks %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl md:text-3xl mb-4 font-semibold">Settings</h1>
+
+  {% include "components/messages.html" with messages=messages only %}
+
+  <form action="{% url 'settings' %}" method="post"
+        class="p-4 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md max-w-3xl ">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      {% include "components/alert-error.html" with message=form.non_field_errors only %}
+    {% endif %}
+
+    <h3 class="text-lg md:text-xl mb-4 font-semibold">Organization Information</h3>
+
+    <!-- Compliance standards is deactivated for now -->
+    <!-- {% include "components/alert-info.html" with message="Applying filters in the Organizational Information section sets a default view that all members of your organization will see when accessing the Compliance Standards" only %} -->
+
+    <div class="mt-5">
+      <div>
+        <label for="{{ form.name.id_for_label }}"
+               class="block text-sm font-medium leading-6">Company name:</label>
+        {% if form.name.errors %}
+          {% include "components/alert-error.html" with message=form.name.errors only %}
+        {% endif %}
+        <div class="mt-2">
+          {{ form.name|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
+        </div>
+      </div>
+    </div>
+
+    <hr class="h-px mt-10 mb-5 border-0 bg-lightgrey dark:bg-slate-600">
+    <h4 class="text-base md:text-lg mb-4 font-semibold">Security</h4>
+
+    <div class="mt-4">
+      {% if form.require_mfa.errors %}
+        {% include "components/alert-error.html" with message=form.require_mfa.errors only %}
+      {% endif %}
+
+      <div class="flex items-center gap-2 mt-5">
+        {{ form.require_mfa|add_class:"w-4 h-4 text-blue bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
+        <label for="{{ form.require_mfa.id_for_label }}"
+               class="block text-sm font-medium leading-6">
+          Require Multifactor Authentication</label>
+      </div>
+      <div class="pl-6 text-xs text-gray-900 dark:text-gray-300 mt-0.5">When enabled,
+        all users in your organization will be required to use multifactor
+        authentication to login.
+      </div>
+    </div>
+
+    <button type="submit" value="submit"
+            class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+      Save
+    </button>
+  </form>
+
+  <style>
+    .geographies-select > div {
+      width: 100%;
+    }
+
+    /* to match the other select style */
+    .geographies-select div[data-te-select-form-outline-ref] span {
+      width: 0.75rem;
+      right: 0.125rem;
+      top: 0.75rem;
+    }
+
+    .geographies-select div[data-te-select-form-outline-ref] svg {
+      stroke-width: 4px;
+    }
+  </style>
+{% endblock %}

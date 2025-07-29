@@ -1,0 +1,135 @@
+{
+  "subscriptionId": "3b1db943-d167-4703-8856-51d6fa4e95de",
+  "notificationId": 12,
+  "id": "9ab362be-6050-42b1-b19d-7ef2f97209ae",
+  "eventType": "git.pullrequest.updated",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Marc Martinez completed pull request 27 (New) in pinia\r\nhttps://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/",
+    "html": "Marc Martinez completed <a href=\"https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/pullrequest/27\">pull request 27</a> (New) in <a href=\"https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/\">pinia</a>",
+    "markdown": "Marc Martinez completed [pull request 27](https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/pullrequest/27) (New) in [pinia](https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/)"
+  },
+  "detailedMessage": {
+    "text": "Marc Martinez completed pull request 27 (New) in pinia\r\nhttps://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/",
+    "html": "Marc Martinez completed <a href=\"https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/pullrequest/27\">pull request 27</a> (New) in <a href=\"https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/\">pinia</a>",
+    "markdown": "Marc Martinez completed [pull request 27](https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/pullrequest/27) (New) in [pinia](https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/)"
+  },
+  "resource": {
+    "repository": {
+      "id": "cece45f4-8cd4-44df-8def-0f6f8d3d6acc",
+      "name": "pinia",
+      "url": "https://dev.azure.com/semasoftware/eec79bda-e440-4c5e-90da-13d7acdcc83b/_apis/git/repositories/cece45f4-8cd4-44df-8def-0f6f8d3d6acc",
+      "project": {
+        "id": "eec79bda-e440-4c5e-90da-13d7acdcc83b",
+        "name": "IntegrationTesting",
+        "url": "https://dev.azure.com/semasoftware/_apis/projects/eec79bda-e440-4c5e-90da-13d7acdcc83b",
+        "state": "wellFormed",
+        "revision": 13,
+        "visibility": "private",
+        "lastUpdateTime": "2024-05-22T13:42:20.447Z"
+      },
+      "size": 7397106,
+      "remoteUrl": "https://semasoftware@dev.azure.com/semasoftware/IntegrationTesting/_git/pinia",
+      "sshUrl": "git@ssh.dev.azure.com:v3/semasoftware/IntegrationTesting/pinia",
+      "webUrl": "https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia",
+      "isDisabled": false,
+      "isInMaintenance": false
+    },
+    "pullRequestId": 27,
+    "codeReviewId": 27,
+    "status": "completed",
+    "createdBy": {
+      "displayName": "Marc Martinez",
+      "url": "https://spsprodcin2.vssps.visualstudio.com/Ade6c3a1b-18dc-40df-9449-367c60a5fafc/_apis/Identities/1ac64a1e-94f9-6ca1-97c4-337b9b92f82e",
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/semasoftware/_apis/GraphProfile/MemberAvatars/aad.MWFjNjRhMWUtOTRmOS03Y2ExLTk3YzQtMzM3YjliOTJmODJl"
+        }
+      },
+      "id": "1ac64a1e-94f9-6ca1-97c4-337b9b92f82e",
+      "uniqueName": "marc@semasoftware.com",
+      "imageUrl": "https://dev.azure.com/semasoftware/_api/_common/identityImage?id=1ac64a1e-94f9-6ca1-97c4-337b9b92f82e",
+      "descriptor": "aad.MWFjNjRhMWUtOTRmOS03Y2ExLTk3YzQtMzM3YjliOTJmODJl"
+    },
+    "creationDate": "2024-06-18T22:02:36.0155648Z",
+    "closedDate": "2024-06-18T22:05:37.60857Z",
+    "title": "New",
+    "sourceRefName": "refs/heads/test-2",
+    "targetRefName": "refs/heads/v2",
+    "mergeStatus": "succeeded",
+    "isDraft": false,
+    "mergeId": "5d04d55f-8b46-43b8-ba9f-18b998c24711",
+    "lastMergeSourceCommit": {
+      "commitId": "c5037681318ce1850fd21221cc1cc391e7a69010",
+      "url": "https://dev.azure.com/semasoftware/eec79bda-e440-4c5e-90da-13d7acdcc83b/_apis/git/repositories/cece45f4-8cd4-44df-8def-0f6f8d3d6acc/commits/c5037681318ce1850fd21221cc1cc391e7a69010"
+    },
+    "lastMergeTargetCommit": {
+      "commitId": "dda629520f19d3908d993e162a6797d8854abe79",
+      "url": "https://dev.azure.com/semasoftware/eec79bda-e440-4c5e-90da-13d7acdcc83b/_apis/git/repositories/cece45f4-8cd4-44df-8def-0f6f8d3d6acc/commits/dda629520f19d3908d993e162a6797d8854abe79"
+    },
+    "lastMergeCommit": {
+      "commitId": "af04c598334cf293da2edfe3b73085ad1050caaa",
+      "author": {
+        "name": "Marc Martinez",
+        "email": "marc@semasoftware.com",
+        "date": "2024-06-18T22:05:37Z"
+      },
+      "committer": {
+        "name": "Marc Martinez",
+        "email": "marc@semasoftware.com",
+        "date": "2024-06-18T22:05:37Z"
+      },
+      "comment": "Merged PR 27: New",
+      "url": "https://dev.azure.com/semasoftware/eec79bda-e440-4c5e-90da-13d7acdcc83b/_apis/git/repositories/cece45f4-8cd4-44df-8def-0f6f8d3d6acc/commits/af04c598334cf293da2edfe3b73085ad1050caaa"
+    },
+    "reviewers": [],
+    "url": "https://dev.azure.com/semasoftware/eec79bda-e440-4c5e-90da-13d7acdcc83b/_apis/git/repositories/cece45f4-8cd4-44df-8def-0f6f8d3d6acc/pullRequests/27",
+    "_links": {
+      "web": {
+        "href": "https://dev.azure.com/semasoftware/IntegrationTesting/_git/pinia/pullrequest/27"
+      },
+      "statuses": {
+        "href": "https://dev.azure.com/semasoftware/eec79bda-e440-4c5e-90da-13d7acdcc83b/_apis/git/repositories/cece45f4-8cd4-44df-8def-0f6f8d3d6acc/pullRequests/27/statuses"
+      }
+    },
+    "completionOptions": {
+      "mergeCommitMessage": "Merged PR 27: New",
+      "deleteSourceBranch": true,
+      "mergeStrategy": "noFastForward",
+      "transitionWorkItems": true,
+      "autoCompleteIgnoreConfigIds": []
+    },
+    "supportsIterations": true,
+    "completionQueueTime": "2024-06-18T22:05:35.4537099Z",
+    "closedBy": {
+      "displayName": "Marc Martinez",
+      "url": "https://spsprodcin2.vssps.visualstudio.com/Ade6c3a1b-18dc-40df-9449-367c60a5fafc/_apis/Identities/1ac64a1e-94f9-6ca1-97c4-337b9b92f82e",
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/semasoftware/_apis/GraphProfile/MemberAvatars/aad.MWFjNjRhMWUtOTRmOS03Y2ExLTk3YzQtMzM3YjliOTJmODJl"
+        }
+      },
+      "id": "1ac64a1e-94f9-6ca1-97c4-337b9b92f82e",
+      "uniqueName": "marc@semasoftware.com",
+      "imageUrl": "https://dev.azure.com/semasoftware/_api/_common/identityImage?id=1ac64a1e-94f9-6ca1-97c4-337b9b92f82e",
+      "descriptor": "aad.MWFjNjRhMWUtOTRmOS03Y2ExLTk3YzQtMzM3YjliOTJmODJl"
+    },
+    "artifactId": "vstfs:///Git/PullRequestId/eec79bda-e440-4c5e-90da-13d7acdcc83b%2fcece45f4-8cd4-44df-8def-0f6f8d3d6acc%2f27"
+  },
+  "resourceVersion": "1.0",
+  "resourceContainers": {
+    "collection": {
+      "id": "314dc090-0999-4500-98cc-b52ea4ff818c",
+      "baseUrl": "https://dev.azure.com/semasoftware/"
+    },
+    "account": {
+      "id": "de6c3a1b-18dc-40df-9449-367c60a5fafc",
+      "baseUrl": "https://dev.azure.com/semasoftware/"
+    },
+    "project": {
+      "id": "eec79bda-e440-4c5e-90da-13d7acdcc83b",
+      "baseUrl": "https://dev.azure.com/semasoftware/"
+    }
+  },
+  "createdDate": "2024-06-18T22:05:43.761769Z"
+}

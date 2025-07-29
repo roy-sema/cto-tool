@@ -1,0 +1,31 @@
+<div style="background: #FFFFFF; border: 1px solid #E1E8ED; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(27, 54, 93, 0.05); position: relative; padding: 16px; transition: all 0.2s ease;">
+  {% if insight.significance_score|floatformat:0 == "10" %}
+    <span style="position: absolute; top: 16px; right: 16px; font-weight: 700; font-size: 16px; padding: 4px 8px; border-radius: 6px; background: #1B365D; color: #ffffff;">{{ insight.significance_score|floatformat:0 }}</span>
+  {% elif insight.significance_score|floatformat:0 == "9" %}
+    <span style="position: absolute; top: 16px; right: 16px; font-weight: 700; font-size: 16px; padding: 4px 8px; border-radius: 6px; background: #4A90A4; color: #ffffff;">{{ insight.significance_score|floatformat:0 }}</span>
+  {% elif insight.significance_score|floatformat:0 == "8" %}
+    <span style="position: absolute; top: 16px; right: 16px; font-weight: 700; font-size: 16px; padding: 4px 8px; border-radius: 6px; background: #6BA3B5; color: #ffffff;">{{ insight.significance_score|floatformat:0 }}</span>
+  {% elif insight.significance_score|floatformat:0 == "7" %}
+    <span style="position: absolute; top: 16px; right: 16px; font-weight: 700; font-size: 16px; padding: 4px 8px; border-radius: 6px; background: #B8D4DA; color: #2C3E50;">{{ insight.significance_score|floatformat:0 }}</span>
+  {% endif %}
+  <h2 style="font-size: 17px; padding: 10px 5px; font-weight: 600; margin: 0; flex: 1">{{ insight.title }}</h2>
+  <h3 style="font-size: 15px; font-weight: 600; margin: 0 40px 8px 0; line-height: 1.4; color: #2C3E50;">{% include "mvp/emails/partials/daily_message_preformatted_block.html" with content=insight.insight only %}</h3>
+  <div style="font-size: 14px; color: #5A6C7D; margin: 0;">
+    {% if insight.repo_full_name %}
+      Repository: {{ insight.repo_full_name }}
+    {% else %}
+      Project: <div style="display: inline-block; background: linear-gradient(135deg, rgba(74, 144, 164, 0.15) 0%, rgba(74, 144, 164, 0.1) 100%); color: #4A90A4; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; margin-left: 8px; border: 1px solid rgba(74, 144, 164, 0.2);">{{ insight.project_name }}</div>
+    {% endif %}
+  </div>
+  <div style="margin-top: 2px; word-break: break-word">
+    <span style="font-size: 14px; color: #5A6C7D">Sources: </span>
+    {% for source in insight.detailed_sources_and_files %}
+      {% if source.url %}
+        <a href="{{ source.url }}" style="color: #4A90A4">{{ source.label }}</a>
+      {% else %}
+        {{ source.label }}
+      {% endif %}
+      {% if not forloop.last %} <span style="color: #000000">|</span> {% endif %}
+    {% endfor %}
+  </div>
+</div>
