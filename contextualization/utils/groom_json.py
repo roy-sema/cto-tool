@@ -1,4 +1,4 @@
-def groom_json_string(json_string):
+def groom_json_string(json_string: str) -> str:
     json_string = json_string.replace("```json", "")
     json_string = json_string.replace("```", "")
     json_string = json_string.strip()

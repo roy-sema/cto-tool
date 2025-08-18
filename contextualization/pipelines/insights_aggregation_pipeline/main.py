@@ -15,49 +15,56 @@ if TYPE_CHECKING:
     from mvp.services.contextualization_service import ContextualizationResults
 
 
-def add_unique_ids_to_insights(file_paths, contextualization_results: "ContextualizationResults"):
+def add_unique_ids_to_insights(file_paths: list[str], contextualization_results: "ContextualizationResults") -> dict:
     """
     Add unique IDs to each insight in the insights_data dictionary for each input file.
     The prefix of the ID is determined based on whether 'jira' or 'git' is in the filename.
 
     Args:
-        file_paths (list): List of paths to JSON files containing 'anomaly_insights' and 'risk_insights' lists.
+        file_paths (list): List of paths to JSON files containing 'anomaly_insights'
         contextualization_results: Contextualization results.
 
     Returns:
         dict: A dictionary with filenames as keys and updated data as values.
     """
+    git_anomaly_file = file_paths[0]
+    jira_anomaly_file = file_paths[1] if len(file_paths) > 1 else None
     results = {}
-    models = [contextualization_results.pipeline_anomaly_insights_result]
-    if contextualization_results.pipeline_jira_anomaly_insights_result:
-        models.append(contextualization_results.pipeline_jira_anomaly_insights_result.skip_meeting_insights)
 
-    for file_path, model in zip(file_paths, models):
-        filename_lower = os.path.basename(file_path).lower()
-        if "jira" in filename_lower:
-            anomaly_prefix = "JIRA"
-        elif "git" in filename_lower:
-            anomaly_prefix = "GIT"
-        else:
-            anomaly_prefix = "GEN"  # fallback generic prefix
+    if contextualization_results.pipeline_anomaly_insights_result:
+        logging.info(f"Adding the unique ids for anomaly insights in anomaly_insights pipieline result")
+        for i, insight in enumerate(contextualization_results.pipeline_anomaly_insights_result.anomaly_insights):
+            insight.unique_id = f"GIT_AN_{i + 1:02d}"
 
-        logging.info(f"Adding the unique ids for anomaly insights in {file_path}")
-        for i, insight in enumerate(model.anomaly_insights):
-            insight.unique_id = f"{anomaly_prefix}_AN_{i + 1:02d}"
+        with open(git_anomaly_file, "w") as file:
+            json.dump(contextualization_results.pipeline_anomaly_insights_result.model_dump(), file, indent=4)
 
-        logging.info(f"Adding the unique ids for risk insights in {file_path}")
-        for i, insight in enumerate(model.risk_insights):
-            insight.unique_id = f"{anomaly_prefix}_RK_{i + 1:02d}"
+        results[git_anomaly_file] = contextualization_results.pipeline_anomaly_insights_result
 
-        with open(file_path, "w") as file:
-            json.dump(model.model_dump(), file, indent=4)
+    if contextualization_results.pipeline_jira_anomaly_insights_result and jira_anomaly_file:
+        logging.info(f"Adding the unique ids for anomaly insights in jira_anomaly_insights pipieline result")
+        for i, insight in enumerate(
+            contextualization_results.pipeline_jira_anomaly_insights_result.skip_meeting_insights.anomaly_insights
+        ):
+            insight.unique_id = f"JIRA_AN_{i + 1:02d}"
 
-        results[file_path] = model
+        with open(jira_anomaly_file, "w") as file:
+            json.dump(
+                contextualization_results.pipeline_jira_anomaly_insights_result.skip_meeting_insights.model_dump(),
+                file,
+                indent=4,
+            )
+
+        results[jira_anomaly_file] = (
+            contextualization_results.pipeline_jira_anomaly_insights_result.skip_meeting_insights
+        )
 
     return results
 
 
-def aggregate_anomalies(input_files: list[str], output_path: str, contextualization_results):
+async def aggregate_anomalies(
+    input_files: list[str], output_path: str, contextualization_results: "ContextualizationResults"
+) -> dict:
     """
     Aggregate anomaly and risk insights from multiple JSON files by grouping similar insights.
 
@@ -70,7 +77,6 @@ def aggregate_anomalies(input_files: list[str], output_path: str, contextualizat
         Aggregated JSON saved to output_path
     """
     all_anomaly_insights = []
-    all_risk_insights = []
     models = [contextualization_results.pipeline_anomaly_insights_result]
     if contextualization_results.pipeline_jira_anomaly_insights_result:
         models.append(contextualization_results.pipeline_jira_anomaly_insights_result.skip_meeting_insights)
@@ -78,12 +84,11 @@ def aggregate_anomalies(input_files: list[str], output_path: str, contextualizat
     # Load data from all input files
     for file_path, model in zip(input_files, models):
         all_anomaly_insights.extend(model.anomaly_insights)
-        all_risk_insights.extend(model.risk_insights)
 
     # Initialize the final JSON structure
     new_json = {"groups_of_insights": []}
 
-    def process_insights(insight_type: str, insights):
+    async def process_insights(insight_type: str, insights):
         """
         Helper function to process a specific type of insights (anomaly or risk).
         """
@@ -102,15 +107,7 @@ def aggregate_anomalies(input_files: list[str], output_path: str, contextualizat
             for i in insights
         ]
 
-        try:
-            result = aggregate_anomaly_chain.invoke({"insights": formatted_insights})
-        except Exception:
-            logging.exception(
-                "Pipeline insight aggregation - Error generating results",
-                extra={"insight_type": insight_type},
-            )
-            return
-
+        result = await aggregate_anomaly_chain.ainvoke({"insights": formatted_insights})
         for group in result.get("similar_insights", []):
             details = []
             for sid in group.get("similar_insight_ids", []):
@@ -128,51 +125,33 @@ def aggregate_anomalies(input_files: list[str], output_path: str, contextualizat
 
     # Process collected anomaly and risk insights
     logging.info("Processing similar anomaly insights")
-    process_insights("anomaly_insights", all_anomaly_insights)
-    logging.info("Processing similar risk insights")
-    process_insights("risk_insights", all_risk_insights)
+    await process_insights("anomaly_insights", all_anomaly_insights)
 
-    # Write the final aggregated output
-    try:
-        with open(output_path, "w") as file:
-            json.dump(new_json, file, indent=4)
-        logging.info(f"Aggregated insights saved to: {output_path}")
-    except Exception:
-        logging.exception("Pipeline insight aggregation - Error writing to output file")
+    with open(output_path, "w") as file:
+        json.dump(new_json, file, indent=4)
+    logging.info(f"Aggregated insights saved to: {output_path}")
 
     return new_json
 
 
-def summarize_details(insights_json_path, data):
-    # Invoke summary chain
-    try:
-        result = summary_chain.invoke({"insights": data})
-    except Exception:
-        logging.exception("Pipeline insight aggregation - Error generating summary")
-        return
-
-    # Append the 'summary' to results
+async def summarize_details(insights_json_path: str, data: dict) -> dict:
+    result = await summary_chain.ainvoke({"insights": data})
     data.update(result)
-
-    # Write the results back to file
-    try:
-        with open(insights_json_path, "w") as file:
-            json.dump(data, file, indent=4)
-        logging.info(f"Summarized insights saved to: {insights_json_path}")
-    except Exception:
-        logging.exception("Pipeline insight aggregation - Error writing to output file")
+    with open(insights_json_path, "w") as file:
+        json.dump(data, file, indent=4)
+    logging.info(f"Summarized insights saved to: {insights_json_path}")
 
     return data
 
 
-def run_insights_aggregation_pipeline(
+async def run_insights_aggregation_pipeline(
     input_files: list[str],
     contextualization_results: "ContextualizationResults",
     output_folder: str | None = None,
-):
+) -> dict:
     logging.info(f"Running insights aggregation pipeline with params: {input_files=} {output_folder=}")
 
-    with calls_context("insights_aggregation_pipeline.json"):
+    with calls_context("insights_aggregation_pipeline.yaml"):
         # Use directory of first input file if output_folder is not provided
         if not output_folder:
             output_folder = os.path.dirname(input_files[0])
@@ -184,5 +163,5 @@ def run_insights_aggregation_pipeline(
         output_path = os.path.join(output_folder, "aggregated_anomaly_insights.json")
 
         add_unique_ids_to_insights(input_files, contextualization_results)
-        aggregated_anomalies = aggregate_anomalies(input_files, output_path, contextualization_results)
-        return summarize_details(output_path, aggregated_anomalies)
+        aggregated_anomalies = await aggregate_anomalies(input_files, output_path, contextualization_results)
+        return await summarize_details(output_path, aggregated_anomalies)

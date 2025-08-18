@@ -65,7 +65,6 @@ class Initiative(BaseModel):
     estimated_end_date: date | None = None
     expedited_delivery_date: date | None = None
     initiative_description: str
-    initiative_name: str
     initiative_percentage: int
     number_ticket_done: int | None = None
     percentage_tickets_done: int | None = None

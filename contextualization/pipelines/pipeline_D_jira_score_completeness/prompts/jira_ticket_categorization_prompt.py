@@ -1,9 +1,9 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.models.ticket_completeness import TicketCategory
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 classification_instructions = """
 You are an expert Jira classifier. Your job is to categorize a given Jira ticket into one of the following categories:
@@ -210,7 +210,7 @@ Input Jira ticket:
 """
 
 
-class JiraCategory(BaseModel):
+class JiraCategory(BaseModelThatRemovesTags):
     llm_category: str = Field(
         description=f"Predicted category of the Jira ticket. One of: [{', '.join([category.value for category in TicketCategory])}]"
     )
@@ -221,6 +221,6 @@ prompt_template = PromptTemplate(
     input_variables=["jira_ticket_row"],
 )
 
-llm = get_llm(max_tokens=10000).with_structured_output(JiraCategory) | to_clean_dict_parser
+llm = get_llm(max_tokens=10000).with_structured_output(JiraCategory) | to_dict_parser
 
 categorize_chain = prompt_template | llm

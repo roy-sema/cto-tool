@@ -1,8 +1,8 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 summarize_prompt = """
 Analyze the provided JSON data containing anomaly and risk insights from Git repositories, JIRA tickets, and database sources. Generate a concise summary as a simple bulleted list where each point:
@@ -22,7 +22,7 @@ Try to include maximum anomaly and risk insights in summary. Do not miss any ins
 """
 
 
-class Summary(BaseModel):
+class Summary(BaseModelThatRemovesTags):
     summary: str = Field(
         description="Summary of the provided JSON",
     )
@@ -33,5 +33,5 @@ prompt_template = PromptTemplate(
     input_variables=["insights"],
 )
 
-llm = get_llm(max_tokens=5000).with_structured_output(Summary) | to_clean_dict_parser
+llm = get_llm(max_tokens=5000).with_structured_output(Summary) | to_dict_parser
 summary_chain = prompt_template | llm

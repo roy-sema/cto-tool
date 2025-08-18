@@ -2,7 +2,7 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """
 Analyze, organize, and consolidate similar initiatives and epics extracted from multiple summaries while preserving all unique information and context.
@@ -41,7 +41,7 @@ class Initiative(BaseModel):
     epics: list[Epic] = Field(description="List of epics under the initiative")
 
 
-class Initiatives(BaseModel):
+class Initiatives(BaseModelThatRemovesTags):
     initiatives: list[Initiative] = Field(
         description="List of initiatives with their name, percentage, and justification."
     )
@@ -52,5 +52,5 @@ prompt_template = PromptTemplate(
     input_variables=["list_of_results"],
 )
 
-llm = get_llm(max_tokens=7_500).with_structured_output(Initiatives) | to_clean_dict_parser
+llm = get_llm(max_tokens=7_500).with_structured_output(Initiatives) | to_dict_parser
 summary_chain = prompt_template | llm

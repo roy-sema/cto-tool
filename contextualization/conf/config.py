@@ -11,7 +11,7 @@ load_dotenv()
 llm_name = os.getenv("LLM", "claude")
 config_file = os.getenv("CONFIG_FILE", "config.yaml")
 yaml_path = os.path.join(root_dir, config_file)
-with open(yaml_path, "r") as f:
+with open(yaml_path) as f:
     conf = yaml.safe_load(f)
 
 

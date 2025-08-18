@@ -1,10 +1,12 @@
 import logging
+from typing import Any
 
+import pandas as pd
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 # Define a system prompt for column filtering without descriptions
 column_filter_template = """
@@ -23,7 +25,7 @@ Do not include boilerplate text like "here is the json" before the actual respon
 """
 
 
-class FilterColumns(BaseModel):
+class FilterColumns(BaseModelThatRemovesTags):
     columns: list = Field(description="List of selected columns")
 
 
@@ -34,7 +36,7 @@ prompt_template = PromptTemplate(
 
 
 # Define LLM for column filtering
-llm_column_filter = get_llm(max_tokens=2_000).with_structured_output(FilterColumns) | to_clean_dict_parser
+llm_column_filter = get_llm(max_tokens=2_000).with_structured_output(FilterColumns) | to_dict_parser
 
 # RunnableLambda to process LLM's output and return selected columns
 # select_columns = RunnableLambda(lambda x: x['selected_columns'])
@@ -44,13 +46,15 @@ column_filter_chain = prompt_template | llm_column_filter
 
 
 # Example function to execute the column filtering process
-def filter_columns(df, task):
+
+
+async def filter_columns(df: pd.DataFrame, task: str) -> dict[str, Any] | None:
     try:
         # Get the list of column names
         columns = list(df.columns)
 
         # Run the chain to filter columns
-        selected_columns = column_filter_chain.invoke({"columns": columns, "task": task})
+        selected_columns = await column_filter_chain.ainvoke({"columns": columns, "task": task})
         logging.info(f"filtered columns required to do the analysis::{selected_columns}")
 
         return selected_columns

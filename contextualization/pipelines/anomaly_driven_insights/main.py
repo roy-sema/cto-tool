@@ -6,7 +6,6 @@ import subprocess
 
 import pandas as pd
 from otel_extensions import instrumented
-from pydantic import ValidationError
 
 from contextualization.conf.config import conf, llm_name
 from contextualization.models.anomaly_insights import GitCombinedInsights, GitInsight
@@ -15,15 +14,15 @@ from contextualization.pipelines.anomaly_driven_insights.git_diff_anomaly import
 )
 from contextualization.pipelines.anomaly_driven_insights.prompts.cto_summary import (
     cto_summary_chain_anomaly_insights,
-    cto_summary_chain_risk_insights,
+    llm_postprocessing_chain,
 )
 from contextualization.pipelines.anomaly_driven_insights.prompts.prompt import (
     analyse_chunks_chain,
     analyse_git_tree_chain,
-    anomaly_ranking_chain,
     blind_spot_chain,
     skip_a_meeting_chain,
 )
+from contextualization.pipelines.common.anomalies_postprocessing import postprocess_anomaly_insights
 from contextualization.tools.llm_tools import (
     calculate_token_count_async,
     get_batches,
@@ -36,7 +35,9 @@ token_limit = conf["llms"][llm_name]["token_limit"]
 batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 
 
-def generate_git_tree(repo_path, repo_name, start_date, end_date, dir_name) -> tuple[str, int]:
+def generate_git_tree(
+    repo_path: str, repo_name: str, start_datetime: str, end_datetime: str, dir_name: str
+) -> tuple[str, int]:
     git_tree_file = os.path.join(dir_name, f"{repo_name}_git_tree_file.txt")
     if os.path.exists(git_tree_file):
         os.remove(git_tree_file)
@@ -74,8 +75,8 @@ def generate_git_tree(repo_path, repo_name, start_date, end_date, dir_name) -> t
             "-C",
             repo_path,
             "log",
-            f"--since={start_date}",
-            f"--until={end_date}",
+            f"--since={start_datetime}",
+            f"--until={end_datetime}",
             "--graph",
             "--oneline",
             branch_name_acted_on,
@@ -99,7 +100,9 @@ def generate_git_tree(repo_path, repo_name, start_date, end_date, dir_name) -> t
 
 
 @instrumented
-async def find_insights_in_commit_summaries(anamoly_summary_output_df, dir_name, repo_name):
+async def find_insights_in_commit_summaries(
+    anamoly_summary_output_df: pd.DataFrame, dir_name: str, repo_name: str
+) -> list[dict]:
     logging.info("Function to generate summary from anomaly summary")
 
     required_columns = {"anomaly_summary", "id", "files", "branch_name"}
@@ -162,8 +165,8 @@ async def find_insights_in_commit_summaries(anamoly_summary_output_df, dir_name,
 
 @instrumented
 async def find_anomaly_insights_in_git_tree_and_commit_summaries(
-    repo_name, git_tree_content, dir_name, anamoly_summary_output_df=None
-):
+    repo_name: str, git_tree_content: str, dir_name: str, anamoly_summary_output_df: pd.DataFrame | None = None
+) -> tuple[str, list[dict] | str]:
     analysis_file = os.path.join(dir_name, f"{repo_name}_analysis_git_tree.txt")
     if os.path.exists(analysis_file):
         os.remove(analysis_file)
@@ -188,7 +191,9 @@ async def find_anomaly_insights_in_git_tree_and_commit_summaries(
 
 
 @instrumented
-async def generate_git_diff_summary_for_anomaly_insights(repo_name, analysis_content, git_diff_analysis, dir_name):
+async def generate_git_diff_summary_for_anomaly_insights(
+    repo_name: str, analysis_content: str, git_diff_analysis: list[dict], dir_name: str
+) -> dict:
     summary_file = os.path.join(dir_name, f"{repo_name}_anomaly_driven_insights.json")
     if os.path.exists(summary_file):
         os.remove(summary_file)
@@ -196,22 +201,14 @@ async def generate_git_diff_summary_for_anomaly_insights(repo_name, analysis_con
     # summary_file = f"{repo_name}_summary_{timestamp}.txt"
     logging.info("Synthesizing recommendations...")
 
-    anomaly_insights, risk_insights = await asyncio.gather(
-        cto_summary_chain_anomaly_insights.ainvoke(
-            {
-                "git_tree_analysis_content": analysis_content,
-                "git_diff_analysis_content": [item.get("anomaly_insights", "") for item in git_diff_analysis],
-            }
-        ),
-        cto_summary_chain_risk_insights.ainvoke(
-            {
-                "git_tree_analysis_content": analysis_content,
-                "git_diff_analysis_content": [item.get("risk_insights", "") for item in git_diff_analysis],
-            }
-        ),
+    anomaly_insights = await cto_summary_chain_anomaly_insights.ainvoke(
+        {
+            "git_tree_analysis_content": analysis_content,
+            "git_diff_analysis_content": [item.get("anomaly_insights", "") for item in git_diff_analysis],
+        }
     )
 
-    summary_content = {**anomaly_insights, **risk_insights}
+    summary_content = {**anomaly_insights}
     with open(summary_file, "w") as json_file:  # noqa: ASYNC230
         json.dump(summary_content, json_file, indent=4)
 
@@ -222,10 +219,13 @@ async def generate_git_diff_summary_for_anomaly_insights(repo_name, analysis_con
 
 @instrumented
 def combine_cto_summary_analysis_and_rank_anomalies(
-    repo_list, base_path, summary_contents, max_tokens_per_chunk=50000, model="gpt-4"
-):
+    repo_list: list[str],
+    base_path: str,
+    summary_contents: dict,
+    max_tokens_per_chunk: int = 50000,
+    model: str = "gpt-4",
+) -> tuple[dict, str]:
     anomaly_insights_list = []
-    risk_insights_list = []
 
     # Loop through each repository to collect insights
     for repo in repo_list:
@@ -239,171 +239,24 @@ def combine_cto_summary_analysis_and_rank_anomalies(
         # Extract anomaly insights with evidences
         if "anomaly_insights" in data:
             for insight in data["anomaly_insights"]:
-                title = insight.get("title", "")
-                category = insight.get("category", "")
-                description = insight.get("description", "")
-                evidence = insight.get("evidence", "No specific evidence found in commit data")
-                significance_score = insight.get("significance_score", "0")
-                confidence_level = insight.get("confidence_level", "")
-                sources = insight.get("sources", [])
-                files = insight.get("files", [])
-                # Only use placeholder text if evidence is completely empty
-                if not evidence or evidence.strip() == "":
-                    evidence = "No specific evidence found in commit data"
-
                 anomaly_insights_list.append(
                     {
                         "repo": repo,
-                        "title": title,
-                        "category": category,
-                        "critical_anomaly": description,  # Use the format expected by anomaly_ranking_chain
-                        "insight": description,
-                        "evidence": evidence,
-                        "significance_score": significance_score,
-                        "confidence_level": confidence_level,
-                        "sources": sources,
-                        "files": files,
+                        "title": insight.get("title", ""),
+                        "category": insight.get("category", ""),
+                        "insight": insight.get("description", ""),
+                        "evidence": insight.get("evidence", "No specific evidence found in commit data").strip()
+                        or "No specific evidence found in commit data",
+                        "significance_score": insight.get("significance_score", "0"),
+                        "confidence_level": insight.get("confidence_level", ""),
+                        "sources": insight.get("sources", []),
+                        "files": insight.get("files", []),
                     }
                 )
-
-        # Extract risk insights with evidences
-        if "risk_insights" in data:
-            for insight in data["risk_insights"]:
-                category = insight.get("category", "")
-                title = insight.get("title", "")
-                description = insight.get("description", "")
-                evidence = insight.get("evidence", "No specific evidence found in commit data")
-                significance_score = insight.get("significance_score", "0")
-                confidence_level = insight.get("confidence_level", "")
-                sources = insight.get("sources", [])
-                files = insight.get("files", [])
-                # Only use placeholder text if evidence is completely empty
-                if not evidence or evidence.strip() == "":
-                    evidence = "No specific evidence found in commit data"
-
-                risk_insights_list.append(
-                    {
-                        "repo": repo,
-                        "title": title,
-                        "category": category,
-                        "critical_anomaly": description,  # Use the format expected by anomaly_ranking_chain
-                        "insight": description,
-                        "evidence": evidence,
-                        "significance_score": significance_score,
-                        "confidence_level": confidence_level,
-                        "sources": sources,
-                        "files": files,
-                    }
-                )
-
-    # Rank anomaly insights using anomaly_ranking_chain
-    if anomaly_insights_list:
-        logging.info(f"Ranking anomaly insights with length::{len(anomaly_insights_list)}")
-        max_retries = 3
-        attempts = 0
-
-        # Prepare data for ranking
-        anomaly_ranking_input = []
-        for item in anomaly_insights_list:
-            anomaly_ranking_input.append({"repo": item["repo"], "critical_anomaly": item["critical_anomaly"]})
-
-        # Attempt to rank with retries
-        while attempts < max_retries:
-            try:
-                ranked_anomalies = anomaly_ranking_chain.invoke({"analysis_content": anomaly_ranking_input})
-
-                if isinstance(ranked_anomalies, dict) and "critical_anomalies" in ranked_anomalies:
-                    logging.info("Successfully ranked anomaly insights")
-
-                    # Create a new ranked list with all original fields
-                    ranked_anomaly_list = []
-                    for ranked_item in ranked_anomalies["critical_anomalies"]:
-                        # Find matching original item to get evidence
-                        for orig_item in anomaly_insights_list:
-                            if (
-                                orig_item["repo"] == ranked_item["repo"]
-                                and orig_item["critical_anomaly"] == ranked_item["critical_anomaly"]
-                            ):
-                                ranked_anomaly_list.append(
-                                    {
-                                        "repo": orig_item["repo"],
-                                        "title": orig_item["title"],
-                                        "category": orig_item["category"],
-                                        "insight": orig_item["insight"],
-                                        "evidence": orig_item["evidence"],
-                                        "significance_score": orig_item["significance_score"],
-                                        "confidence_level": orig_item["confidence_level"],
-                                        "sources": orig_item["sources"],
-                                        "files": orig_item["files"],
-                                    }
-                                )
-                                break
-
-                    # Replace the original list with ranked list
-                    anomaly_insights_list = ranked_anomaly_list
-                    break
-            except Exception:
-                logging.exception("Pipeline Git anomaly insights - Error ranking anomaly insights")
-
-            attempts += 1
-            logging.info(f"Retrying anomaly ranking... ({attempts}/{max_retries})")
-
-    # Rank risk insights using anomaly_ranking_chain
-    if risk_insights_list:
-        logging.info(f"Ranking risk insights with length::{len(risk_insights_list)}")
-        max_retries = 3
-        attempts = 0
-
-        # Prepare data for ranking
-        risk_ranking_input = []
-        for item in risk_insights_list:
-            risk_ranking_input.append({"repo": item["repo"], "critical_anomaly": item["critical_anomaly"]})
-
-        # Attempt to rank with retries
-        while attempts < max_retries:
-            try:
-                ranked_risks = anomaly_ranking_chain.invoke({"analysis_content": risk_ranking_input})
-
-                if isinstance(ranked_risks, dict) and "critical_anomalies" in ranked_risks:
-                    logging.info("Successfully ranked risk insights")
-
-                    # Create a new ranked list with all original fields
-                    ranked_risk_list = []
-                    for ranked_item in ranked_risks["critical_anomalies"]:
-                        # Find matching original item to get evidence
-                        for orig_item in risk_insights_list:
-                            if (
-                                orig_item["repo"] == ranked_item["repo"]
-                                and orig_item["critical_anomaly"] == ranked_item["critical_anomaly"]
-                            ):
-                                ranked_risk_list.append(
-                                    {
-                                        "repo": orig_item["repo"],
-                                        "title": orig_item["title"],
-                                        "category": orig_item["category"],
-                                        "insight": orig_item["insight"],
-                                        "evidence": orig_item["evidence"],
-                                        "significance_score": orig_item["significance_score"],
-                                        "confidence_level": orig_item["confidence_level"],
-                                        "sources": orig_item["sources"],
-                                        "files": orig_item["files"],
-                                    }
-                                )
-                                break
-
-                    # Replace the original list with ranked list
-                    risk_insights_list = ranked_risk_list
-                    break
-            except Exception:
-                logging.exception("Pipeline Git anomaly insights - Error ranking risk insights")
-
-            attempts += 1
-            logging.info(f"Retrying risk ranking... ({attempts}/{max_retries})")
 
     # Create the final combined result with ranked insights
     combine_cto_summary_result = {
         "anomaly_insights": anomaly_insights_list,
-        "risk_insights": risk_insights_list,
     }
 
     # Save the combined JSON
@@ -416,7 +269,7 @@ def combine_cto_summary_analysis_and_rank_anomalies(
 
 
 @instrumented
-def find_blind_spot_insights(insights, insights_path):
+async def find_blind_spot_insights(insights: dict, insights_path: str) -> dict:
     """
     This function adds blind spot analysis to anomaly insights and risk insights.
     Args:
@@ -430,15 +283,8 @@ def find_blind_spot_insights(insights, insights_path):
     # Process 'anomaly_insights' if present
     if "anomaly_insights" in insights:
         logging.info(f"Processing {len(insights['anomaly_insights'])} anomaly insights to add blind spot.")
-        results = asyncio.run(blind_spot_chain.abatch(insights["anomaly_insights"]))
+        results = await blind_spot_chain.abatch(insights["anomaly_insights"])
         for insight, blind_spot_result in zip(insights["anomaly_insights"], results):
-            insight.update(blind_spot_result)
-
-    # Process 'risk_insights' if present
-    if "risk_insights" in insights:
-        logging.info(f"Processing {len(insights['risk_insights'])} risk insights to add blind spot.")
-        results = asyncio.run(blind_spot_chain.abatch(insights["risk_insights"]))
-        for insight, blind_spot_result in zip(insights["risk_insights"], results):
             insight.update(blind_spot_result)
 
     # Save the updated insights back to the file
@@ -450,7 +296,7 @@ def find_blind_spot_insights(insights, insights_path):
 
 
 @instrumented
-def find_skip_a_meeting_insights(insights, insights_path):
+async def find_skip_a_meeting_insights(insights: dict, insights_path: str) -> dict:
     """
     This function Skip A Meeting insights in anomaly insights and risk insights.
 
@@ -466,19 +312,10 @@ def find_skip_a_meeting_insights(insights, insights_path):
     # Process 'anomaly_insights' if present
     if "anomaly_insights" in insights:
         logging.info(f"Processing {len(insights['anomaly_insights'])} anomaly insights.")
-        results = asyncio.run(
-            skip_a_meeting_chain.abatch([{"analysis_content": insight} for insight in insights["anomaly_insights"]])
+        results = await skip_a_meeting_chain.abatch(
+            [{"analysis_content": insight} for insight in insights["anomaly_insights"]]
         )
         for insight, skip_a_meeting_result in zip(insights["anomaly_insights"], results):
-            insight.update(skip_a_meeting_result)
-
-    # Process 'risk_insights' if present
-    if "risk_insights" in insights:
-        logging.info(f"Processing {len(insights['risk_insights'])} risk insights.")
-        results = asyncio.run(
-            skip_a_meeting_chain.abatch([{"analysis_content": insight} for insight in insights["risk_insights"]])
-        )
-        for insight, skip_a_meeting_result in zip(insights["risk_insights"], results):
             insight.update(skip_a_meeting_result)
 
     # Save the updated insights back to the file
@@ -491,8 +328,14 @@ def find_skip_a_meeting_insights(insights, insights_path):
 
 @instrumented
 async def find_anomaly_insights_for_repo(
-    repo_name, repo_path, dir_name, repo_data, start_date, end_date, git_tree_only=False
-):
+    repo_name: str,
+    repo_path: str,
+    dir_name: str,
+    repo_data: pd.DataFrame,
+    start_datetime: str,
+    end_datetime: str,
+    git_tree_only: bool = False,
+) -> dict:
     """
     Generates anomaly insights for a given repository within a specified date range.
 
@@ -505,8 +348,8 @@ async def find_anomaly_insights_for_repo(
         end_date: The end date for the analysis period.
     """
 
-    logging.info(f"Generating git tree from {start_date} to {end_date}")
-    git_tree_content, commit_count = generate_git_tree(repo_path, repo_name, start_date, end_date, dir_name)
+    logging.info(f"Generating git tree from {start_datetime} to {end_datetime}")
+    git_tree_content, commit_count = generate_git_tree(repo_path, repo_name, start_datetime, end_datetime, dir_name)
 
     logging.info(f"Analyzing git tree for {repo_name}")
     analysis_content, git_diff_analysis = await find_anomaly_insights_in_git_tree_and_commit_summaries(
@@ -524,109 +367,111 @@ async def find_anomaly_insights_for_repo(
     )
 
 
-async def execute_concurrently(coroutines):
+async def execute_concurrently(coroutines: list) -> list:
     # dirty hack  - asyncio.gather must be called withing async context
     return await asyncio.gather(*coroutines)
 
 
-def analyse_git_data(
-    git_csv_path, main_folder_path, summary_data_df: pd.DataFrame, output_path=None
+async def postprocess_organization_insights(summary_contents: dict) -> None:
+    coroutines = []
+    for insights in summary_contents.values():
+        coroutines.append(postprocess_anomaly_insights(insights, llm_postprocessing_chain))
+
+    await execute_concurrently(coroutines)
+
+
+async def analyse_git_data(
+    git_csv_path: str, main_folder_path: str, summary_data_df: pd.DataFrame, output_path: str | None = None
 ) -> GitCombinedInsights | None:
     """
     Processes Git repository data within a specified date range, performs analysis,
     and saves outputs dynamically in a folder.
     """
-    try:
-        if not os.path.exists(git_csv_path):
-            logging.info(f"checking if the csv exists for git data")
-            raise FileNotFoundError(f"Input file not found: {git_csv_path}")
+    if not os.path.exists(git_csv_path):
+        logging.info(f"checking if the csv exists for git data")
+        raise FileNotFoundError(f"Input file not found: {git_csv_path}")
 
-        if output_path is None:
-            dir_name, base_name = os.path.split(git_csv_path)
-            name, ext = os.path.splitext(base_name)
-            anomaly_summary_output_path = os.path.join(dir_name, f"{name}_anomaly_output{ext}")
-            error_log_file = os.path.join(dir_name, f"{name}_error_output{ext}")
-        else:
-            logging.info("Creating path for error output folders")
-            # Just reuse the original file name structure
-            base_name = os.path.basename(git_csv_path)
-            name, ext = os.path.splitext(base_name)
-            anomaly_summary_output_path = os.path.join(output_path, f"{name}_anomaly_output{ext}")
-            error_log_file = os.path.join(output_path, f"{name}_error_output{ext}")
+    if output_path is None:
+        dir_name, base_name = os.path.split(git_csv_path)
+        name, ext = os.path.splitext(base_name)
+        anomaly_summary_output_path = os.path.join(dir_name, f"{name}_anomaly_output{ext}")
+        error_log_file = os.path.join(dir_name, f"{name}_error_output{ext}")
+    else:
+        logging.info("Creating path for error output folders")
+        # Just reuse the original file name structure
+        base_name = os.path.basename(git_csv_path)
+        name, ext = os.path.splitext(base_name)
+        anomaly_summary_output_path = os.path.join(output_path, f"{name}_anomaly_output{ext}")
+        error_log_file = os.path.join(output_path, f"{name}_error_output{ext}")
 
-        # Gather and process repository data
-        logging.info(f"Gathering data from git repositories")
-        data = summary_data_df
-        logging.info(f"shape of data from git loaded: {data.shape}")
+    # Gather and process repository data
+    logging.info(f"Gathering data from git repositories")
+    data = summary_data_df
+    logging.info(f"shape of data from git loaded: {data.shape}")
 
-        dataframes = get_batches(data, tiktoken_column="tik_tokens")
+    dataframes = get_batches(data, tiktoken_column="tik_tokens")
 
-        # Analyze code changes and save results
-        with suppress_prompt_logging():
-            summary_data = find_anomalies_in_git_diffs(dataframes, anomaly_summary_output_path, error_log_file)
-        logging.info("extracted anomaly summary data")
+    # Analyze code changes and save results
+    with suppress_prompt_logging():
+        summary_data = await find_anomalies_in_git_diffs(dataframes, anomaly_summary_output_path, error_log_file)
+    logging.info("extracted anomaly summary data")
+    assert summary_data is not None
 
-        # Convert to datetime (ensure it includes time)
-        summary_data["date"] = pd.to_datetime(summary_data["date"])
+    # Convert to datetime (ensure it includes time)
+    summary_data["date"] = pd.to_datetime(summary_data["date"])
 
-        # Get min and max dates
-        start_date = summary_data["date"].min().normalize()  # Set to 00:00:00
-        end_date = summary_data["date"].max().normalize() + pd.Timedelta(hours=23, minutes=59, seconds=59)
+    # Get min and max dates
+    start_datetime = str(summary_data["date"].min().normalize())  # Set to 00:00:00
+    end_datetime = str(summary_data["date"].max().normalize() + pd.Timedelta(hours=23, minutes=59, seconds=59))
 
-        # raise Exception(anomaly_summary_output_path)
-
-        repo_list = []
-        summary_contents = {}
-        coroutines = []
-        repo_names = []
-        for repo_name in os.listdir(main_folder_path):
-            repo_path = os.path.join(main_folder_path, repo_name)
-            # Check if the path is a directory and contains a .git folder
-            if os.path.isdir(repo_path) and ".git" in os.listdir(repo_path):
-                logging.info(f"Processing repository: {repo_name}")
-                repo_data = summary_data[summary_data["repository"] == repo_name]
-                if repo_data.shape[0] > 0:
-                    logging.info(f"Found data for anomaly summary: {repo_data.shape[0]}")
-                    repo_list.append(repo_name)
-                    coroutines.append(
-                        find_anomaly_insights_for_repo(repo_name, repo_path, dir_name, repo_data, start_date, end_date)
+    repo_list = []
+    summary_contents = {}
+    coroutines = []
+    repo_names = []
+    for repo_name in os.listdir(main_folder_path):
+        repo_path = os.path.join(main_folder_path, repo_name)
+        # Check if the path is a directory and contains a .git folder
+        if os.path.isdir(repo_path) and ".git" in os.listdir(repo_path):
+            logging.info(f"Processing repository: {repo_name}")
+            repo_data = summary_data[summary_data["repository"] == repo_name]
+            if repo_data.shape[0] > 0:
+                logging.info(f"Found data for anomaly summary: {repo_data.shape[0]}")
+                repo_list.append(repo_name)
+                coroutines.append(
+                    find_anomaly_insights_for_repo(
+                        repo_name, repo_path, dir_name, repo_data, start_datetime, end_datetime
                     )
-                    repo_names.append(repo_name)
-                else:
-                    logging.info(f"Data not found for anomaly summary skipping this repo")
+                )
+                repo_names.append(repo_name)
             else:
-                logging.info(f"skipping directory repository: {repo_name}")
-        if len(repo_list) > 0:
-            results = asyncio.run(execute_concurrently(coroutines))
-            summary_contents = {repo_name: result for repo_name, result in zip(repo_names, results)}
-            logging.info(f"combining cto based anomaly insights summary")
-            combined_anomaly_insights, combined_anomaly_insights_path = combine_cto_summary_analysis_and_rank_anomalies(
-                repo_list, dir_name, summary_contents
-            )
-            find_blind_spot_insights(combined_anomaly_insights, combined_anomaly_insights_path)
-            find_skip_a_meeting_insights(combined_anomaly_insights, combined_anomaly_insights_path)
-            try:
-                anomaly_insights = [GitInsight(**anomaly) for anomaly in combined_anomaly_insights["anomaly_insights"]]
-                risk_insights = [GitInsight(**risk) for risk in combined_anomaly_insights["risk_insights"]]
-                combined_insights = GitCombinedInsights(anomaly_insights=anomaly_insights, risk_insights=risk_insights)
-            except ValidationError:
-                logging.exception("Pipeline Git anomaly insights - Error creating pipeline result")
-                return None
-
-            return combined_insights
+                logging.info(f"Data not found for anomaly summary skipping this repo")
         else:
-            logging.info(f"No repositories found to combining git tree based anomaly insights summary")
+            logging.info(f"skipping directory repository: {repo_name}")
+    if len(repo_list) > 0:
+        results = await execute_concurrently(coroutines)
+        summary_contents = {repo_name: result for repo_name, result in zip(repo_names, results)}
+        logging.info(f"combining cto based anomaly insights summary")
+        await postprocess_organization_insights(summary_contents)
+        combined_anomaly_insights, combined_anomaly_insights_path = combine_cto_summary_analysis_and_rank_anomalies(
+            repo_list, dir_name, summary_contents
+        )
 
-    except Exception:
-        logging.exception("Pipeline Git anomaly insights - An error occurred")
+        await find_blind_spot_insights(combined_anomaly_insights, combined_anomaly_insights_path)
+        await find_skip_a_meeting_insights(combined_anomaly_insights, combined_anomaly_insights_path)
+        anomaly_insights = [GitInsight(**anomaly) for anomaly in combined_anomaly_insights["anomaly_insights"]]
+        combined_insights = GitCombinedInsights(anomaly_insights=anomaly_insights)
+
+        return combined_insights
+    else:
+        logging.info(f"No repositories found to combining git tree based anomaly insights summary")
 
 
-def run_anomaly_driven_insights(
+async def run_anomaly_driven_insights(
     git_data_path: str,
     git_repo_path: str,
     summary_data_df: pd.DataFrame,
     output_path: str | None = None,
 ) -> GitCombinedInsights | None:
     logging.info(f"Running anomaly insights pipeline with params: {git_data_path=} {git_repo_path=} {output_path=}")
-    with calls_context("anomaly_driven_insights.json"):
-        return analyse_git_data(git_data_path, git_repo_path, summary_data_df, output_path)
+    with calls_context("anomaly_driven_insights.yaml"):
+        return await analyse_git_data(git_data_path, git_repo_path, summary_data_df, output_path)

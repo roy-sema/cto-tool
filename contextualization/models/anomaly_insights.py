@@ -38,7 +38,6 @@ class JiraInsight(BaseModel):
 
 class JiraCombinedInsights(BaseModel):
     anomaly_insights: list[JiraInsight]
-    risk_insights: list[JiraInsight]
     skip_meeting_insights: SkipMeetingInsights
 
 
@@ -69,4 +68,3 @@ class GitInsight(BaseModel):
 
 class GitCombinedInsights(BaseModel):
     anomaly_insights: list[GitInsight]
-    risk_insights: list[GitInsight]

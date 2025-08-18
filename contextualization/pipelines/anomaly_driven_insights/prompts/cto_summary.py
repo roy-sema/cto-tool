@@ -4,9 +4,10 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.models.anomaly_insights import InsightCategory
+from contextualization.models.anomaly_insights import ConfidenceLevel, InsightCategory
+from contextualization.pipelines.common.anomalies_postprocessing import prompt_template_anomalies_postprocessing
 from contextualization.tags import get_tags_prompt
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 from contextualization.utils.pydantic_validators import category_validator, parse_json_string_validator
 
 
@@ -22,12 +23,14 @@ class CombinedInsightSchema(BaseModel):
     description: str = Field(description="Description about the insights. [FORMAT_AS_BULLET_POINTS]")
     evidence: str = Field(description="Evidence about the insights. [FORMAT_AS_BULLET_POINTS]")
     significance_score: float = Field(description="significance_score for each insight to indicate significance level")
-    confidence_level: str = Field(description="confidence_level (High/Medium/Low) based on the strength of evidence")
+    confidence_level: ConfidenceLevel = Field(
+        description="confidence_level (High/Medium/Low) based on the strength of evidence"
+    )
     sources: list[str] = Field(description="List of accurate commit ids from provided input data for observed anomaly")
     files: list[FileInfo]
 
 
-class ExecutiveSummaryCTOAnomalyInsights(BaseModel):
+class ExecutiveSummaryCTOAnomalyInsights(BaseModelThatRemovesTags):
     anomaly_insights: Annotated[list[CombinedInsightSchema], parse_json_string_validator] = Field(
         default_factory=list,
         description="A list of dictionaries about a highlight variance from previous practice.",
@@ -52,12 +55,11 @@ Each insight MUST include both a pattern description, specific pattern evidence,
 IMPORTANT: Process all formatting tags according to their instructions, but DO NOT include the tag text itself in the output.
 For example, when you see [FORMAT_AS_BULLET_POINTS], format the content as bullet points but remove the tag from the response.
 
-{insight_task}
 
 Risk Variances (Pattern Areas for Attention)
 - Categorize the pattern variances into [ANOMALY_CATEGORIES]
+- Include pattern emergence related to velocity improvements, quality enhancements, architectural evolution, and system integrations
 - Identify emergent patterns related to systemic issues, delivery bottlenecks, technical debt accumulation, or architectural drift
-- Place provocative and controversial pattern insights in this section
 - Ensure each risk variance represents a significant pattern worthy of executive attention
 - Assign a significance_score (1-10) based on the significance scale to prioritize findings
 - Assign the appropriate confidence_level based on the confidence levels
@@ -144,77 +146,21 @@ git tree analysis content: {git_tree_analysis_content}
 git diff analysis json: {git_diff_analysis_content}
 """
 
-task_anomaly_insights = """
-Development Highlights (Primarily Positive Patterns)
-- Categorize the patterns into [ANOMALY_CATEGORIES]
-- Focus on pattern emergence related to velocity improvements, quality enhancements, architectural evolution, and system integrations
-- Prioritize patterns that demonstrate systematic success rather than individual implementations
-- Assign the appropriate significance_score (1-10) based on the significance scale to prioritize findings
-- Assign the appropriate confidence_level based on the confidence levels
-- Include a list of file metadata where the patterns has been observed. Files is a list of dict with keys - "file_name", "branch_name", and "commit_id" and their respective values. Example of the files list is as follows:
-     "files":[
-        {{
-            "commit_id" : "10b044b3",
-            "file_name": "hotfix_1.py",
-            "branch_name": "feature/release-june-15-2025"
-        }},
-        {{
-            "commit_id" : "10c084z3",
-            "file_name": "url_contain.py",
-            "branch_name": "origin/main"
-        }},
-     ]. 
-     NEVER generate, infer, or fabricate the list of files. - only reference commit_id, file_name, and branch_name explicitly present in the provided data.
-     Infer the value of the key file_name strictly as the full directory or relative path, including the file name and its extension (e.g., .txt, .csv, .py). Return the path exactly as it appears in the source data—do not guess, modify, or generate it.
-"""
-
-prompt_risk_insights = """
-Risk Variances (Pattern Areas for Attention)
-- Categorize the pattern variances into [ANOMALY_CATEGORIES]
-- Identify emergent patterns related to systemic issues, delivery bottlenecks, technical debt accumulation, or architectural drift
-- Place provocative and controversial pattern insights in this section
-- Ensure each risk variance represents a significant pattern worthy of executive attention
-- Assign a significance_score (1-10) based on the significance scale to prioritize findings
-- Assign the appropriate confidence_level based on the confidence levels
-- Include a list of file metadata where the patterns has been observed. Files is a list of dict with keys - "file_name", "branch_name", and "commit_id" and their respective values. Example of the files list is as follows:
-     "files":[
-        {{
-            "commit_id" : "10b044b3",
-            "file_name": "hotfix_1.py",
-            "branch_name": "feature/release-june-15-2025"
-        }},
-        {{
-            "commit_id" : "10c084z3",
-            "file_name": "url_contain.py",
-            "branch_name": "origin/main"
-        }},
-     ]. 
-     NEVER generate, infer, or fabricate the list of files. - only reference commit_id, file_name, and branch_name explicitly present in the provided data.
-     Infer the value of the key file_name strictly as the full directory or relative path, including the file name and its extension (e.g., .txt, .csv, .py). Return the path exactly as it appears in the source data—do not guess, modify, or generate it.
-"""
-
 prompt_template_anomaly_insights = PromptTemplate(
     template=prompt_base,
     input_variables=["git_tree_analysis_content", "git_diff_analysis_content"],
     partial_variables={
-        "insight_task": task_anomaly_insights,
         "tag_definitions": get_tags_prompt(format_as_bullet_points=True, include_anomaly_categories=True),
     },
 )
 
-llm_summary = (
-    get_llm(max_tokens=10_000).with_structured_output(ExecutiveSummaryCTOAnomalyInsights) | to_clean_dict_parser
-)
+llm_summary = get_llm(max_tokens=10_000).with_structured_output(ExecutiveSummaryCTOAnomalyInsights) | to_dict_parser
 cto_summary_chain_anomaly_insights = prompt_template_anomaly_insights | llm_summary
 
-prompt_template_risk_insights = PromptTemplate(
-    template=prompt_base,
-    input_variables=["git_tree_analysis_content", "git_diff_analysis_content"],
-    partial_variables={
-        "insight_task": prompt_risk_insights,
-        "tag_definitions": get_tags_prompt(format_as_bullet_points=True, include_anomaly_categories=True),
-    },
-)
 
-llm_summary = get_llm(max_tokens=10_000).with_structured_output(ExecutiveSummaryCTORiskInsights) | to_clean_dict_parser
-cto_summary_chain_risk_insights = prompt_template_risk_insights | llm_summary
+class PostprocessedInsight(CombinedInsightSchema):
+    need_to_be_removed: bool = Field(default=False, description="If True, the insight should be removed")
+
+
+llm_insights_postprocessing = get_llm(max_tokens=5000).with_structured_output(PostprocessedInsight) | to_dict_parser
+llm_postprocessing_chain = prompt_template_anomalies_postprocessing | llm_insights_postprocessing

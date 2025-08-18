@@ -1,10 +1,11 @@
 import ast
 import logging
+from typing import Any
 
 import pandas as pd
 
 
-def parse_changelog_data(changelog_value):
+def parse_changelog_data(changelog_value: Any) -> list[dict[str, Any]]:
     """Parse the structured data from a single issue's changelog"""
     changelog_entries = []
 

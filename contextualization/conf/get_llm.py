@@ -6,7 +6,7 @@ from contextualization.conf.rate_limit import ChatGemini, RateLimitedChatAnthrop
 DEFAULT_MAX_TOKENS = 2000
 
 
-def get_llm(max_tokens=DEFAULT_MAX_TOKENS, big_text: bool = False):
+def get_llm(max_tokens: int = DEFAULT_MAX_TOKENS, big_text: bool = False):
     llm_config = get_config(big_text)
     model = llm_config.model
     temperature = llm_config.temperature

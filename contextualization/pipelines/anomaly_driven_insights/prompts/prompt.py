@@ -8,7 +8,7 @@ from contextualization.conf.get_llm import get_llm
 from contextualization.models.anomaly_insights import ConfidenceLevel, InsightCategory
 from contextualization.tags import get_tags_prompt
 from contextualization.tools.llm_tools import get_input_runnable
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 from contextualization.utils.pydantic_validators import category_validator
 
 system_template = """<task>
@@ -95,7 +95,7 @@ Prioritize positive highlights and achievements that demonstrate team success
 1. **anomaly_insights**:  
    - A list of dictionaries, each containing:
      - "category": One of [ANOMALY_CATEGORIES]
-     - "description": A clear statement of the observed pattern itself, focusing on what is happening at a system level rather than implementation specifics. Emphasize both positive patterns showing progress and negative patterns revealing challenges.
+     - "description": A clear statement of the observed pattern itself, focusing on what is happening at a system level rather than implementation specifics. Emphasize both positive patterns showing progress and negative patterns revealing challenges or risks to project success.
      - "evidence": Specific evidence showing the pattern's existence across multiple commits or components, demonstrating consistent behavior rather than isolated instances.
      - "significance_score": Assign the appropriate significance_score (1-10) based on the significance scale to prioritize findings
      - "confidence_level": Assign the appropriate confidence_level based on the confidence levels
@@ -114,29 +114,6 @@ Prioritize positive highlights and achievements that demonstrate team success
      ]. 
      NEVER generate, infer, or fabricate the list of files. - only reference commit_id, file_name, and branch_name explicitly present in the provided data.
      Infer the value of the key file_name strictly as the full directory or relative path, including the file name and its extension (e.g., .txt, .csv, .py). Return the path exactly as it appears in the source data—do not guess, modify, or generate it. 
-     
-2. **risk_insights**:  
-   - A list of dictionaries, each containing:
-     - "category": One of [ANOMALY_CATEGORIES]
-     - "description": A description of a recurring pattern that represents potential risk to project success, focusing on the systemic behavior rather than specific implementations.
-     - "evidence": Specific evidence showing multiple instances of the pattern across different commits or components, demonstrating its pervasiveness.
-     - "significance_score": Assign the appropriate significance_score (1-10) based on the significance scale to prioritize findings
-     - "confidence_level": Assign the appropriate confidence_level based on the confidence levels
-     - "files": Include a list of file metadata where the patterns has been observed. Files is a list of dict with keys - "file_name", "branch_name", and "commit_id" and their respective values. Example of the files list is as follows:
-     "files":[
-        {{
-            "commit_id" : "10b044b3",
-            "file_name": "hotfix_1.py",
-            "branch_name": "feature/release-june-15-2025"
-        }},
-        {{
-            "commit_id" : "10c084z3",
-            "file_name": "scans/url_contain.py",
-            "branch_name": "origin/main"
-        }},
-     ]. 
-     NEVER generate, infer, or fabricate the list of files. - only reference commit_id, file_name, and branch_name explicitly present in the provided data.
-     Infer the value of the key file_name strictly as the full directory or relative path, including the file name and its extension (e.g., .txt, .csv, .py). Return the path exactly as it appears in the source data—do not guess, modify, or generate it.
 
 ### **Category Definitions:**
 [ANOMALY_CATEGORY_DEFINITIONS]
@@ -196,7 +173,6 @@ Level 10: "CEO's Attention"
 - **Low Confidence**: Borderline significance, limited data, or high variability
 
 ### **Rules for Output:**  
-- Both `anomaly_insights` and `risk_insights` must be **lists** (even if empty).
 - Each item MUST include "category", "description" and "evidence" fields with specific references from the commit data.
 - **VERY IMPORTANT**: Do NOT classify routine development activities as patterns 
     - focus on:
@@ -204,8 +180,7 @@ Level 10: "CEO's Attention"
         - Systematic approaches that reveal organizational tendencies
         - Emergent directions that indicate shifts in project trajectory
 - Only report true anomalies that indicate a fundamental misalignment with product goals or best practices.
-- If no genuine anomalies or risks are detected, return empty lists.
-- List the most critical/important insights first in each category.
+- If no genuine anomalies or risks are detected, return empty list.
 - **Do not add extra fields**; the output must match the schema exactly.
 ### **Here's the data to analyze:**  
 {chunk}
@@ -228,14 +203,10 @@ class InsightSchema(BaseModel):
     files: list[FileInfo]
 
 
-class ExecutiveSummary(BaseModel):
+class ExecutiveSummary(BaseModelThatRemovesTags):
     anomaly_insights: list[InsightSchema] = Field(
         default_factory=list,
         description="A list of dictionaries, each containing 'category', 'description' and 'evidence' fields about a highlight, variance from previous practice.",
-    )
-    risk_insights: list[InsightSchema] = Field(
-        default_factory=list,
-        description="A list of dictionaries, each containing 'category', 'description' and 'evidence' fields about a negative variance from recommended practice.",
     )
 
 
@@ -247,54 +218,9 @@ prompt_template_chunks = PromptTemplate(
     },
 )
 
-llm_anomaly = get_llm(max_tokens=10_000).with_structured_output(ExecutiveSummary) | to_clean_dict_parser
+llm_anomaly = get_llm(max_tokens=10_000).with_structured_output(ExecutiveSummary) | to_dict_parser
 analyse_chunks_chain = prompt_template_chunks | llm_anomaly
 
-
-##############################################################################
-
-system_template_anomaly = """
-You are an expert in analyzing critical anomalies in software development and infrastructure. 
-
-Given a list of anomalies from different repositories, rank them in order of importance based on the severity of the issue, potential security impact, risk to system stability, and business-critical consequences. 
-
-A revert due to a major failure is more severe than minor cleanup commits. Security vulnerabilities should be prioritized over performance optimizations. Infrastructure instability should be prioritized over code style issues.
-
-### Input Format:
-A list of objects where each object contains:
-- "repo": Repository name
-- "critical_anomaly": Description of the issue
-
-### Task:
-1. Analyze the anomalies and rank them from most to least critical.
-2. Maintain the same structure in the output, but reorder the list based on critical priority.
-
-Here is the data:{analysis_content}
-
-### Output Format:
-- **Do NOT include introductory text** such as "Here is the ranked JSON".
-"""
-
-
-class Anomaly(BaseModel):
-    repo: str
-    critical_anomaly: str
-    evidence: str
-
-
-class RankedAnomalies(BaseModel):
-    critical_anomalies: list[Anomaly]
-
-
-prompt_template_summary = PromptTemplate(
-    template=system_template_anomaly,
-    input_variables=["analysis_content"],
-)
-
-llm_ranking = get_llm(max_tokens=15_000).with_structured_output(RankedAnomalies) | to_clean_dict_parser
-anomaly_ranking_chain = prompt_template_summary | llm_ranking
-
-#####################################################################################################
 
 system_template_skip_a_meeting = """
 
@@ -389,7 +315,7 @@ class Audience(BaseModel):
     message_for_audience: str = Field(description="Specific message based on the audience. [FORMAT_AS_BULLET_POINTS]")
 
 
-class SkipAMeeting(BaseModel):
+class SkipAMeeting(BaseModelThatRemovesTags):
     resolution: str = Field(
         description="insights to skip the meeting based on anomaly and how to resolve this issue asynchronously"
     )
@@ -404,7 +330,7 @@ prompt_template_skip_a_meeting = PromptTemplate(
     },
 )
 
-llm_skip_a_meeting = get_llm(max_tokens=5_000).with_structured_output(SkipAMeeting) | to_clean_dict_parser
+llm_skip_a_meeting = get_llm(max_tokens=5_000).with_structured_output(SkipAMeeting) | to_dict_parser
 skip_a_meeting_chain = prompt_template_skip_a_meeting | llm_skip_a_meeting
 
 
@@ -451,7 +377,7 @@ class BlindSpot(BaseModel):
     )
 
 
-class AnomalyWithBlindSpot(BaseModel):
+class AnomalyWithBlindSpot(BaseModelThatRemovesTags):
     blind_spot: BlindSpot = Field(description="Blind spot analysis for similar patterns")
 
 
@@ -460,5 +386,5 @@ prompt_template_blind_spot = PromptTemplate(
     input_variables=["insight"],
 )
 
-llm_blind_spot = get_llm(max_tokens=5000).with_structured_output(AnomalyWithBlindSpot) | to_clean_dict_parser
+llm_blind_spot = get_llm(max_tokens=5000).with_structured_output(AnomalyWithBlindSpot) | to_dict_parser
 blind_spot_chain = prompt_template_blind_spot | llm_blind_spot

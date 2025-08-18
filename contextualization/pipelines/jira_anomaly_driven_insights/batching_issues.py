@@ -4,7 +4,7 @@ from contextualization.conf.config import get_config
 from contextualization.tools.llm_tools import count_tokens
 
 
-async def get_jira_issues_batches(dataframe: pd.DataFrame, prompt_tokens: int = 1500):
+async def get_jira_issues_batches(dataframe: pd.DataFrame, prompt_tokens: int = 1500) -> list[str]:
     config = get_config()
     full_prompt_token_limit = 10000 + prompt_tokens
 

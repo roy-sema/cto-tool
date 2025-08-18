@@ -1,11 +1,10 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import pytz
 from otel_extensions import instrumented
 
 from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.end_date_method04_prompt import (
@@ -16,7 +15,7 @@ from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.end_da
 logger = logging.getLogger(__name__)
 
 
-def load_and_parse_csv(df):
+def load_and_parse_csv(df: pd.DataFrame) -> pd.DataFrame:
     """
     Clean and process a DataFrame, converting date columns to UTC datetime and cleaning string values.
 
@@ -130,7 +129,7 @@ def load_and_parse_csv(df):
     return processed_df
 
 
-def summarize_data_for_git_initiative(git_df, jira_df, initiative):
+def summarize_data_for_git_initiative(git_df: pd.DataFrame, jira_df: pd.DataFrame, initiative: str) -> dict[str, Any]:
     """
     Summarize Git and Jira data for a specific Git initiative with enhanced Jira metrics
     """
@@ -145,7 +144,7 @@ def summarize_data_for_git_initiative(git_df, jira_df, initiative):
         )
     except Exception:
         logger.exception("Error filtering Git data for initiative", extra={"initiative": initiative})
-        git_initiative_data = pd.DataFrame()  # Empty DataFrame as fallback
+        git_initiative_data = pd.DataFrame()  # Empty DataFrame as a fallback
 
     # Filter Jira data that might be related to this Git initiative
     try:
@@ -174,33 +173,7 @@ def summarize_data_for_git_initiative(git_df, jira_df, initiative):
             "Error filtering Jira data for Git initiative",
             extra={"initiative": initiative},
         )
-        jira_initiative = pd.DataFrame()  # Empty DataFrame as fallback
-
-    # Estimate date range
-    try:
-        # Determine date range from Git commits
-        if (
-            "date" in git_initiative_data.columns
-            and not git_initiative_data["date"].isna().all()
-            and len(git_initiative_data) > 0
-        ):
-            git_dates = git_initiative_data["date"]
-            start_date = git_dates.min() - timedelta(days=7)
-            end_date = git_dates.max() + timedelta(days=7)
-        else:
-            # Fallback to current date range
-            current_date = datetime.now(pytz.UTC)
-            start_date = current_date - timedelta(days=30)
-            end_date = current_date
-    except Exception:
-        logger.exception(
-            "Error determining date range for Git initiative",
-            extra={"initiative": initiative},
-        )
-        # Fallback to a reasonable default range
-        current_date = datetime.now(pytz.UTC)
-        start_date = current_date - timedelta(days=30)
-        end_date = current_date
+        jira_initiative = pd.DataFrame()  # Empty DataFrame as a fallback
 
     # Safely summarize Git data with more Git-specific metrics
     try:
@@ -541,7 +514,7 @@ def summarize_data_for_git_initiative(git_df, jira_df, initiative):
     return {"git_summary": git_summary, "jira_summary": jira_summary}
 
 
-def normalize_initiative_name(name):
+def normalize_initiative_name(name: str | None) -> str:
     """
     Normalize initiative names for better matching
     """

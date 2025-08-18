@@ -1,6 +1,8 @@
 import datetime
 import logging
+from typing import Any
 from urllib.parse import urlparse
+from uuid import UUID
 
 import sentry_sdk
 import sentry_sdk.serializer
@@ -11,7 +13,7 @@ from sentry_sdk.types import Event, Hint
 logger = logging.getLogger(__name__)
 
 
-def _handle_error(self, run_id, error):
+def _handle_error(self: Any, run_id: UUID, error: Any) -> None:
     # type: (UUID, Any) -> None
     if not run_id or run_id not in self.span_map:
         return
@@ -69,9 +71,16 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     return event
 
 
-def filter_transactions(event, hint):
-    url_string = event["request"]["url"]
-    parsed_url = urlparse(url_string)
+def filter_transactions(event: Event, hint: Hint) -> Event | None:
+    request = event.get("request")
+    if not request:
+        return event
+
+    url_string = request.get("url")
+    if not url_string:
+        return event
+
+    parsed_url = urlparse(str(url_string))
 
     if parsed_url.path == "/health-check/":
         return None

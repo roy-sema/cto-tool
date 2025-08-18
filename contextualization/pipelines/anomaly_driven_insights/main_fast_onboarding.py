@@ -19,7 +19,9 @@ setup_logging()
 configure_sentry_for_contextualization()
 
 
-def fast_analyze_git_data(main_folder_path, start_date, end_date, output_path=None):
+def fast_analyze_git_data(
+    main_folder_path: str, start_date: str, end_date: str, output_path: str | None = None
+) -> None:
     main_folder_path = Path(main_folder_path)
     if output_path:
         output_dir = Path(output_path)

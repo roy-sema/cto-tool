@@ -1,9 +1,9 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.tags import get_tags_prompt
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """
 
@@ -34,7 +34,7 @@ Vary your opening styles:
 """
 
 
-class CommitAnalysis(BaseModel):
+class CommitAnalysis(BaseModelThatRemovesTags):
     response: str = Field(description="Response as per given task.")
 
 
@@ -43,5 +43,5 @@ prompt_template = PromptTemplate(
     input_variables=["list_of_summaries"],
     partial_variables={"tag_definitions": get_tags_prompt(format_as_bullet_points=True)},
 )
-llm = get_llm(max_tokens=2_000).with_structured_output(CommitAnalysis) | to_clean_dict_parser
+llm = get_llm(max_tokens=2_000).with_structured_output(CommitAnalysis) | to_dict_parser
 summary_chain = prompt_template | llm

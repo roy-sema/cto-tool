@@ -1,14 +1,11 @@
-import asyncio
 import json
 import logging
 import os
-from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
-import pandas
 import pandas as pd
 from otel_extensions import instrumented
-from pydantic import BaseModel, ConfigDict, ValidationError
 
 from contextualization.conf.config import conf, llm_name
 from contextualization.models.ticket_completeness import StageCategory, TicketCategory
@@ -26,7 +23,7 @@ from contextualization.pipelines.pipeline_D_jira_score_completeness.prompts.jira
     categorize_chain,
 )
 from contextualization.pipelines.pipeline_D_jira_score_completeness.prompts.stage_category_prompt import (
-    call_inference_with_retry_stage_chain,
+    stage_classification_chain,
 )
 from contextualization.pipelines.pipeline_D_jira_score_completeness.prompts.work_group_summary_prompt import (
     work_group_summary_chain,
@@ -34,54 +31,15 @@ from contextualization.pipelines.pipeline_D_jira_score_completeness.prompts.work
 from contextualization.pipelines.pipeline_D_jira_score_completeness.prompts.work_groups_overall_summary_prompt import (
     grouped_work_groups_summary_chain,
 )
+from contextualization.pipelines.pipeline_D_jira_score_completeness.schemas import (
+    PipelineDResult,
+    QualitySummary,
+    TicketCompletenessScoreResult,
+    categorize_quality,
+)
 from contextualization.utils.vcr_mocks import calls_context
 
 logger = logging.getLogger(__name__)
-
-
-class QualityCategory(StrEnum):
-    INITIAL = "Initial"
-    EMERGING = "Emerging"
-    MATURE = "Mature"
-    ADVANCED = "Advanced"
-    UNCATEGORIZED = "Uncategorized"
-
-
-def categorize_quality(score) -> QualityCategory:
-    if 1 <= score <= 25:
-        return QualityCategory.INITIAL.value
-    elif score <= 50:
-        return QualityCategory.EMERGING.value
-    elif score <= 75:
-        return QualityCategory.MATURE.value
-    elif score <= 100:
-        return QualityCategory.ADVANCED.value
-
-    logger.error(f"Invlaid score value", extra={"score": score})
-    return QualityCategory.UNCATEGORIZED.value
-
-
-class TickectCompletenessScoreResult(BaseModel):
-    issue_key: str
-    summary: str
-    description: str | None = None
-    priority: str
-    jira_completeness_score: int
-    evaluation_jira_completeness_score: str
-    explanation_jira_completeness_score: str
-    # we assign these categories as different ticket management systems might have different names for
-    # the same
-    stage_category: StageCategory
-    llm_category: TicketCategory
-    project_name: str
-    assignee: str | None = None
-    quality_category: QualityCategory
-
-
-class PipelineDResult(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    ticket_completeness_scores: list[TickectCompletenessScoreResult]
-    jira_data_df: pd.DataFrame
 
 
 token_limit = conf["llms"][llm_name]["token_limit"]
@@ -89,12 +47,10 @@ batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 
 
 @instrumented
-def assign_jira_completeness_score(df: pandas.DataFrame):
-    def assign_jira_completeness_score_with_token_callback(jira_tickets_list):
-        return asyncio.run(
-            jira_completeness_score_chain.abatch(
-                [{"jira_ticket_row": jira_ticket} for jira_ticket in jira_tickets_list]
-            )
+async def assign_jira_completeness_score(df: pd.DataFrame) -> pd.DataFrame:
+    async def assign_jira_completeness_score_with_token_callback(jira_tickets_list):
+        return await jira_completeness_score_chain.abatch(
+            [{"jira_ticket_row": jira_ticket} for jira_ticket in jira_tickets_list]
         )
 
     selected_columns = [
@@ -122,12 +78,12 @@ def assign_jira_completeness_score(df: pandas.DataFrame):
     )
 
     logger.info("Processing Jira completeness score", extra={"jira_ticket_count": len(jira_tickets_list)})
-    results = assign_jira_completeness_score_with_token_callback(jira_tickets_list)
+    results = await assign_jira_completeness_score_with_token_callback(jira_tickets_list)
     success_df = pd.DataFrame(results, index=df.index[: len(results)])
     return df.merge(success_df, left_index=True, right_index=True)
 
 
-def add_quality_category(jira_file_path: str, jira_data: pd.DataFrame):
+def add_quality_category(jira_file_path: Path, jira_data: pd.DataFrame) -> pd.DataFrame:
     """
     Reads a CSV file, categorizes each row's score, and adds a 'quality_category' column.
 
@@ -165,11 +121,11 @@ def add_quality_category(jira_file_path: str, jira_data: pd.DataFrame):
 
 # Generates the Ticket Completeness Score summary report
 @instrumented
-def generate_jira_quality_summary(jira_tickets_data, summary_output_path):
+async def generate_jira_quality_summary(jira_tickets_data: pd.DataFrame, summary_output_path: Path) -> dict[str, Any]:
     """Generate a quality summary report from JIRA completeness scores, categorizing tickets by stage, by catgory, by quality_category.
 
     Args:
-        jira_tickets_data (list): List of dictionaries containing JIRA completeness scores
+        jira_tickets_data (pd.DataFrame): DataFrame containing JIRA completeness scores
         summary_output_path (str): Path to save the quality summary report JSON output
 
     Returns:
@@ -274,15 +230,9 @@ def generate_jira_quality_summary(jira_tickets_data, summary_output_path):
             }
         )
 
-    try:
-        key_findings = asyncio.run(
-            final_summary_chain.abatch(
-                [{"jira_tickets_data": input_data["jira_tickets_data"]} for input_data in final_summary_inputs]
-            )
-        )
-    except Exception:
-        logging.exception("Error generating LLM summary")
-        key_findings = "No key findings generated."
+    key_findings = await final_summary_chain.abatch(
+        [{"jira_tickets_data": input_data["jira_tickets_data"]} for input_data in final_summary_inputs]
+    )
 
     by_project = []
     for i, input_data in enumerate(final_summary_inputs):
@@ -307,7 +257,7 @@ def generate_jira_quality_summary(jira_tickets_data, summary_output_path):
 
 
 @instrumented
-async def generate_jira_quality_summary_legacy(df_quality: pd.DataFrame):
+async def generate_jira_quality_summary_legacy(df_quality: pd.DataFrame) -> list[dict[str, Any]]:
     """
     Generate a quality summary from JIRA completeness scores, categorizing tickets
     into excellent, average, and initial quality based on their scores.
@@ -359,109 +309,100 @@ async def generate_jira_quality_summary_legacy(df_quality: pd.DataFrame):
     final_input_mappings = []
 
     for project_name, jira_tickets_data in df_quality.groupby("project_name"):
-        try:
-            # Check if DataFrame is empty
-            if jira_tickets_data.empty:
-                logging.error(
-                    "Pipeline Jira completeness score - No JIRA ticket data provided for quality summary (empty DataFrame)"
-                )
-                continue
-
-            # Use the DataFrame directly
-            df = jira_tickets_data
-
-            logging.info(f"Preparing quality summary for project {project_name} with {len(df)} ticket records")
-
-            # Check if all required columns are present
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                logging.error(
-                    f"Pipeline Jira completeness score - Required columns missing from data",
-                    extra={"missing_columns": missing_columns},
-                )
-                continue
-
-            # Convert score to numeric if it's not already
-            df["jira_completeness_score"] = pd.to_numeric(df["jira_completeness_score"], errors="coerce")
-
-            # Drop rows with NaN scores if any
-            if df["jira_completeness_score"].isna().any():
-                logging.warning(f"Dropping {df['jira_completeness_score'].isna().sum()} rows with missing scores")
-                df = df.dropna(subset=["jira_completeness_score"])
-
-                if df.empty:
-                    logging.error("Pipeline Jira completeness score - All rows had missing scores, no data to analyze")
-                    continue
-
-            # Calculate average score
-            average_score = round(df["jira_completeness_score"].mean(), 2)
-
-            # Create three different dataframes based on score ranges
-            initial_quality_df = df[df["jira_completeness_score"] < 30].copy()
-            average_df = df[(df["jira_completeness_score"] >= 30) & (df["jira_completeness_score"] < 70)].copy()
-            excellent_df = df[df["jira_completeness_score"] >= 70].copy()
-
-            logging.info(
-                f"Project {project_name} - Excellent: {len(excellent_df)}, Average: {len(average_df)}, Initial: {len(initial_quality_df)}"
+        if jira_tickets_data.empty:
+            logging.error(
+                "Pipeline Jira completeness score - No JIRA ticket data provided for quality summary (empty DataFrame)"
             )
+            continue
 
-            # Prepare project data structure
-            project_info = {
-                "project_name": project_name,
-                "df": df,
-                "average_score": average_score,
-                "excellent_df": excellent_df,
-                "average_df": average_df,
-                "initial_quality_df": initial_quality_df,
-                "summaries": {},
-                "category_batch_indices": [],
+        df = jira_tickets_data
+
+        logging.info(f"Preparing quality summary for project {project_name} with {len(df)} ticket records")
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            logging.error(
+                f"Pipeline Jira completeness score - Required columns missing from data",
+                extra={"missing_columns": missing_columns},
+            )
+            continue
+
+        # Convert score to numeric if it's not already
+        df["jira_completeness_score"] = pd.to_numeric(df["jira_completeness_score"], errors="coerce")
+
+        # Drop rows with NaN scores if any
+        if df["jira_completeness_score"].isna().any():
+            logging.warning(f"Dropping {df['jira_completeness_score'].isna().sum()} rows with missing scores")
+            df = df.dropna(subset=["jira_completeness_score"])
+
+            if df.empty:
+                logging.error("Pipeline Jira completeness score - All rows had missing scores, no data to analyze")
+                continue
+
+        # Calculate average score
+        average_score = round(df["jira_completeness_score"].mean(), 2)
+
+        # Create three different dataframes based on score ranges
+        initial_quality_df = df[df["jira_completeness_score"] < 30].copy()
+        average_df = df[(df["jira_completeness_score"] >= 30) & (df["jira_completeness_score"] < 70)].copy()
+        excellent_df = df[df["jira_completeness_score"] >= 70].copy()
+
+        logging.info(
+            f"Project {project_name} - Excellent: {len(excellent_df)}, Average: {len(average_df)}, Initial: {len(initial_quality_df)}"
+        )
+
+        # Prepare project data structure
+        project_info = {
+            "project_name": project_name,
+            "df": df,
+            "average_score": average_score,
+            "excellent_df": excellent_df,
+            "average_df": average_df,
+            "initial_quality_df": initial_quality_df,
+            "summaries": {},
+            "category_batch_indices": [],
+        }
+
+        # Prepare category batch inputs for this project
+        # Generate summary for excellent tickets
+        if not excellent_df.empty:
+            excellent_formatted = format_df_for_llm(excellent_df, columns_to_format)
+            all_category_inputs.append({"jira_tickets_data": excellent_formatted})
+            category_input_mappings.append((len(project_data), "excellent"))
+            project_info["category_batch_indices"].append(len(all_category_inputs) - 1)
+        else:
+            project_info["summaries"]["excellent"] = {
+                "patterns": "No tickets with scores 70 or above were found in the dataset.",
+                "examples": [],
+                "recommendations": [],
             }
 
-            # Prepare category batch inputs for this project
-            # Generate summary for excellent tickets
-            if not excellent_df.empty:
-                excellent_formatted = format_df_for_llm(excellent_df, columns_to_format)
-                all_category_inputs.append({"jira_tickets_data": excellent_formatted})
-                category_input_mappings.append((len(project_data), "excellent"))
-                project_info["category_batch_indices"].append(len(all_category_inputs) - 1)
-            else:
-                project_info["summaries"]["excellent"] = {
-                    "patterns": "No tickets with scores 70 or above were found in the dataset.",
-                    "examples": [],
-                    "recommendations": [],
-                }
+        # Generate summary for average tickets
+        if not average_df.empty:
+            average_formatted = format_df_for_llm(average_df, columns_to_format)
+            all_category_inputs.append({"jira_tickets_data": average_formatted})
+            category_input_mappings.append((len(project_data), "average"))
+            project_info["category_batch_indices"].append(len(all_category_inputs) - 1)
+        else:
+            project_info["summaries"]["average"] = {
+                "patterns": "No tickets with scores between 30 and 70 were found in the dataset.",
+                "examples": [],
+                "recommendations": [],
+            }
 
-            # Generate summary for average tickets
-            if not average_df.empty:
-                average_formatted = format_df_for_llm(average_df, columns_to_format)
-                all_category_inputs.append({"jira_tickets_data": average_formatted})
-                category_input_mappings.append((len(project_data), "average"))
-                project_info["category_batch_indices"].append(len(all_category_inputs) - 1)
-            else:
-                project_info["summaries"]["average"] = {
-                    "patterns": "No tickets with scores between 30 and 70 were found in the dataset.",
-                    "examples": [],
-                    "recommendations": [],
-                }
+        # Generate summary for initial quality tickets
+        if not initial_quality_df.empty:
+            initial_quality_formatted = format_df_for_llm(initial_quality_df, columns_to_format)
+            all_category_inputs.append({"jira_tickets_data": initial_quality_formatted})
+            category_input_mappings.append((len(project_data), "initial_quality"))
+            project_info["category_batch_indices"].append(len(all_category_inputs) - 1)
+        else:
+            project_info["summaries"]["initial_quality"] = {
+                "patterns": "No tickets with scores below 30 were found in the dataset.",
+                "examples": [],
+                "recommendations": [],
+            }
 
-            # Generate summary for initial quality tickets
-            if not initial_quality_df.empty:
-                initial_quality_formatted = format_df_for_llm(initial_quality_df, columns_to_format)
-                all_category_inputs.append({"jira_tickets_data": initial_quality_formatted})
-                category_input_mappings.append((len(project_data), "initial_quality"))
-                project_info["category_batch_indices"].append(len(all_category_inputs) - 1)
-            else:
-                project_info["summaries"]["initial_quality"] = {
-                    "patterns": "No tickets with scores below 30 were found in the dataset.",
-                    "examples": [],
-                    "recommendations": [],
-                }
-
-            project_data.append(project_info)
-
-        except Exception:
-            logging.exception(f"Pipeline D Jira completeness score - Error preparing project {project_name} data")
-            continue
+        project_data.append(project_info)
 
     # Process all category summaries in a single batch
     if all_category_inputs:
@@ -539,7 +480,7 @@ async def generate_jira_quality_summary_legacy(df_quality: pd.DataFrame):
 
 
 @instrumented
-def categorise_ticket(batch_df):
+async def categorise_ticket(batch_df: pd.DataFrame) -> list[str]:
     """
     Categorize all tickets in a batch using .batch() method.
 
@@ -570,40 +511,26 @@ def categorise_ticket(batch_df):
     if not valid_inputs:
         return results  # All were empty
 
-    try:
-        # Single batch call to LLM using .batch()
-        batch_responses = asyncio.run(categorize_chain.abatch(valid_inputs))
+    batch_responses = await categorize_chain.abatch(valid_inputs)
 
-        # Process batch responses
-        for i, response in enumerate(batch_responses):
-            result_index = valid_indices[i]
+    for i, response in enumerate(batch_responses):
+        result_index = valid_indices[i]
 
-            if isinstance(response, dict):
-                category = response.get("llm_category")
-                try:
-                    category = TicketCategory(category)
-                except ValueError:
-                    logging.warning(f"Invalid {category=}, {response=} setting to OTHER")
-                    category = TicketCategory.OTHER
+        if isinstance(response, dict):
+            category = response.get("llm_category")
+            try:
+                category = TicketCategory(category)
+            except ValueError:
+                logging.warning(f"Invalid {category=}, {response=} setting to OTHER")
+                category = TicketCategory.OTHER
 
-                results[result_index] = category.value
-
-    except Exception as e:
-        # Handle batch-level errors
-
-        logger.exception(
-            "Error occurred while categorizing batch",
-            extra={"batch_size": len(batch_df)},
-        )
-        # Apply default category to all valid entries
-        for idx in valid_indices:
-            results[idx] = TicketCategory.OTHER.value
+            results[result_index] = category.value
 
     return results
 
 
 @instrumented
-def process_jira_tickets(df, tiktoken_column="description_tokens") -> pd.DataFrame:
+async def process_jira_tickets(df: pd.DataFrame, tiktoken_column: str = "description_tokens") -> pd.DataFrame:
     """
     Process all JIRA tickets in batches with 1 LLM call per batch.
 
@@ -626,7 +553,7 @@ def process_jira_tickets(df, tiktoken_column="description_tokens") -> pd.DataFra
     for batch_num, batch_df in enumerate(batches, 1):
         logger.info(f"Processing batch {batch_num}/{len(batches)}")
 
-        batch_categories = categorise_ticket(batch_df)
+        batch_categories = await categorise_ticket(batch_df)
 
         # Store results back in original dataframe
         for (original_idx, _), category in zip(batch_df.iterrows(), batch_categories):
@@ -642,7 +569,7 @@ def process_jira_tickets(df, tiktoken_column="description_tokens") -> pd.DataFra
 
 
 @instrumented
-def analyze_jira_completeness_by_category(df: pd.DataFrame, output_path):
+def analyze_jira_completeness_by_category(df: pd.DataFrame, output_path: str | Path) -> None:
     """
     Analyzes Jira data by LLM category and creates a JSON report file.
 
@@ -651,123 +578,111 @@ def analyze_jira_completeness_by_category(df: pd.DataFrame, output_path):
         output_path (str): Path where the JSON result will be saved (default: 'jira_analysis_result.json')
     """
 
-    try:
-        # Remove rows with null/missing llm_category or jira_completeness_score
-        initial_count = len(df)
-        df_clean = df.dropna(subset=["llm_category", "jira_completeness_score"])
-        dropped_count = initial_count - len(df_clean)
+    # Remove rows with null/missing llm_category or jira_completeness_score
+    initial_count = len(df)
+    df_clean = df.dropna(subset=["llm_category", "jira_completeness_score"])
+    dropped_count = initial_count - len(df_clean)
 
-        if df_clean.empty:
-            logger.error(
-                "No valid data found after cleaning - missing required columns",
-                extra={
-                    "initial_rows": initial_count,
-                    "required_columns": ["llm_category", "jira_completeness_score"],
-                },
-            )
-            return
-
-        if dropped_count > 0:
-            logger.warning(
-                "Dropped rows with missing required data",
-                extra={
-                    "dropped_rows": dropped_count,
-                    "remaining_rows": len(df_clean),
-                    "drop_percentage": round((dropped_count / initial_count) * 100, 1),
-                },
-            )
-
-        # Initialize the result dictionary
-        result = {
-            "average_completeness_score_per_category": {},
-            "top_tickets_by_category": {},
-            "bottom_tickets_by_category": {},
-        }
-
-        # Get unique categories
-        categories = df_clean["llm_category"].unique()
-        logger.info(f"Starting analysis by category, : {len(categories)}, categories: {categories}")
-        logger.info(f"Sotal tickets to analyze: {len(df_clean)}")
-
-        category_stats = []
-        for category in categories:
-            # Filter data for current category
-            category_data = df_clean[df_clean["llm_category"] == category]
-
-            # Calculate average completeness score
-            avg_score = round(category_data["jira_completeness_score"].mean(), 2)
-            result["average_completeness_score_per_category"][category] = avg_score
-
-            category_stats.append(
-                {
-                    "category": category,
-                    "ticket_count": len(category_data),
-                    "average_score": avg_score,
-                }
-            )
-
-            # Sort by completeness score for top and bottom tickets
-            sorted_data = category_data.sort_values("jira_completeness_score", ascending=False)
-
-            # Helper function to create ticket entry
-            def create_ticket_entry(ticket):
-                # Get full description
-                full_description = ""
-                if pd.notna(ticket["description"]) and ticket["description"]:
-                    full_description = str(ticket["description"])
-
-                return {
-                    "issue_key": ticket["issue_key"],
-                    "summary": ticket["summary"],
-                    "score": float(ticket["jira_completeness_score"]),
-                    "priority": (ticket["priority"] if pd.notna(ticket["priority"]) else "Not Set"),
-                    "issue_type": (ticket["Issue Type"] if pd.notna(ticket["Issue Type"]) else "Unknown"),
-                    "status": (ticket["status"] if pd.notna(ticket["status"]) else "Unknown"),
-                    "description": full_description,
-                    "created": (ticket["created"] if pd.notna(ticket["created"]) else "Unknown"),
-                }
-
-            # Get top 3 highest-scoring tickets
-            top_3 = []
-            for _, ticket in sorted_data.head(3).iterrows():
-                top_3.append(create_ticket_entry(ticket))
-
-            result["top_tickets_by_category"][category] = top_3
-
-            # Get bottom 3 lowest-scoring tickets (reverse the tail to get lowest first)
-            bottom_3 = []
-            for _, ticket in sorted_data.tail(3).iloc[::-1].iterrows():
-                bottom_3.append(create_ticket_entry(ticket))
-
-            result["bottom_tickets_by_category"][category] = bottom_3
-
-        # Save to JSON file
-        with open(output_path, "w") as f:
-            json.dump(result, f, indent=2)
-
-        logger.info(
-            f"Analysis completed successfully - results saved to {output_path}",
+    if df_clean.empty:
+        logger.error(
+            "No valid data found after cleaning - missing required columns",
+            extra={
+                "initial_rows": initial_count,
+                "required_columns": ["llm_category", "jira_completeness_score"],
+            },
         )
-        logger.info(f"Total categories analyzed: {len(categories)}")
-        logger.info(f"Total tickets analyzed: {len(df_clean)}")
-        logger.info(f"Category statistics: {category_stats}")
+        return
 
-        return result
+    if dropped_count > 0:
+        logger.warning(
+            "Dropped rows with missing required data",
+            extra={
+                "dropped_rows": dropped_count,
+                "remaining_rows": len(df_clean),
+                "drop_percentage": round((dropped_count / initial_count) * 100, 1),
+            },
+        )
 
-    except KeyError as e:
-        logger.exception(
-            "Required column not found in CSV file",
-            extra={"missing_column": str(e)},
+    # Initialize the result dictionary
+    result = {
+        "average_completeness_score_per_category": {},
+        "top_tickets_by_category": {},
+        "bottom_tickets_by_category": {},
+    }
+
+    # Get unique categories
+    categories = df_clean["llm_category"].unique()
+    logger.info(f"Starting analysis by category, : {len(categories)}, categories: {categories}")
+    logger.info(f"Sotal tickets to analyze: {len(df_clean)}")
+
+    category_stats = []
+    for category in categories:
+        # Filter data for current category
+        category_data = df_clean[df_clean["llm_category"] == category]
+
+        # Calculate average completeness score
+        avg_score = round(category_data["jira_completeness_score"].mean(), 2)
+        result["average_completeness_score_per_category"][category] = avg_score
+
+        category_stats.append(
+            {
+                "category": category,
+                "ticket_count": len(category_data),
+                "average_score": avg_score,
+            }
         )
-    except Exception as e:
-        logger.exception(
-            "Unexpected error during analysis",
-            extra={"output_path": output_path},
-        )
+
+        # Sort by completeness score for top and bottom tickets
+        sorted_data = category_data.sort_values("jira_completeness_score", ascending=False)
+
+        # Helper function to create ticket entry
+        def create_ticket_entry(ticket):
+            # Get full description
+            full_description = ""
+            if pd.notna(ticket["description"]) and ticket["description"]:
+                full_description = str(ticket["description"])
+
+            return {
+                "issue_key": ticket["issue_key"],
+                "summary": ticket["summary"],
+                "score": float(ticket["jira_completeness_score"]),
+                "priority": (ticket["priority"] if pd.notna(ticket["priority"]) else "Not Set"),
+                "issue_type": (ticket["Issue Type"] if pd.notna(ticket["Issue Type"]) else "Unknown"),
+                "status": (ticket["status"] if pd.notna(ticket["status"]) else "Unknown"),
+                "description": full_description,
+                "created": (ticket["created"] if pd.notna(ticket["created"]) else "Unknown"),
+            }
+
+        # Get top 3 highest-scoring tickets
+        top_3 = []
+        for _, ticket in sorted_data.head(3).iterrows():
+            top_3.append(create_ticket_entry(ticket))
+
+        result["top_tickets_by_category"][category] = top_3
+
+        # Get bottom 3 lowest-scoring tickets (reverse the tail to get lowest first)
+        bottom_3 = []
+        for _, ticket in sorted_data.tail(3).iloc[::-1].iterrows():
+            bottom_3.append(create_ticket_entry(ticket))
+
+        result["bottom_tickets_by_category"][category] = bottom_3
+
+    # Save to JSON file
+    with open(output_path, "w") as f:
+        json.dump(result, f, indent=2)
+
+    logger.info(
+        f"Analysis completed successfully - results saved to {output_path}",
+    )
+    logger.info(f"Total categories analyzed: {len(categories)}")
+    logger.info(f"Total tickets analyzed: {len(df_clean)}")
+    logger.info(f"Category statistics: {category_stats}")
+
+    return result
 
 
 @instrumented
-def generate_jcs_grouped_by_work_group(df: pd.DataFrame, json_file_path: str):
+async def generate_jcs_grouped_by_work_group(df: pd.DataFrame, json_file_path: str) -> dict[str, Any]:
     # Validate necessary columns
     if "jira_completeness_score" not in df.columns:
         raise ValueError("CSV must contain a 'jira_completeness_score' column.")
@@ -805,15 +720,11 @@ def generate_jcs_grouped_by_work_group(df: pd.DataFrame, json_file_path: str):
         }
 
         # Generate per-initiative summary using LLM
-        summary = work_group_summary_chain.invoke({"work_group_data": output[initiative]})
+        summary = await work_group_summary_chain.ainvoke({"work_group_data": output[initiative]})
         output[initiative].update(summary)
 
-    # Generate overall summary from grouped initiatives
-    try:
-        summary = grouped_work_groups_summary_chain.invoke({"input_json": output})
-        output.update(summary)
-    except Exception as e:
-        logging.exception("Pipeline D Jira compleness score - Failed to generate overall grouped summary")
+    summary = await grouped_work_groups_summary_chain.ainvoke({"input_json": output})
+    output.update(summary)
 
     # Write result to JSON file
     with open(json_file_path, "w") as json_file:
@@ -824,7 +735,7 @@ def generate_jcs_grouped_by_work_group(df: pd.DataFrame, json_file_path: str):
 
 
 @instrumented
-def categorise_jira_ticket_stages(jira_data_with_score_df: pd.DataFrame, output_base_path: str) -> pd.DataFrame:
+async def categorise_jira_ticket_stages(jira_data_with_score_df: pd.DataFrame, output_base_path: str) -> pd.DataFrame:
     """
     Categorizes Jira ticket stages using inferred categories from unique statuses.
 
@@ -846,8 +757,7 @@ def categorise_jira_ticket_stages(jira_data_with_score_df: pd.DataFrame, output_
     unique_statuses = set(jira_data_with_score_df["status"].dropna().str.strip().str.lower())
 
     logging.info("Inferring stage categories using language model.")
-    category_mappings = call_inference_with_retry_stage_chain(unique_statuses)
-
+    category_mappings = await stage_classification_chain.ainvoke({"jira_ticket_stages": unique_statuses})
     # Creating final mapping from inference results
     final_mappings = {}
     for category_mapping in category_mappings["stage_categories"]:
@@ -878,7 +788,7 @@ def categorise_jira_ticket_stages(jira_data_with_score_df: pd.DataFrame, output_
 
 # Aggregate the Ticket Completeness Score by stage
 @instrumented
-def aggregate_TCS_wrt_stage_category(df: pd.DataFrame, output_base_path: str):
+def aggregate_TCS_wrt_stage_category(df: pd.DataFrame, output_base_path: str) -> str:
     # Validate necessary columns
     if "jira_completeness_score" not in df.columns:
         raise ValueError("CSV must contain a 'jira_completeness_score' column.")
@@ -926,7 +836,7 @@ def aggregate_TCS_wrt_stage_category(df: pd.DataFrame, output_base_path: str):
     return output_file_path
 
 
-def run_jira_completeness_score_pipeline(
+async def run_jira_completeness_score_pipeline(
     output_path: str,
     jira_url: str | None = None,
     confluence_user: str | None = None,
@@ -940,7 +850,7 @@ def run_jira_completeness_score_pipeline(
         f"Running pipeline D with params: {jira_url=} {confluence_user=} confluence_token=<REDACTED> "
         f"jira_access_token=<REDACTED> {start_date=} {end_date=} {jira_project_names=} {output_path=}"
     )
-    with calls_context("pipeline_d.json"):
+    with calls_context("pipeline_d.yaml"):
         start_date = start_date.split("T")[0] if start_date else None
         end_date = end_date.split("T")[0] if end_date else None
         # Create output directory if it doesn't exist
@@ -957,7 +867,7 @@ def run_jira_completeness_score_pipeline(
             logging.info("No JIRA project selected provided.")
             return None
         # Process the JIRA data
-        df = process_jira_data(
+        df = await process_jira_data(
             jira_url=jira_url,
             project_names=jira_project_names,
             confluence_user=confluence_user,
@@ -968,15 +878,15 @@ def run_jira_completeness_score_pipeline(
         )
 
         if df.empty:
-            logging.error("Pipeline Jira completeness score - No JIRA data found. Exiting.")
+            logging.warning("Pipeline Jira completeness score - No JIRA data found. Exiting.")
             return None
 
         # Assign completeness scores
-        df_output = assign_jira_completeness_score(df)
+        df_output = await assign_jira_completeness_score(df)
 
         # Add stage category and generate TCS by stage
-        staged_categorised_jira_df = categorise_jira_ticket_stages(df_output, output_dir)
-        staged_json_path = aggregate_TCS_wrt_stage_category(staged_categorised_jira_df, output_dir)
+        staged_categorised_jira_df = await categorise_jira_ticket_stages(df_output, str(output_dir))
+        staged_json_path = aggregate_TCS_wrt_stage_category(staged_categorised_jira_df, str(output_dir))
 
         df_stage = staged_categorised_jira_df
 
@@ -984,23 +894,15 @@ def run_jira_completeness_score_pipeline(
         jira_data_with_llm_category_path = output_dir / "jira_data_with_score.csv"
 
         # For TCS we need all of the tickets, no only To Do and In Progress
-        df_llm_categorised = process_jira_tickets(df_stage, tiktoken_column="description_tokens")
-
-        try:
-            ticket_completeness_scores = [
-                TickectCompletenessScoreResult(
-                    **ticket,
-                    project_name=ticket["issue_key"].split("-")[0],
-                    quality_category=categorize_quality(ticket["jira_completeness_score"]),
-                )
-                for ticket in df_llm_categorised.replace({pd.NA: None, pd.NaT: None}).to_dict(orient="records")
-            ]
-        except ValidationError:
-            logging.exception(
-                "Pipeline D Jira completeness score - Failed to parse ticket completeness scores",
-                extra={"jira_data_with_llm_category_path": jira_data_with_llm_category_path},
+        df_llm_categorised = await process_jira_tickets(df_stage, tiktoken_column="description_tokens")
+        ticket_completeness_scores = [
+            TicketCompletenessScoreResult(
+                **ticket,
+                project_name=ticket["issue_key"].split("-")[0],
+                quality_category=categorize_quality(ticket["jira_completeness_score"]),
             )
-            ticket_completeness_scores = []
+            for ticket in df_llm_categorised.replace({pd.NA: None, pd.NaT: None}).to_dict(orient="records")
+        ]
 
         # NOTE: For further implementation ignore stages done, won't do and backlog
         IGNORED_STAGES = [
@@ -1010,7 +912,7 @@ def run_jira_completeness_score_pipeline(
         ]
         df_stage_filtered = df_llm_categorised[~df_stage["stage_category"].isin(IGNORED_STAGES)]
         if df_stage_filtered.empty:
-            logging.error(
+            logging.warning(
                 "Pipeline D Jira completeness score - Can not generate further insights: NO data in 'To Do', 'In Progress' stages"
             )
             return PipelineDResult(
@@ -1032,15 +934,17 @@ def run_jira_completeness_score_pipeline(
         df_quality = add_quality_category(jira_data_with_llm_category_path, df_stage_filtered)
 
         # Generate the jira quality summary
-        generate_jira_quality_summary(df_quality, summary_output_path)
+        jira_quality_summary_json = await generate_jira_quality_summary(df_quality, summary_output_path)
+        quality_summary = QualitySummary.model_validate(jira_quality_summary_json)
 
         # Generate jira quality summary(old way)
         df_quality["project_name"] = df_quality["issue_key"].apply(lambda x: x.split("-")[0])
-        jira_quality_summaries = asyncio.run(generate_jira_quality_summary_legacy(df_quality))
+        jira_quality_summaries = await generate_jira_quality_summary_legacy(df_quality)
         with open(summary_output_path_old, "w") as f:
             json.dump(jira_quality_summaries, f, indent=2)
 
     return PipelineDResult(
         ticket_completeness_scores=ticket_completeness_scores,
-        jira_data_df=df_stage_filtered,
+        quality_summary=quality_summary,
+        jira_data_df=df_stage_filtered,  # TODO - do we need this?
     )

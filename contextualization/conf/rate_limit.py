@@ -1,13 +1,14 @@
 import logging
 import time
 from abc import ABC
+from collections.abc import Callable
 from datetime import datetime
 from functools import cached_property
-from typing import Any, Callable
+from typing import Any
 
 import anthropic
 import httpx
-from google.api_core.exceptions import GoogleAPIError, InternalServerError
+from google.api_core.exceptions import GoogleAPIError, InternalServerError, TooManyRequests
 from langchain_anthropic import ChatAnthropic
 from langchain_anthropic.chat_models import _format_messages, convert_to_anthropic_tool
 from langchain_core.callbacks import CallbackManagerForLLMRun
@@ -46,9 +47,17 @@ class BaseCustomWithRetry(BaseChatModel, ABC):
     def _wait_if_needed(self) -> None: ...
 
     @retry(
+        # just add more retrues for Gemini rate limit-related errors, as we can't handle them as presice as Anthropic
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=30, max=60 * 3),
+        retry=retry_if_exception_type(TooManyRequests),
+        reraise=True,
+    )
+    @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=60, max=60 * 3),
         retry=retry_if_exception_type(RETRY_ERRORS),
+        reraise=True,
     )
     async def _agenerate(
         self,
@@ -61,9 +70,17 @@ class BaseCustomWithRetry(BaseChatModel, ABC):
         return await super()._agenerate(messages, stop, run_manager, **kwargs)
 
     @retry(
+        # just add more retrues for Gemini rate limit-related errors, as we can't handle them as presice as Anthropic
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=30, max=60 * 3),
+        retry=retry_if_exception_type(TooManyRequests),
+        reraise=True,
+    )
+    @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=60, max=60 * 3),
         retry=retry_if_exception_type(RETRY_ERRORS),
+        reraise=True,
     )
     def _generate(
         self,
@@ -94,9 +111,6 @@ class RateLimitedChatAnthropic(BaseCustomWithRetry, ChatAnthropic):
     requests_min_wait_until: float = 0
     tokens_min_wait_until: float = 0
     retry_after: float = 0
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     @cached_property
     def _client(self) -> anthropic.Client:
@@ -202,6 +216,7 @@ class RateLimitedChatAnthropic(BaseCustomWithRetry, ChatAnthropic):
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=60, max=60 * 3),
         retry=retry_if_exception_type(RETRY_ERRORS),
+        reraise=True,
     )
     async def aget_num_tokens_from_messages(
         self,
@@ -224,4 +239,12 @@ class RateLimitedChatAnthropic(BaseCustomWithRetry, ChatAnthropic):
         return response.input_tokens
 
 
-class ChatGemini(ChatGoogleGenerativeAI, BaseCustomWithRetry): ...
+class ChatGemini(BaseCustomWithRetry, ChatGoogleGenerativeAI):
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=60, max=60 * 3),
+        retry=retry_if_exception_type(GoogleAPIError),
+        reraise=True,
+    )
+    def get_num_tokens(self, text: str) -> int:
+        return super().get_num_tokens(text)

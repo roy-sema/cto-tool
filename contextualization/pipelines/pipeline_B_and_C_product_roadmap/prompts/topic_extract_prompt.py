@@ -1,8 +1,8 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 #################################################################################################################
 
@@ -34,7 +34,7 @@ Only assign topic, that is fully related to the summary. DO NOT hallucinate.
 """
 
 
-class FormatGit(BaseModel):
+class FormatGit(BaseModelThatRemovesTags):
     # row_number: int = Field(description="The row number in the dataset, provided in rows_data.")
     Categorization_of_initiative_git: str = Field(
         description="The assigned topic or category for the row, providing a high-level summary or classification."
@@ -53,7 +53,7 @@ prompt_template_2 = PromptTemplate(
 )
 
 # Create the chain
-llm = get_llm(max_tokens=8000).with_structured_output(FormatGit) | to_clean_dict_parser
+llm = get_llm(max_tokens=8000).with_structured_output(FormatGit) | to_dict_parser
 chain_topic_assign_git = prompt_template_2 | llm
 
 
@@ -87,7 +87,7 @@ Only assign topic, that is fully related to the summary. DO NOT hallucinate.
 """
 
 
-class FormatForJiraGitInitiatives(BaseModel):
+class FormatForJiraGitInitiatives(BaseModelThatRemovesTags):
     # row_number: int = Field(description="The row number in the dataset, provided in rows_data.")
     Categorization_of_initiative_git: str = Field(
         description="The assigned topic or category for the row, providing a high-level summary or classification."
@@ -106,5 +106,5 @@ prompt_template_4 = PromptTemplate(
 )
 
 # Create the chain
-llm = get_llm(max_tokens=10_000).with_structured_output(FormatForJiraGitInitiatives) | to_clean_dict_parser
+llm = get_llm(max_tokens=10_000).with_structured_output(FormatForJiraGitInitiatives) | to_dict_parser
 chain_topic_assign_to_jira_from_git = prompt_template_4 | llm
