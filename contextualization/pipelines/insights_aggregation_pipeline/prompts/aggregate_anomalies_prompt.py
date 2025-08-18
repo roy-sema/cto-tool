@@ -1,10 +1,8 @@
-from typing import List
-
 from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 summarize_prompt = """
 You are an expert at analyzing patterns across various software development data sources. Your task is to identify similar insights from a provided set of analysis data that may come from different sources.
@@ -54,8 +52,8 @@ class SimilarAnomaly(BaseModel):
     similarity_reason: str = Field(description="Brief explanation of the similarity, start with 'The insights..'")
 
 
-class Insights(BaseModel):
-    similar_insights: List[SimilarAnomaly] = Field(
+class Insights(BaseModelThatRemovesTags):
+    similar_insights: list[SimilarAnomaly] = Field(
         default_factory=list,
         description="List of similar insights ids, and reason of similarity",
     )
@@ -66,5 +64,5 @@ prompt_template = PromptTemplate(
     input_variables=["insights"],
 )
 
-llm = get_llm(max_tokens=10000).with_structured_output(Insights) | to_clean_dict_parser
+llm = get_llm(max_tokens=10000).with_structured_output(Insights) | to_dict_parser
 aggregate_anomaly_chain = prompt_template | llm

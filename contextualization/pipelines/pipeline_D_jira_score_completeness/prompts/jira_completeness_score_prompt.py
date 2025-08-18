@@ -1,9 +1,9 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.tags import get_tags_prompt
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """
 
@@ -81,7 +81,7 @@ Note: Do not include any boilerplate context like here is the json before the ac
 """
 
 
-class JiraScore(BaseModel):
+class JiraScore(BaseModelThatRemovesTags):
     jira_completeness_score: int = Field(description="Jira completeness score according to the data")
     evaluation_jira_completeness_score: str = Field(
         description="Evaluation of score for each category and there justification"
@@ -99,5 +99,5 @@ prompt_template = PromptTemplate(
     },
 )
 
-llm = get_llm(max_tokens=5000).with_structured_output(JiraScore) | to_clean_dict_parser
+llm = get_llm(max_tokens=5000).with_structured_output(JiraScore) | to_dict_parser
 jira_completeness_score_chain = prompt_template | llm

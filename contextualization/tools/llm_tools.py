@@ -1,11 +1,15 @@
 import asyncio
 import logging
-from typing import Any, Coroutine
+from collections.abc import Coroutine
+from typing import Any
 
+import anthropic
+import pandas as pd
 import tiktoken
 from langchain_core.messages import BaseMessage
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import Runnable, RunnableLambda
 from otel_extensions import instrumented
+from rest_framework import status
 
 from contextualization.conf.config import conf, get_config, llm_name
 from contextualization.conf.get_llm import get_llm
@@ -18,7 +22,7 @@ tokenizer = tiktoken.encoding_for_model(encoding_name)
 llm = get_llm()
 
 
-def get_batches(data, tiktoken_column, prompt_token_length=1500):
+def get_batches(data: pd.DataFrame, tiktoken_column: str, prompt_token_length: int = 1500) -> list[pd.DataFrame]:
     """
     Create batches ensuring no batch exceeds the batch_threshold from config.
     Drop the tiktoken_column from the resulting batches.
@@ -109,53 +113,39 @@ async def calculate_token_count_async(
 
     if df.empty:
         error_msg = f"DataFrame is empty for calculating the token count. Stopping the process."
-        logging.error(error_msg)
         raise ValueError(error_msg)
 
-    try:
-        logging.info(f"Calculating token count for {len(text_columns)} columns")
+    logging.info(f"Calculating token count for {len(text_columns)} columns")
 
-        # Check which columns actually exist in the dataframe
-        available_columns = [col for col in text_columns if col in df.columns]
+    # Check which columns actually exist in the dataframe
+    available_columns = [col for col in text_columns if col in df.columns]
 
-        if not available_columns:
-            error_msg = f"None of the specified columns exist in the DataFrame."
-            logging.error(error_msg)
-            raise ValueError(error_msg)
+    if not available_columns:
+        error_msg = f"None of the specified columns exist in the DataFrame."
+        raise ValueError(error_msg)
 
-        # Initialize token column with zeros
-        df[token_column] = 0
+    # Initialize token column with zeros
+    df[token_column] = 0
 
-        # Calculate and add token counts for each column
-        for column in available_columns:
-            # Skip non-string columns to avoid tokenization issues
-            if df[column].dtype != "object" and not df[column].dtype.name.startswith("str"):
-                continue
+    # Calculate and add token counts for each column
+    for column in available_columns:
+        # Skip non-string columns to avoid tokenization issues
+        if df[column].dtype != "object" and not df[column].dtype.name.startswith("str"):
+            continue
 
-            # Process each column individually
-            column_inputs = df[column].fillna("").astype(str)
-            token_count = await count_tokens(column_inputs.to_list())
+        # Process each column individually
+        column_inputs = df[column].fillna("").astype(str)
+        token_count = await count_tokens(column_inputs.to_list())
 
-            df[token_column] += token_count
+        df[token_column] += token_count
 
-        logging.info(f"Token counting completed. Column '{token_column}' contains the total token counts.")
-        return df
-
-    except Exception as e:
-        logging.exception(f"Error calculating token count")
-        raise
+    logging.info(f"Token counting completed. Column '{token_column}' contains the total token counts.")
+    return df
 
 
-@instrumented
-def calculate_token_count(
-    df,
-    text_columns=["Summary"],
-    token_column="summary_tik_token",
-):
-    return asyncio.run(calculate_token_count_async(df, text_columns, token_column))
-
-
-def get_batches_to_merge(data, tiktoken_column, prompt_token_length=1500):
+def get_batches_to_merge(
+    data: pd.DataFrame, tiktoken_column: str, prompt_token_length: int = 1500
+) -> list[pd.DataFrame]:
     """
     Create batches that are going to be merged into a single API call to the LLM.
     A single call has to fit into the context window of the LLM.
@@ -185,11 +175,11 @@ def get_batches_to_merge(data, tiktoken_column, prompt_token_length=1500):
         return []
 
 
-async def async_chain_call(chain, input_dict: dict):
+async def async_chain_call(chain: Runnable, input_dict: dict) -> Any:
     return await asyncio.to_thread(chain.invoke, input_dict)
 
 
-async def run_async_batch(chain, batches: list[dict]):
+async def run_async_batch(chain: Runnable, batches: list[dict]) -> list[Any]:
     # gemini needs different handling of batches
     tasks = [async_chain_call(chain, b) for b in batches]
     return await asyncio.gather(*tasks)
@@ -290,7 +280,13 @@ async def separate_big_inputs(inputs: list[dict]) -> tuple[list[dict], list[dict
 
             # Use actual token counting instead of character estimation
             messages = [BaseMessage(content=input_value, type="human")]
-            tokens = await llm.aget_num_tokens_from_messages(messages)
+            try:
+                tokens = await llm.aget_num_tokens_from_messages(messages)
+            except anthropic.APIStatusError as status_error:
+                tokens = 0
+                if status_error.status_code in (status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, status.HTTP_400_BAD_REQUEST):
+                    tokens = config.token_limit
+
             token_count = token_count + tokens
 
         if token_count > config.token_limit:

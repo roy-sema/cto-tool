@@ -1,8 +1,8 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """You are tasked with generating a comprehensive summary of git initiatives and their progress. You will receive JSON data containing information about various git-related initiatives, including their completion percentages and justifications. Your task is to transform this technical data into a clear, flowing narrative.
 
@@ -23,7 +23,7 @@ Note: Do not include any boilerplate context like here is the json before the ac
 """
 
 
-class Summary(BaseModel):
+class Summary(BaseModelThatRemovesTags):
     summary: str = Field(description="Summary based on the given json data.")
 
 
@@ -32,5 +32,5 @@ prompt_template = PromptTemplate(
     input_variables=["input_json"],
 )
 
-llm = get_llm(max_tokens=5000).with_structured_output(Summary) | to_clean_dict_parser
+llm = get_llm(max_tokens=5000).with_structured_output(Summary) | to_dict_parser
 summary_chain = prompt_template | llm

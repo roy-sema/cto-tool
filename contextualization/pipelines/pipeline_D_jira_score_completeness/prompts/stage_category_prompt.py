@@ -1,13 +1,10 @@
-import logging
 from typing import Literal
 
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
-from tenacity import retry, stop_after_attempt, wait_fixed
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 classify_stage_to_category_prompt_template_string = """
 You are an expert in JIRA analysis, product management, and scrum practices. 
@@ -61,27 +58,11 @@ class StageClassifierOutput(BaseModel):
     )
 
 
-class StageClassifier(BaseModel):
+class StageClassifier(BaseModelThatRemovesTags):
     stage_categories: list[StageClassifierOutput] = Field(
         description="List of dictionaries with ticket status and category"
     )
 
 
-# Define the get_chain function
-def get_stage_chain() -> Runnable:
-    llm = get_llm(max_tokens=10_000).with_structured_output(StageClassifier) | to_clean_dict_parser
-    return classify_stage_to_category_prompt_template | llm
-
-
-# Retry the invoke call up to 50 times, waiting 60 seconds between each try
-@retry(wait=wait_fixed(60), stop=stop_after_attempt(50))
-def call_inference_with_retry_stage_chain(batch_of_jira_ticket_stages):
-    chain = get_stage_chain()
-    logging.info("Executing call_inference_with_retry_stage_chain() function")
-    try:
-        response = chain.invoke({"jira_ticket_stages": batch_of_jira_ticket_stages})
-    except Exception as e:
-        logging.exception("Exception during call_inference_with_retry_stage_chain()")
-        raise  # re-raise to trigger retry
-
-    return response
+llm = get_llm(max_tokens=10_000).with_structured_output(StageClassifier) | to_dict_parser
+stage_classification_chain = classify_stage_to_category_prompt_template | llm

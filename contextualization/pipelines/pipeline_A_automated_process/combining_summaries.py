@@ -1,41 +1,36 @@
-import asyncio
 import logging
 from collections import defaultdict
+from typing import Any
 
 from contextualization.pipelines.pipeline_A_automated_process.prompts.summary_prompt import (
     summary_chain,
 )
 
 
-# Function to process JSON strings
-def process_json_strings(categorization_json: list[dict]) -> tuple[dict, list[str], dict]:
+def process_json_strings(categorization_json: list[dict[str, Any]]) -> tuple[dict[str, Any], list[str], dict[str, Any]]:
     accumulated_data = defaultdict(lambda: defaultdict(lambda: {"percentage": 0, "justification": "", "examples": ""}))
     summary_texts = []
     counts = defaultdict(lambda: defaultdict(int))
     for data in categorization_json:
         summary_texts.append(data["summary"])
 
-        for section in ("maintenance_relevance", "categories"):
-            if section in data:
-                for key, values in data[section].items():
-                    accumulated_data[section][key]["percentage"] += values["percentage"]
-                    counts[section][key] += 1
-                    accumulated_data[section][key]["justification"] += (
-                        f" ##$## {values['justification']}"
-                        if accumulated_data[section][key]["justification"]
-                        else values["justification"]
-                    )
-                    accumulated_data[section][key]["examples"] += (
-                        f" ##$## {values['examples']}"
-                        if accumulated_data[section][key]["examples"]
-                        else values["examples"]
-                    )
+        section = "categories"
+        for key, values in data[section].items():
+            accumulated_data[section][key]["percentage"] += values["percentage"]
+            counts[section][key] += 1
+            accumulated_data[section][key]["justification"] += (
+                f" ##$## {values['justification']}"
+                if accumulated_data[section][key]["justification"]
+                else values["justification"]
+            )
+            accumulated_data[section][key]["examples"] += (
+                f" ##$## {values['examples']}" if accumulated_data[section][key]["examples"] else values["examples"]
+            )
 
     return accumulated_data, summary_texts, counts
 
 
-# Function to calculate averages and create final JSON
-def calculate_averages_and_finalize(accumulated_data, counts, summary_texts):
+def calculate_averages_and_finalize(accumulated_data: dict, counts: dict, summary_texts: list[str]) -> dict[str, Any]:
     final_data = {
         "maintenance_relevance": {},
         "categories": {},
@@ -53,12 +48,8 @@ def calculate_averages_and_finalize(accumulated_data, counts, summary_texts):
     return final_data
 
 
-# Function to split justifications and summaries into lists
-def split_justifications_and_summaries(result_json):
+def split_justifications_and_summaries(result_json: dict[str, Any]) -> list[list[str]]:
     split_list = []
-    for k in result_json["maintenance_relevance"].keys():
-        split_list.append(result_json["maintenance_relevance"][k]["justification"].split(" ##$## "))
-        split_list.append(result_json["maintenance_relevance"][k]["examples"].split(" ##$## "))
     for k in result_json["categories"].keys():
         split_list.append(result_json["categories"][k]["justification"].split(" ##$## "))
         split_list.append(result_json["categories"][k]["examples"].split(" ##$## "))
@@ -67,13 +58,7 @@ def split_justifications_and_summaries(result_json):
     return split_list
 
 
-# Function to combine summaries
-def combine_summary(entire_list):
-    return asyncio.run(summary_chain.abatch([{"list_of_summaries": lst} for lst in entire_list]))
-
-
-# Function to update final JSON with combined summaries
-def update_final_json_with_summaries(result_json, results):
+def update_final_json_with_summaries(result_json: dict[str, Any], results: list[dict[str, Any]]) -> dict[str, Any]:
     filtered_keys_mapping = [
         (top_key, sub_key)
         for top_key, sub_dict in result_json.items()
@@ -96,14 +81,14 @@ def update_final_json_with_summaries(result_json, results):
     return result_json
 
 
-def aggregate_summaries(categorization_json: list[dict]):
+async def aggregate_summaries(categorization_json: list[dict[str, Any]]):
     accumulated_data, summary_texts, counts = process_json_strings(categorization_json)
     final_data = calculate_averages_and_finalize(accumulated_data, counts, summary_texts)
     logging.info("Calculation of averages across batches completed")
 
     list_of_summary_to_extract = split_justifications_and_summaries(final_data)
     logging.info("Extracted  summaries and justification to pass on LLM")
-    results = combine_summary(list_of_summary_to_extract)
+    results = await summary_chain.abatch([{"list_of_summaries": lst} for lst in list_of_summary_to_extract])
     logging.info("Combined summaries and justification")
     updated_final_data = update_final_json_with_summaries(final_data, results)
     logging.info("completed aggregation of summaries into one file")

@@ -38,7 +38,7 @@ category_definitions_as_prompt = textwrap.indent(
 )
 
 
-def get_tags_prompt(format_as_bullet_points=False, include_anomaly_categories=False):
+def get_tags_prompt(format_as_bullet_points: bool = False, include_anomaly_categories: bool = False) -> str:
     prompt = textwrap.dedent(f"""
     You will receive fields that may include format tags like {", ".join(ALL_TAGS)}.
 

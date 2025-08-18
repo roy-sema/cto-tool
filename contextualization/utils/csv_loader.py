@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import chardet
 import pandas as pd
@@ -17,7 +18,7 @@ INTEGER_COLUMNS = [
 ]
 
 
-def detect_encoding(file_path: str, sample_size: int = 10000) -> str:
+def detect_encoding(file_path: Path, sample_size: int = 10000) -> str:
     with open(file_path, "rb") as f:
         result = chardet.detect(f.read(sample_size))
     encoding = result["encoding"] or "utf-8"
@@ -28,7 +29,7 @@ def detect_encoding(file_path: str, sample_size: int = 10000) -> str:
 def check_datatype(df: pd.DataFrame):
     # Manually and strictly parse the date column
     if "date" in df.columns:
-        # Strict parsing with expected format
+        # Strict parsing with the expected format
         df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="raise").dt.date
 
     # Manually and strictly parse the integer value columns
@@ -37,7 +38,7 @@ def check_datatype(df: pd.DataFrame):
             df[col] = pd.to_numeric(df[col], errors="raise").astype(int)
 
 
-def load_csv_safely(path: str) -> pd.DataFrame:
+def load_csv_safely(path: Path) -> pd.DataFrame:
     for encoding in ["utf-8", "utf-8-sig", "latin1"]:
         try:
             df = pd.read_csv(path, encoding=encoding)

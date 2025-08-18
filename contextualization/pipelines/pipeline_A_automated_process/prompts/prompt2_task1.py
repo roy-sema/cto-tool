@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 from contextualization.utils.pydantic_validators import parse_json_string_validator
 
 system_template = """
@@ -49,7 +49,7 @@ Description of Changes: Include details such as: The specific module or componen
 The reason for the changes (e.g., fixing a bug, adding a new feature).
 Column names: <csv_schema>{csv_schema}</csv_schema>
 Data Provided: <csv> {csv} </csv>
-Task for Analysis: <task> {task} </task>
+Task for Analysis: <task> Categorize and quantify the development work based on the changes made in different files and modules </task>
 Ensure that the sum of the work percentages totals 100%.
 Provide clear descriptions for why changes were made in each module.
 Focus only on the information from the Git diff summaries without adding extraneous context or unrelated details.
@@ -82,20 +82,7 @@ class CategoryDetails(BaseModel):
     )
 
 
-class Maintenance_Relevance(BaseModel):
-    yes: PrimaryCategoryDetails = Field(
-        description="Details for work that would definitely have been pursued in maintenance mode (Yes category)."
-    )
-    maybe: PrimaryCategoryDetails = Field(
-        description="Details for work that might have been pursued in maintenance mode (Maybe category)."
-    )
-    no: PrimaryCategoryDetails = Field(
-        description="Details for work that would definitely not have been pursued in maintenance mode (No category)."
-    )
-
-
 class Category(BaseModel):
-    # Development categories
     tech_debt: CategoryDetails = Field(description="Details for Tech Debt category.")
     new_feature: CategoryDetails = Field(description="Details for New feature category.")
     bug_fix: CategoryDetails = Field(description="Details for Bug Fix category.")
@@ -107,18 +94,15 @@ class Category(BaseModel):
 
 
 # Define the Pydantic class for the overall structure with categories and summary
-class DevelopmentSummary(BaseModel):
-    maintenance_relevance: Annotated[Maintenance_Relevance, parse_json_string_validator] = Field(
-        description="maintenace_relevance as per the given csv data"
-    )
-    categories: Annotated[Category, parse_json_string_validator] = Field(description="categories as per given csv data")
-    summary: str = Field(description="summary as per given csv data")
+class DevelopmentSummary(BaseModelThatRemovesTags):
+    categories: Annotated[Category, parse_json_string_validator] = Field(description="Categories as per given csv data")
+    summary: str = Field(description="Summary as per given csv data")
 
 
 prompt_template = PromptTemplate(
     template=system_template,
-    input_variables=["csv_schema", "csv", "task"],
+    input_variables=["csv_schema", "csv"],
 )
 
-llm = get_llm(max_tokens=10_000).with_structured_output(DevelopmentSummary) | to_clean_dict_parser
+llm = get_llm(max_tokens=10_000).with_structured_output(DevelopmentSummary) | to_dict_parser
 commit_analyser_chain = prompt_template | llm

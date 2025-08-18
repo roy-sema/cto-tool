@@ -2,7 +2,7 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """You are an expert in analyzing summaries of code changes and commit histories from GitHub repositories. Given the summary data from code pushes, your task is to extract specific, detailed insights by identifying major development activities and the exact names or descriptions of features or work completed. Specifically, you are able to:
 1. Detect important development works and name them explicitly, such as specific features (e.g., "User Profile Page Redesign," "Payment Gateway Integration"), bug fixes (e.g., "Fixed session timeout error"), refactoring efforts (e.g., "Modularized API structure"), or performance optimizations (e.g., "Reduced API response time by 20%").
@@ -31,7 +31,7 @@ class ChangeSummary(BaseModel):
     )
 
 
-class DevelopmentSummary(BaseModel):
+class DevelopmentSummary(BaseModelThatRemovesTags):
     changes: list[ChangeSummary] = Field(description="List of changes with their name, percentage, and justification.")
 
 
@@ -40,5 +40,5 @@ prompt_template = PromptTemplate(
     input_variables=["csv_schema", "csv", "task", "chat_prompt"],
 )
 
-llm = get_llm(max_tokens=10_000).with_structured_output(DevelopmentSummary) | to_clean_dict_parser
+llm = get_llm(max_tokens=10_000).with_structured_output(DevelopmentSummary) | to_dict_parser
 commit_analyser_chain = prompt_template | llm

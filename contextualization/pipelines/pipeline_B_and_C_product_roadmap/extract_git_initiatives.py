@@ -1,10 +1,10 @@
-import asyncio
 import json
 import logging
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from langchain_core.runnables import Runnable
 from otel_extensions import instrumented
 
 from contextualization.conf.config import conf, llm_name
@@ -18,7 +18,7 @@ from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.git_L1
     git_initiatives_chain,
 )
 from contextualization.tools.llm_tools import (
-    calculate_token_count,
+    calculate_token_count_async,
     get_batches_to_merge,
 )
 
@@ -26,7 +26,13 @@ batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 token_limit = conf["llms"][llm_name]["token_limit"]
 
 
-def analyze_commits_with_task(df_chunks, selected_columns, commit_analyser_chain, task, chat_input=None):
+async def analyze_commits_with_task(
+    df_chunks: list[pd.DataFrame],
+    selected_columns: dict[str, Any],
+    commit_analyser_chain: Runnable,
+    task: str,
+    chat_input: str | None = None,
+) -> list[dict[str, Any]]:
     chat_prompt = ""
     if chat_input:
         chat_prompt = "5. Pay particular attention to this custom prompt provided by the client: " + chat_input
@@ -54,18 +60,16 @@ def analyze_commits_with_task(df_chunks, selected_columns, commit_analyser_chain
         chunk_batch = chunks[i : i + chunks_per_batch]
         logging.info(f"Processing {len(chunk_batch)} chunk(s) out of total {len(chunks)}..")
         try:
-            output = asyncio.run(
-                commit_analyser_chain.abatch(
-                    [
-                        {
-                            "csv_schema": column_names,
-                            "csv": chunk,
-                            "task": task,
-                            "chat_prompt": chat_prompt,
-                        }
-                        for chunk in chunk_batch
-                    ]
-                )
+            output = await commit_analyser_chain.abatch(
+                [
+                    {
+                        "csv_schema": column_names,
+                        "csv": chunk,
+                        "task": task,
+                        "chat_prompt": chat_prompt,
+                    }
+                    for chunk in chunk_batch
+                ]
             )
 
             outputs.append(output)
@@ -77,7 +81,7 @@ def analyze_commits_with_task(df_chunks, selected_columns, commit_analyser_chain
 
 
 @instrumented
-def analyze_git_commits(
+async def analyze_git_commits(
     file_path: Path, df: pd.DataFrame, chat_input: str | None = None
 ) -> tuple[dict[str, Any], Path]:
     """
@@ -96,10 +100,12 @@ def analyze_git_commits(
     file_path = Path(file_path)
 
     # Filter columns based on the task
-    selected_columns = filter_columns(df, task)
+    selected_columns = await filter_columns(df, task)
 
     # Calculate the tik_tokens
-    df = calculate_token_count(df, text_columns=selected_columns["columns"], token_column="output_tik_tokens")
+    df = await calculate_token_count_async(
+        df, text_columns=selected_columns["columns"], token_column="output_tik_tokens"
+    )
     logging.info(f"Git Dataframe shape with token count column added: {df.shape}")
 
     # Split the DataFrame into chunks (assuming get_batches_to_merge function is defined)
@@ -107,7 +113,7 @@ def analyze_git_commits(
     logging.info(f"Number of chunks of git data: {len(df_chunks)}")
 
     # Analyze commits using the provided analyzer and filter columns
-    outputs = analyze_commits_with_task(df_chunks, selected_columns, git_initiatives_chain, task, chat_input)
+    outputs = await analyze_commits_with_task(df_chunks, selected_columns, git_initiatives_chain, task, chat_input)
 
     # Flatten the output list (assuming output is a list of lists)
     flat_output = [item for sublist in outputs for item in sublist]
@@ -120,6 +126,6 @@ def analyze_git_commits(
 
     logging.info(f"Saving the list of git initiatives json to a file: {output_file} ")
     output_file_path = file_path.parent / f"{file_path.stem}_git_data_initiatives_combined.json"
-    summary = summarize_git_initiatives(flat_output, output_file_path)
+    summary = await summarize_git_initiatives(flat_output, output_file_path)
 
     return summary, output_file_path

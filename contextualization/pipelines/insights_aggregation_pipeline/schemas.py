@@ -23,7 +23,6 @@ class Insight(BaseModel):
 
 class SkipMeetingInsights(BaseModel):
     anomaly_insights: list[Insight]
-    risk_insights: list[Insight]
 
 
 class FileEntry(BaseModel):

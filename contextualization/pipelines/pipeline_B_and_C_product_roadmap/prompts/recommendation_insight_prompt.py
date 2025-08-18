@@ -1,8 +1,8 @@
 from langchain.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """
 Analyze the initiative timeline data and provide strategic acceleration insights for each initiative. Determine the optimal target acceleration timeframe based on the data provided. Focus on strategic, systemic improvements that senior leadership can implement.
@@ -74,7 +74,7 @@ Note: Do not include any boilerplate context like here is the json before the ac
 """
 
 
-class Insights(BaseModel):
+class Insights(BaseModelThatRemovesTags):
     expedited_delivery_date: str = Field(description="expedited delivery date based on the data")
     recommendation_insight: str = Field(description="recommendation insights as per the data")
 
@@ -84,5 +84,5 @@ prompt_template = PromptTemplate(
     input_variables=["initiative", "current_date"],
 )
 
-llm = get_llm(max_tokens=8000).with_structured_output(Insights) | to_clean_dict_parser
+llm = get_llm(max_tokens=8000).with_structured_output(Insights) | to_dict_parser
 recommendation_insight_chain = prompt_template | llm

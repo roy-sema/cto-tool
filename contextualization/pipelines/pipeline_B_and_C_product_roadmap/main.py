@@ -1,17 +1,22 @@
-import asyncio
 import json
 import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
+import httpx
 import pandas as pd
-import requests
 from dateutil import parser as dateutil_parser
 from opentelemetry.trace import get_current_span
 from otel_extensions import instrumented
-from requests.exceptions import HTTPError
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from contextualization.conf.config import conf, llm_name
 from contextualization.pipelines.pipeline_B_and_C_product_roadmap.delivery_estimates import (
@@ -39,14 +44,11 @@ from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.topic_
 from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import PipelineBCResult, PipelineBCResultItem
 from contextualization.tools.json_tools import round_percentages
 from contextualization.tools.llm_tools import (
-    calculate_token_count,
+    calculate_token_count_async,
     get_batches,
 )
 from contextualization.utils.csv_loader import load_csv_safely
 from contextualization.utils.parse_jira_fields import parse_changelog_data
-from contextualization.utils.timezone_independence import (
-    adjust_start_and_end_date_for_timezone_independence,
-)
 from contextualization.utils.vcr_mocks import calls_context
 
 token_limit = conf["llms"][llm_name]["token_limit"]
@@ -54,7 +56,13 @@ batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 
 
 @instrumented
-def git_topic_assign_to_git_data(df_lists, topics, task, output_path, error_log_path):
+async def git_topic_assign_to_git_data(
+    df_lists: list[pd.DataFrame],
+    topics: dict[str, list[dict[str, str]]],
+    task: str,
+    output_path: Path,
+    error_log_path: Path,
+) -> pd.DataFrame:
     result = ""
     if "initiatives" in topics:
         for index, topic_dict in enumerate(topics["initiatives"], 1):
@@ -68,20 +76,18 @@ def git_topic_assign_to_git_data(df_lists, topics, task, output_path, error_log_
     if not result.strip():  # strip() to remove any extra whitespace
         raise ValueError("No valid topics found to process in 'initiatives'. The result is empty.")
 
-    def analyze_change_with_token_callback(batch_content):
+    async def analyze_change_with_token_callback(batch_content: list[str]) -> list[Any]:
         try:
             logging.info("Assigning Git initiatives to the current batch of Git data...")
-            outputs = asyncio.run(
-                chain_topic_assign_git.abatch(
-                    [
-                        {
-                            "diff_summary": file_content,
-                            "topic": result,
-                            "task": task,
-                        }
-                        for file_content in batch_content
-                    ]
-                )
+            outputs = await chain_topic_assign_git.abatch(
+                [
+                    {
+                        "diff_summary": file_content,
+                        "topic": result,
+                        "task": task,
+                    }
+                    for file_content in batch_content
+                ]
             )
 
             logging.info(
@@ -108,42 +114,10 @@ def git_topic_assign_to_git_data(df_lists, topics, task, output_path, error_log_
             if "Summary" not in batch.columns:
                 raise ValueError("The DataFrame must contain a 'Summary' column.")
 
-            error_records = []
-
             # Apply the analysis to each entry in the batch
-            batch_results = analyze_change_with_token_callback(batch["Summary"].tolist())
+            batch_results = await analyze_change_with_token_callback(batch["Summary"].tolist())
 
-            # Convert batch_results to a Series to use .isnan()
-            batch_results_series = pd.Series(batch_results)
-
-            # Separate successful and errored results
-            success_results = [res for res in batch_results if res is not None]
-            error_indices = batch.index[batch_results_series.isna()]
-            logging.info(f"Length of successful results obtained for batch {batch_number}: {len(success_results)}")
-
-            # Convert the results to DataFrames with the same index as the batch
-            if success_results:
-                success_df = pd.DataFrame(success_results, index=batch.index[: len(success_results)])
-                updated_batch = batch.merge(success_df, left_index=True, right_index=True)
-
-                # Append the updated batch incrementally to the output CSV
-                updated_batch.to_csv(
-                    output_path,
-                    mode="a",
-                    header=not os.path.exists(output_path),  # Only write the header for the first batch
-                    index=False,
-                )
-            if not error_indices.empty:
-                # Collect error records for the current batch
-                error_records = batch.loc[error_indices]
-
-                # Append to error log CSV file immediately
-                error_records.to_csv(
-                    error_log_path,
-                    mode="a",
-                    index=False,
-                    header=not os.path.exists(error_log_path),
-                )
+            process_batch_results(batch, batch_results, batch_number, output_path, error_log_path)
 
     except Exception:
         logging.exception("Pipeline B/C - Error occurred while assigning git initiatives to git data batches")
@@ -155,40 +129,29 @@ def git_topic_assign_to_git_data(df_lists, topics, task, output_path, error_log_
         raise FileNotFoundError(f"The file '{output_path}' does not exist.")
 
 
-def project_exists(
+async def project_exists(
     jira_url: str,
     project_key: str,
-    user: str,
-    confluence_token: str,
+    user: str | None,
+    confluence_token: str | None,
     start_date: str,
     end_date: str,
     jira_access_token: str | None = None,
-):
+) -> bool:
     """
     Check if a project exists in Jira.
-
-    Args:
-        jira_url (str): The base URL of Jira.
-        project_key (str): The key of the project to check.
-        user (str): The username for basic authentication.
-        confluence_token (str): The token for basic authentication.
-        start_date (str): The start date.
-        end_date (str): The end date.
-        jira_access_token (str): The access token for Jira API authentication.
-
-    Returns:
-        bool: True if the project exists, False otherwise.
     """
 
     jql_query = f'project="{project_key}" AND created >= "{start_date}" AND created <= "{end_date}"'
-    api_url = f"{jira_url}/rest/api/2/search?jql={requests.utils.quote(jql_query)}&maxResults=10&expand=changelog"
+    api_url = f"{jira_url}/rest/api/2/search?jql={quote(jql_query)}&maxResults=10&expand=changelog"
 
     headers = {"Accept": "application/json"}
+    client = httpx.AsyncClient()
     if jira_access_token:
         headers["Authorization"] = f"Bearer {jira_access_token}"
-        response = requests.get(api_url, headers=headers)
+        response = await client.get(api_url, headers=headers)
     else:
-        response = requests.get(api_url, auth=(user, confluence_token), headers=headers)
+        response = await client.get(api_url, auth=(user, confluence_token), headers=headers)
 
     if response.status_code != 200:
         logging.warning(
@@ -200,16 +163,55 @@ def project_exists(
         return True
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=60, max=60 * 3),
+    retry=retry_if_exception_type(httpx.RequestError),
+    reraise=True,
+)
+async def _fetch_data_jira_api(
+    client: httpx.AsyncClient,
+    api_url: str,
+    jira_access_token: str | None = None,
+    user: str | None = None,
+    confluence_token: str | None = None,
+):
+    headers = {"Accept": "application/json"}
+    if jira_access_token:
+        headers["Authorization"] = f"Bearer {jira_access_token}"
+        response = await client.get(api_url, headers=headers)
+    else:
+        response = await client.get(api_url, auth=(user, confluence_token), headers=headers)
+
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError:
+        if response.status_code == 400:
+            logging.exception(
+                "JIRA API returned 400 (Bad Request). Possibly due to malformed JQL or empty project list.",
+                extra={
+                    "response_status": response.status_code,
+                    "response_text": response.text,
+                    "api_url": api_url,
+                },
+            )
+            return None
+
+        raise
+
+    return response.json()
+
+
 @instrumented
-def get_jira_data_contextualization(
+async def get_jira_data_contextualization(
     jira_url: str,
-    project_names: list,
-    user: str,
-    confluence_token: str,
+    project_names: list[str],
+    user: str | None,
+    confluence_token: str | None,
     start_date: str,
     end_date: str,
     jira_access_token: str | None = None,
-):
+) -> pd.DataFrame:
     try:
         as_of_date = datetime.strptime(start_date, "%Y-%m-%d").date()
 
@@ -222,7 +224,7 @@ def get_jira_data_contextualization(
         # Project names list - only of projects that exist
         project_names_that_exist = []
         for project in project_names:
-            if project_exists(
+            if await project_exists(
                 jira_url,
                 project,
                 user,
@@ -238,6 +240,7 @@ def get_jira_data_contextualization(
             return pd.DataFrame()
 
         project_list = ",".join([f'"{p}"' for p in project_names_that_exist])
+        client = httpx.AsyncClient(timeout=30)
 
         while True:
             # Ensures proper quoting
@@ -250,43 +253,14 @@ def get_jira_data_contextualization(
 
             api_url = (
                 f"{jira_url}/rest/api/2/search?"
-                f"jql={requests.utils.quote(jql_query)}"
+                f"jql={quote(jql_query)}"
                 f"&fields={fields_to_fetch}"
                 f"&maxResults={max_results}&startAt={start_at}&expand=changelog"
             )
+            data = await _fetch_data_jira_api(client, api_url, jira_access_token, user, confluence_token)
+            if data is None:
+                return pd.DataFrame()
 
-            headers = {"Accept": "application/json"}
-            if jira_access_token:
-                headers["Authorization"] = f"Bearer {jira_access_token}"
-                response = requests.get(api_url, headers=headers)
-            else:
-                response = requests.get(api_url, auth=(user, confluence_token), headers=headers)
-
-            try:
-                response.raise_for_status()
-            except HTTPError as http_err:
-                if response.status_code == 400:
-                    logging.exception(
-                        "JIRA API returned 400 (Bad Request). Possibly due to malformed JQL or empty project list.",
-                        extra={
-                            "response_status": response.status_code,
-                            "response_text": response.text,
-                            "api_url": api_url,
-                        },
-                    )
-                    return pd.DataFrame()
-                else:
-                    logging.exception(
-                        "Error fetching JIRA data",
-                        extra={
-                            "response_status": response.status_code,
-                            "response_text": response.text,
-                            "api_url": api_url,
-                        },
-                    )
-                    raise  # re-raise to be caught by outer exception handler
-
-            data = response.json()
             for issue in data.get("issues", []):
                 updated_date = dateutil_parser.parse(issue["fields"].get("updated", "")).date()
 
@@ -325,29 +299,20 @@ def get_jira_data_contextualization(
 
 
 @instrumented
-def process_jira_data(
+async def process_jira_data(
     jira_url: str,
-    project_names: list,
-    confluence_user: str,
-    confluence_token: str,
+    project_names: list[str],
+    confluence_user: str | None,
+    confluence_token: str | None,
     start_date: str,
     end_date: str,
     jira_access_token: str | None = None,
-):
+) -> pd.DataFrame:
     """
     Process JIRA data and return a cleaned DataFrame with important columns.
     """
     try:
-        original_start_date, original_end_date = start_date, end_date
-        """
-            Since JQL doesn't allow timezone in the query, we will consider the 
-            range [start_date - 48 hours, end_date + 48 hours].
-        """
-        logging.info(f"Original start_date and end_date: {start_date, end_date}")
-        start_date, end_date = adjust_start_and_end_date_for_timezone_independence(start_date, end_date)
-        logging.info(f"Adjusted start_date and end_date: {start_date, end_date}")
-
-        df = get_jira_data_contextualization(
+        df = await get_jira_data_contextualization(
             jira_url,
             project_names,
             confluence_user,
@@ -390,9 +355,7 @@ def process_jira_data(
         df = df[df.columns.intersection(important_columns)]
 
         # Process columns safely
-        df["status"] = df["status"].apply(
-            lambda x: (x.get("statusCategory", {}).get("name") if isinstance(x, dict) else None)
-        )
+        df["status"] = df["status"].apply(lambda x: (x.get("name") if isinstance(x, dict) else None))
         df["assignee"] = df["assignee"].apply(lambda x: x.get("displayName") if isinstance(x, dict) else None)
         df["priority"] = df["priority"].apply(lambda x: x.get("name") if isinstance(x, dict) else None)
         df["issuetype"] = df["issuetype"].apply(lambda x: x.get("name") if isinstance(x, dict) else None)
@@ -411,8 +374,8 @@ def process_jira_data(
         df["timezone_independent_updated_date"] = pd.to_datetime(
             df["updated"].str.split("T").str[0], errors="coerce"
         ).dt.date
-        start_date_filter = pd.to_datetime(original_start_date).date()
-        end_date_filter = pd.to_datetime(original_end_date).date()
+        start_date_filter = pd.to_datetime(start_date).date()
+        end_date_filter = pd.to_datetime(end_date).date()
         timezone_filtered_df = df[
             (
                 (df["timezone_independent_created_date"] >= start_date_filter)
@@ -431,34 +394,38 @@ def process_jira_data(
 
 
 @instrumented
-def git_topic_assign_to_jira_data(df_lists, topics, task, output_path, error_log_path):
+async def git_topic_assign_to_jira_data(
+    df_lists: list[pd.DataFrame],
+    topics: dict[str, list[dict[str, str]]],
+    task: str,
+    output_path: Path,
+    error_log_path: Path,
+) -> pd.DataFrame:
     result = ""
     if "initiatives" in topics:
         for index, topic_dict in enumerate(topics["initiatives"], 1):
-            # Add numbered topic
+            # Add a numbered topic
             result += f"{index}. Topic: {topic_dict['initiative_name']}\n"
 
             # Add description with "Description:" prefix
             result += f"   Description: {topic_dict['initiative_description']}\n\n"
 
-    # Check if result is empty after processing
+    # Check if a result is empty after processing
     if not result.strip():  # strip() to remove any extra whitespace
         raise ValueError("No valid initiatives found to process in 'initiatives'. The result is empty.")
 
-    def analyze_change_with_token_callback(batch_content):
+    async def analyze_change_with_token_callback(batch_content: list[str]) -> list[Any]:
         try:
             logging.info("Assigning Git initiatives to the current batch of Jira data...")
-            outputs = asyncio.run(
-                chain_topic_assign_to_jira_from_git.abatch(
-                    [
-                        {
-                            "jira_description": file_content,
-                            "topic": result,
-                            "task": task,
-                        }
-                        for file_content in batch_content
-                    ]
-                )
+            outputs = await chain_topic_assign_to_jira_from_git.abatch(
+                [
+                    {
+                        "jira_description": file_content,
+                        "topic": result,
+                        "task": task,
+                    }
+                    for file_content in batch_content
+                ]
             )
             logging.info(
                 f"Successfully assigned Git initiatives to records of jira data.",
@@ -483,42 +450,10 @@ def git_topic_assign_to_jira_data(df_lists, topics, task, output_path, error_log
             if "description" not in batch.columns:
                 raise ValueError("The DataFrame must contain a 'description' column.")
 
-            error_records = []
-
             # Apply the analysis to each entry in the batch with
-            batch_results = analyze_change_with_token_callback(batch["description"].tolist())
+            batch_results = await analyze_change_with_token_callback(batch["description"].tolist())
 
-            # Convert batch_results to a Series to use .isna()
-            batch_results_series = pd.Series(batch_results)
-
-            # Separate successful and errored results
-            success_results = [res for res in batch_results if res is not None]
-            logging.info(f"Length of successful results obtained for batch {batch_number}: {len(success_results)}")
-            error_indices = batch.index[batch_results_series.isna()]
-
-            # Convert the results to DataFrames with the same index as the batch
-            if success_results:
-                success_df = pd.DataFrame(success_results, index=batch.index[: len(success_results)])
-                updated_batch = batch.merge(success_df, left_index=True, right_index=True)
-                # Append the updated batch incrementally to the output CSV
-                updated_batch.to_csv(
-                    output_path,
-                    mode="a",
-                    header=not os.path.exists(output_path),  # Only write the header for the first batch
-                    index=False,
-                )
-
-            if not error_indices.empty:
-                # Collect error records for the current batch
-                error_records = batch.loc[error_indices]
-
-                # Append to error log CSV file immediately
-                error_records.to_csv(
-                    error_log_path,
-                    mode="a",
-                    index=False,
-                    header=not os.path.exists(error_log_path),
-                )
+            process_batch_results(batch, batch_results, batch_number, output_path, error_log_path)
 
     except Exception:
         logging.exception("Pipeline B/C - Error occurred while assigning git initiatives to jira data batches")
@@ -530,18 +465,53 @@ def git_topic_assign_to_jira_data(df_lists, topics, task, output_path, error_log
         raise FileNotFoundError(f"The file '{output_path}' does not exist.")
 
 
-def update_changes_with_percentages(df, data, column_name):
+def process_batch_results(
+    batch: pd.DataFrame,
+    batch_results: list[Any],
+    batch_number: int,
+    output_path: Path,
+    error_log_path: Path,
+) -> None:
+    """
+    Process batch results by separating successful and errored results,
+    writing successful results to output CSV and errors to error log CSV.
+    """
+
+    batch_results_series = pd.Series(batch_results)
+
+    success_results = [res for res in batch_results if res is not None]
+    logging.info(f"Length of successful results obtained for batch {batch_number}: {len(success_results)}")
+    error_indices = batch.index[batch_results_series.isna()]
+
+    if success_results:
+        success_df = pd.DataFrame(success_results, index=batch.index[: len(success_results)])
+        updated_batch = batch.merge(success_df, left_index=True, right_index=True)
+        updated_batch.to_csv(
+            output_path,
+            mode="a",
+            header=not os.path.exists(output_path),
+            index=False,
+        )
+
+    if not error_indices.empty:
+        error_records = batch.loc[error_indices]
+
+        error_records.to_csv(
+            error_log_path,
+            mode="a",
+            index=False,
+            header=not os.path.exists(error_log_path),
+        )
+
+
+def update_changes_with_percentages(
+    df: pd.DataFrame,
+    data: dict[str, Any],
+    column_name: str,
+) -> dict[str, Any]:
     """
     Updates the 'initiatives' key in the provided JSON-like dictionary `data`
     with the percentages of each category from the DataFrame `df`.
-
-    Parameters:
-        df (pd.DataFrame): The DataFrame containing the data.
-        data (dict): The JSON-like dictionary containing a 'initiatives' key to update.
-        column_name (str): The column in `df` to calculate percentages from.
-
-    Returns:
-        dict: The updated `data` dictionary.
     """
     logging.info("Updating the percentage with actual percentages of git initiatives.")
     try:
@@ -563,14 +533,19 @@ def update_changes_with_percentages(df, data, column_name):
 
         return data
 
-    except Exception as e:
+    except Exception:
         logging.exception(
             f"Pipeline B/C - Error while updating the percentage with actual percentages for git initiatives"
         )
-        return data  # Return the original data in case of an error
+        return data
 
 
-def add_jira_initiative_completion_percentage(data, jira_data, end_date_dict, initiative_column_label):
+def add_jira_initiative_completion_percentage(
+    data: dict[str, Any],
+    jira_data: pd.DataFrame,
+    end_date_dict: dict[str, Any],
+    initiative_column_label: str,
+) -> dict[str, Any]:
     """
     Updates the 'initiatives' key in the provided JSON-like dictionary `data`
     with the percentages of each category from the Jira data.
@@ -615,16 +590,9 @@ def add_jira_initiative_completion_percentage(data, jira_data, end_date_dict, in
 
 
 @instrumented
-def add_summary(input_data: dict[str, Any], file_path: Path):
+async def add_summary(input_data: dict[str, Any], file_path: Path) -> dict[str, Any] | None:
     """
     Reads a JSON file, processes its data using the summary chain, and updates the file.
-
-    Args:
-        input_data: git initiatives data.
-        file_path: Path to the JSON file.
-
-    Returns:
-        dict: The updated JSON data.
     """
     logging.info("Updating the git initiative json with summary.")
     try:
@@ -633,7 +601,7 @@ def add_summary(input_data: dict[str, Any], file_path: Path):
             raise TypeError("JSON file content must be a dictionary.")
 
         # Process the data
-        response = summary_chain.invoke({"input_json": input_data})
+        response = await summary_chain.ainvoke({"input_json": input_data})
 
         # Update the data and write it back to the file
         input_data.update(response)
@@ -644,31 +612,24 @@ def add_summary(input_data: dict[str, Any], file_path: Path):
 
         return input_data
 
-    except Exception as e:
+    except Exception:
         logging.exception(f"Pipeline B/C - An error occurred while updating the git initiative json with summary")
 
 
 def add_start_date(
-    data: pd.DataFrame, json_data: dict[str, Any], output_csv: Path, initiative_column_label: str
+    data: pd.DataFrame,
+    json_data: dict[str, Any],
+    output_csv: Path,
+    initiative_column_label: str,
 ) -> tuple[dict[str, Any], pd.DataFrame]:
     """
     Adds the earliest 'start_date' for each initiative in the given DataFrame.
-
-    Parameters:
-        data (pd.DataFrame): DataFrame containing Jira data labelled with initiatives with 'created' dates.
-        json_data (dict): JSON structure containing initiative details.
-        output_csv (Path): File path to save the updated CSV.
-        initiative_column_label (str): Initiative column name.
-
-    Returns:
-        dict: Updated JSON data with 'start_date' added.
-        df: DataFrame with Jira data.
     """
     updated_data = None
     try:
-        # Ensure 'created' column is in datetime format, dropping invalid values
+        # Ensure the 'created' column is in datetime format, dropping invalid values
         data["created"] = pd.to_datetime(data["created"], errors="coerce")
-        data = data.dropna(subset=["created"])  # Remove rows where 'created' is NaT
+        data = data.dropna(subset=["created"])  # Remove rows where 'created' is NaN
 
         # Get the earliest 'created' date for each initiative
         earliest_dates = data.groupby(initiative_column_label)["created"].min().reset_index()
@@ -696,17 +657,18 @@ def add_start_date(
         # Add 'start_date' to JSON
         for change in json_data.get("initiatives", []):  # Use .get() to prevent KeyError
             initiative_name = change.get("initiative_name")
-            change["start_date"] = str(start_date_dict.get(initiative_name, None))  # Convert to string for JSON
+            start_date_value = start_date_dict.get(initiative_name, None)
+            change["start_date"] = str(start_date_value) if start_date_value is not None else None
 
         logging.info(f"'start_date' added to initiatives successfully")
 
-    except Exception as e:
+    except Exception:
         logging.exception(f"Pipeline B/C - An error occurred while adding the start_date")
 
     return json_data, updated_data
 
 
-def delete_existing_files(*file_paths):
+def delete_existing_files(*file_paths: Path) -> None:
     """Delete specified files if they exist."""
     for file_path in file_paths:
         if file_path.exists():
@@ -715,25 +677,34 @@ def delete_existing_files(*file_paths):
 
 
 @instrumented
-def get_estimated_end_date(jira_data, initiative_column_label):
-    """takes jira data as input and returns a dictionary with initiatives and
-    there end date estimates
+def get_estimated_end_date(
+    jira_data: pd.DataFrame, initiative_column_label: str, jira_data_path: Path
+) -> dict[str, Any]:
+    """
+    Takes jira data as input and returns a dictionary with initiatives and their end date estimates.
     """
     logging.info(f"calculating estimated end date")
     done_status = jira_data[jira_data["status"] == "Done"]
     if done_status.shape[0] == 0:
         return {}
 
-    def parse_jira_datetime(timestamp):
+    filepath = jira_data_path / "original_jira_data.json"
+    with open(filepath, "w") as f:
+        json.dump(done_status.to_dict(), f, indent=4)
+
+    logging.info(f"original jira data saved to {filepath}")
+
+    def parse_jira_datetime(timestamp: str) -> datetime:
         return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
 
     # Extract the time difference between "In Progress" to "Done"
-    def calculate_status_time_difference(changelog):
-        """This function calculate the start and end date from jira data
-        this function try to fetch start date of a ticket by 2 ways:
-            1. if in the jira extracted history we get the date when the task was changed
-             to inprogress we take that date
-            2. if we do not find the task string in-progress then we make created date as in-progress
+    def calculate_status_time_difference(changelog: list[dict[str, Any]]) -> tuple[float | str, datetime | str]:
+        """
+        This function calculates the start and end date from jira data.
+        This function tries to fetch the start date of a ticket in 2 ways:
+            1. If in the jira extracted history we get the date when the task was changed
+             to inprogress, we take that date
+            2. If we do not find the task string in-progress, then we make the created date as in-progress
         This function try to fetch the done date when the task string in jira data is marked as done
         This function then calculate the difference in hours by done date - in progress date
         """
@@ -772,6 +743,7 @@ def get_estimated_end_date(jira_data, initiative_column_label):
     logging.info(f"calculating the average time take by task per initiative to complete")
     # Convert 'completed_time' to numeric, setting errors='coerce' to ignore strings
     done_status["completed_time"] = pd.to_numeric(done_status["completed_time"], errors="coerce")
+
     # Drop rows where 'completed_time' is NaN (caused by conversion errors)
     done_status = done_status.dropna(subset=["completed_time"])
     avg_done_time_for_category = (
@@ -798,19 +770,17 @@ def get_estimated_end_date(jira_data, initiative_column_label):
     )  # Second merge
     count_df.fillna({"ticket_count": 0}, inplace=True)
 
-    def calculate_total_time(row):
+    def calculate_total_time(row: pd.Series) -> float | str:
         try:
-            # Attempt to calculate the total time
             return row["completed_time"] * row["ticket_count"]
         except Exception:
-            # Handle any errors and return a fallback value
             return "cannot be calculated"
 
     # Apply the function row-wise
     count_df["total_time_remaining"] = count_df.apply(calculate_total_time, axis=1)
 
-    def add_hours_to_date(row):
-        today = datetime.now()  # Get today's date and time
+    def add_hours_to_date(row: pd.Series) -> datetime.date:
+        today = datetime.now()
         updated_date = today + timedelta(hours=row["total_time_remaining"])  # Add hours
         if row["ticket_count"] < 1:
             return row["done_date"].date()
@@ -819,7 +789,12 @@ def get_estimated_end_date(jira_data, initiative_column_label):
 
     # this will calculate the estimated time if the task is not 100% done and if 100%
     # then return the max date.
-    count_df["estimated_end_date"] = count_df.apply(lambda row: add_hours_to_date(row), axis=1).astype(str)
+
+    if count_df.empty:
+        logging.info("Analysis data is empty, fallback to empty return")
+        return {}
+
+    count_df["estimated_end_date"] = count_df.apply(add_hours_to_date, axis=1).astype(str)
     category_end_date = dict(
         zip(
             count_df[initiative_column_label],
@@ -830,7 +805,7 @@ def get_estimated_end_date(jira_data, initiative_column_label):
     return category_end_date
 
 
-async def add_estimated_end_date_insights(input_data):
+async def add_estimated_end_date_insights(input_data: dict[str, Any]) -> dict[str, Any]:
     logging.info("Adding estimated end date insights to initiatives.")
 
     initiatives = input_data["initiatives"]
@@ -885,7 +860,7 @@ async def add_estimated_end_date_insights(input_data):
     return input_data
 
 
-def normalize_epics_percentage(initiatives_json):
+def normalize_epics_percentage(initiatives_json: dict[str, Any]) -> dict[str, Any]:
     """
     Normalizes epic percentages within each initiative based on its total percentage.
     """
@@ -918,10 +893,10 @@ def normalize_epics_percentage(initiatives_json):
 
 
 @instrumented
-def reconciliation_insights(git_initiatives, insights_path):
+async def reconciliation_insights(git_initiatives: dict[str, Any], insights_path: str | Path) -> list[Any]:
     insights = []
     try:
-        insights = insights_chain.invoke({"git_initiatives": git_initiatives})
+        insights = await insights_chain.ainvoke({"git_initiatives": git_initiatives})
         logging.info(f"Extracted the reconciliation insights from the data.")
 
         # Store the insights into json file
@@ -935,13 +910,13 @@ def reconciliation_insights(git_initiatives, insights_path):
 
 @instrumented
 async def add_expedited_date_recommendation_insights(
-    initiatives: dict[str, Any], initiative_path: Path
+    initiatives: dict[str, Any], initiative_path: Path, today_date: datetime
 ) -> dict[str, Any]:
     """
     Load initiatives from a JSON file, generate recommendation insights, and update the initiatives.
     """
     try:
-        current_date = datetime.now()  # Get today's date and time
+        current_date = today_date.date().isoformat()
 
         # Prepare batch inputs for initiatives that need LLM processing
         batch_inputs = []
@@ -961,7 +936,7 @@ async def add_expedited_date_recommendation_insights(
                 for idx, recommendation_insight in zip(initiative_mappings, recommendation_insights):
                     initiatives["initiatives"][idx].update(recommendation_insight)
 
-            except Exception as e:
+            except Exception:
                 logging.exception(f"Pipeline B/C - Error processing batch recommendations")
 
         # Save the updated initiatives back to the file
@@ -969,13 +944,14 @@ async def add_expedited_date_recommendation_insights(
             json.dump(initiatives, file, indent=4)
         logging.info(f"Updated initiatives with recommendation insights saved to: {initiative_path}")
 
-    except Exception as e:
+    except Exception:
         logging.exception(f"Pipeline B/C - An error occurred while generating the recommendation insights")
 
     return initiatives
 
 
-def main(
+async def main(
+    today_date: datetime,
     chat_input: str | None = None,
     jira_data_df: pd.DataFrame | None = None,
     git_data_with_summary_df: pd.DataFrame | None = None,
@@ -1036,10 +1012,10 @@ def main(
     task = "Assign the topics based on provided Summary."
 
     # Calculate token count
-    git_data = calculate_token_count(git_data_with_summary_df)
+    git_data = await calculate_token_count_async(git_data_with_summary_df)
 
     # Process Git initiatives
-    git_initiatives, git_initiatives_path = analyze_git_commits(
+    git_initiatives, git_initiatives_path = await analyze_git_commits(
         git_data_summary_csv_path, git_data_with_summary_df, chat_input
     )
 
@@ -1047,7 +1023,7 @@ def main(
     batches_of_df_git = get_batches(git_data, tiktoken_column="summary_tik_token")
 
     # Assign Git initiatives to git data
-    output_data_git = git_topic_assign_to_git_data(
+    output_data_git = await git_topic_assign_to_git_data(
         batches_of_df_git,
         git_initiatives,
         task,
@@ -1080,11 +1056,11 @@ def main(
         )
 
         # Assign Git initiatives to Jira data
-        jira_data_df = calculate_token_count(
+        jira_data_df = await calculate_token_count_async(
             jira_data_df, text_columns=["description"], token_column="description_token"
         )
         batches_of_jira_data = get_batches(jira_data_df, tiktoken_column="description_token")
-        output_jira_data = git_topic_assign_to_jira_data(
+        output_jira_data = await git_topic_assign_to_jira_data(
             batches_of_jira_data,
             git_initiatives,
             task,
@@ -1092,7 +1068,7 @@ def main(
             error_log_path_for_jira_git_initiatives,
         )
 
-        end_time_estimates = get_estimated_end_date(output_jira_data, "Categorization_of_initiative_git")
+        end_time_estimates = get_estimated_end_date(output_jira_data, "Categorization_of_initiative_git", jira_only_dir)
         logging.info(f"End time estimates for git initiatives::{end_time_estimates}")
 
         git_updated_initiatives = add_jira_initiative_completion_percentage(
@@ -1114,7 +1090,7 @@ def main(
     logging.info("Round percentages")
     round_percentages(
         git_updated_initiatives,
-        ["initiative_percentage", "epic_percentage", "percentage_tickets_done"],
+        ("initiative_percentage", "epic_percentage", "percentage_tickets_done"),
     )
 
     try:
@@ -1127,26 +1103,24 @@ def main(
     insights = None
     if jira_data_df is not None and not jira_data_df.empty:  # If Jira data is available
         # Generating the reconciliation insights from the jira and git initiatives
-        insights = reconciliation_insights(git_updated_initiatives, insights_path)
+        insights = await reconciliation_insights(git_updated_initiatives, insights_path)
 
         # Adding the summary for the git initiatives JSON
-        git_updated_initiatives = add_summary(git_updated_initiatives, git_initiatives_path)
+        git_updated_initiatives = await add_summary(git_updated_initiatives, git_initiatives_path)
 
         # Adding the expedited delivery date recommendation insights
-        git_updated_initiatives = asyncio.run(
-            add_expedited_date_recommendation_insights(git_updated_initiatives, git_initiatives_path)
+        git_updated_initiatives = await add_expedited_date_recommendation_insights(
+            git_updated_initiatives, git_initiatives_path, today_date
         )
 
         # Add delivery estimates to Git initiatives
         logging.info("Adding delivery estimates to Git initiatives...")
         try:
-            git_updated_initiatives = asyncio.run(
-                append_git_delivery_estimates(
-                    output_data_git,
-                    jira_df,
-                    git_updated_initiatives,
-                    git_initiatives_path,
-                )
+            git_updated_initiatives = await append_git_delivery_estimates(
+                output_data_git,
+                jira_df,
+                git_updated_initiatives,
+                git_initiatives_path,
             )
             logging.info(f"Successfully added delivery estimates to Git initiatives at {git_initiatives_path}")
         except Exception as e:
@@ -1158,10 +1132,11 @@ def main(
     )
 
 
-def run_pipeline_b_c(
+async def run_pipeline_b_c(
     data_dir: str,
     summary_data_dfs: dict[str, pd.DataFrame],
     repo_group_git_repos: dict[str, list[str]],
+    today_date: datetime,
     repo_group_jira_projects: dict[str, list[str]] | None = None,
     confluence_user: str | None = None,
     confluence_token: str | None = None,
@@ -1198,14 +1173,14 @@ def run_pipeline_b_c(
             end_date = git_data_with_summary_df["date"].max()
 
         jira_data_df = None
-        with calls_context("pipeline_bc.json"):
+        with calls_context("pipeline_bc.yaml"):
             jira_project_names = repo_group_jira_projects.get(group_name)
             if ((confluence_user and confluence_token) or jira_access_token) and jira_project_names:
                 logging.info(f"Fetching Jira data securely using Confluence token authentication.")
                 logging.info(
                     f"Fetching data from date: {start_date} Till date: {end_date} Project names: {jira_project_names}"
                 )
-                jira_data_df = process_jira_data(
+                jira_data_df = await process_jira_data(
                     jira_url,
                     jira_project_names,
                     confluence_user,
@@ -1223,6 +1198,6 @@ def run_pipeline_b_c(
                     extra={"jira_project": jira_project_names},
                 )
 
-            item = main(chat_input, jira_data_df, git_data_with_summary_df, git_data_path)
+            item = await main(today_date, chat_input, jira_data_df, git_data_with_summary_df, git_data_path)
             result_items[group_name] = item
     return PipelineBCResult(items=result_items)

@@ -71,7 +71,7 @@ IRRELEVANT_EXTENSIONS = [
 ]
 
 
-def is_irrelevant_file(file_path):
+def is_irrelevant_file(file_path: str) -> bool:
     # Check if file matches any irrelevance pattern
     if any(re.search(pattern, str(file_path), re.IGNORECASE) for pattern in IRRELEVANT_PATTERNS):
         logging.info(f"Irrelevant file: {file_path}")
@@ -84,7 +84,7 @@ def is_irrelevant_file(file_path):
     return False
 
 
-def filter_git_diff(code):
+def filter_git_diff(code: str | None) -> str | None:
     """Filter out irrelevant file diffs from git diff output"""
     if not code or not isinstance(code, str):
         return code
@@ -120,21 +120,31 @@ def filter_files(file_paths: list[str]) -> list[str]:
     return result
 
 
-def filter_irrelevant_files(df):
-    filtered_df = df.copy()
+def filter_irrelevant_files_records(records):
+    """Filter irrelevant files from a list of records (dictionaries)."""
+    filtered_records = []
 
-    # Filter out irrelevant files from 'files' column if it exists
-    if "files" in filtered_df.columns:
-        filtered_df["files"] = filtered_df["files"].apply(filter_files)
+    for record in records:
+        filtered_record = record.copy()
 
-    # Filter git diff content from 'code' column if it exists
-    if "code" in filtered_df.columns:
-        filtered_df["code"] = filtered_df["code"].apply(filter_git_diff)
-        filtered_df = filtered_df[(filtered_df["code"] != "") & (filtered_df["code"].notna())]
+        # Filter out irrelevant files from 'files' column if it exists
+        if "files" in filtered_record:
+            filtered_record["files"] = filter_files(filtered_record["files"])
+
+        # Filter git diff content from 'code' column if it exists
+        if "code" in filtered_record:
+            filtered_code = filter_git_diff(filtered_record["code"])
+            filtered_record["code"] = filtered_code
+
+            # Skip records with empty or None code after filtering
+            if not filtered_code or filtered_code.strip() == "":
+                continue
+
+        filtered_records.append(filtered_record)
 
     # Print statistics
-    total_files = len(df)
-    removed_files = total_files - len(filtered_df)
+    total_files = len(records)
+    removed_files = total_files - len(filtered_records)
     if total_files > 0:
         removal_percentage = removed_files / total_files * 100
     else:
@@ -143,4 +153,4 @@ def filter_irrelevant_files(df):
     logging.info(
         f"Total files: {total_files} Removed files: {removed_files} Removal percentage: {removal_percentage:.2f}%"
     )
-    return filtered_df
+    return filtered_records

@@ -1,15 +1,14 @@
-import asyncio
-import json
 import logging
 
 import pandas as pd
 
 from contextualization.conf.config import conf, llm_name
+from contextualization.pipelines.pipeline_A_automated_process.models import CommitCollection
 from contextualization.pipelines.pipeline_A_automated_process.prompts.prompt2_task1 import (
     commit_analyser_chain,
 )
 from contextualization.tools.llm_tools import (
-    calculate_token_count,
+    calculate_token_count_async,
     get_batches_to_merge,
 )
 
@@ -17,8 +16,7 @@ batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 token_limit = conf["llms"][llm_name]["token_limit"]
 
 
-def analyze_commits_with_task(dfs):
-    task = """Categorize and quantify the development work based on the changes made in different files and modules"""
+async def analyze_commits_with_task(dfs: list[pd.DataFrame]) -> list[dict]:
     # Filter columns based on the task
     selected_columns = {
         "columns": [
@@ -49,24 +47,24 @@ def analyze_commits_with_task(dfs):
         chunk_batch = chunks[i : i + chunks_per_batch]
         logging.info(f"Processing {len(chunk_batch)} chunk(s) out of total {len(chunks)}..")
         try:
-            output = asyncio.run(
-                commit_analyser_chain.abatch(
-                    [{"csv_schema": column_names, "csv": chunk, "task": task} for chunk in chunk_batch]
-                )
+            output = await commit_analyser_chain.abatch(
+                [{"csv_schema": column_names, "csv": chunk} for chunk in chunk_batch]
             )
             outputs.append(output)
         except Exception as e:
             logging.exception(f"Pipeline A - Error categorizing git diff record")
             continue
-    return outputs
+
+    return [item for sublist in outputs for item in sublist]
 
 
-def categorize_and_quantify_development_work_from_summaries(
-    df_git_summaries: pd.DataFrame,
-    output_json_path,
-):
+async def categorize_and_quantify_development_work_from_summaries(
+    git_summaries: CommitCollection,
+) -> list[dict]:
+    df_git_summaries = pd.DataFrame(git_summaries.to_records())
+
     # Calculate the tik_tokens
-    df_git_summaries = calculate_token_count(
+    df_git_summaries = await calculate_token_count_async(
         df_git_summaries,
         text_columns=[
             "Summary",
@@ -85,32 +83,5 @@ def categorize_and_quantify_development_work_from_summaries(
         extra={"batches_count": len(dfs), "batches_type": "commits_summary"},
     )
 
-    output = analyze_commits_with_task(dfs)
-    categorization_and_quantification_of_dev_work = [item for sublist in output for item in sublist]
-    with open(output_json_path, "w") as file:
-        json.dump(categorization_and_quantification_of_dev_work, file, indent=4)
+    categorization_and_quantification_of_dev_work = await analyze_commits_with_task(dfs)
     return categorization_and_quantification_of_dev_work
-
-
-def count_changes_per_repository(df, output_json_path):
-    # Count the number of changes per repository and category
-    result = df.groupby(["repository", "Categorization_of_Changes"]).size().reset_index().rename(columns={0: "counts"})
-
-    # Create a dictionary to store the counts per repository
-    changes_dict = {}
-    for repo in result["repository"].unique():
-        changes_dict[repo] = {}
-        repo_data = result[result["repository"] == repo]
-        for _, row in repo_data.iterrows():
-            category = row["Categorization_of_Changes"]
-            count = row["counts"]
-            logging.info(
-                f"Changes count for {repo} and {category}: {count}",
-                extra={"repo": repo, "category": category, "count": count},
-            )
-            changes_dict[repo][category] = count
-
-    with open(output_json_path, "w") as file:
-        json.dump(changes_dict, file, indent=4)
-    logging.info("Changes per repository counted and saved successfully!")
-    return changes_dict

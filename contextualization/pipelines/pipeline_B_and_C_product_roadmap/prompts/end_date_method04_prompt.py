@@ -2,7 +2,7 @@ from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 
 # Pydantic Models for Output Structure
@@ -47,7 +47,7 @@ class AdditionalDataNeeds(BaseModel):
     confidence_impact: str = Field(description="How additional data would affect estimate confidence")
 
 
-class InitiativeEstimate(BaseModel):
+class InitiativeEstimate(BaseModelThatRemovesTags):
     initiative_name: str = Field(description="Name of the roadmap initiative")
     executive_summary: ExecutiveSummary
     calculation_method: CalculationMethod
@@ -137,5 +137,5 @@ git_prompt_template = PromptTemplate(
 )
 
 # Initialize LLM
-llm = get_llm(max_tokens=10000).with_structured_output(InitiativeEstimate) | to_clean_dict_parser
+llm = get_llm(max_tokens=10000).with_structured_output(InitiativeEstimate) | to_dict_parser
 git_method04_chain = git_prompt_template | llm

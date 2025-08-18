@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.models.anomaly_insights import ConfidenceLevel, InsightCategory
+from contextualization.pipelines.common.anomalies_postprocessing import prompt_template_anomalies_postprocessing
 from contextualization.tags import get_tags_prompt
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 from contextualization.utils.pydantic_validators import category_validator
 
 # Jira Data Analysis Prompt
@@ -25,10 +26,8 @@ You are tasked with analyzing Jira data to identify meaningful anomalies that re
 [ANOMALY_CATEGORY_DEFINITIONS]
 
 ### Anomaly Definition
-Anomalies represent significant deviations from expected patterns. Anomalies are 'positive' deviations.
-
-### Risk Definition
-Risks are anomalies that indicate potential negative impacts on project outcomes, delivery, or quality.
+Anomalies represent significant deviations from expected patterns. It can be positive or negative. 
+Highlight both positive and negative anomalies, don't limit analysis to a few examples of each category.
 
 ### Category-Aware Analysis Framework:
 The Jira data includes ticket categories such as:
@@ -178,8 +177,7 @@ When analyzing the data, pay special attention to:
 4. **Category workflow deviations** - Categories bypassing normal processes
 5. **Category priority misalignments** - Categories that may be under or over-prioritized
 
-Anomaly insights are 'positive' deviations.
-Risk insights are 'negative' deviations.
+Highlight both positive and negative anomalies.
 Important: For analysis of an anomaly or risk give more weightage to columns like 'summary', 'description', and 'category' over other columns. The category field provides crucial context for understanding the nature and expected patterns of each ticket.
 
 ### Analysis Instructions:
@@ -206,13 +204,9 @@ class JiraAnomaly(BaseModel):
     confidence_level: ConfidenceLevel = Field(description="Level of confidence in the anomaly")
 
 
-class JiraAnomalyReport(BaseModel):
+class JiraAnomalyReport(BaseModelThatRemovesTags):
     anomaly_insights: list[JiraAnomaly] = Field(
         description="List of significant positive anomalies", default_factory=list
-    )
-    risk_insights: list[JiraAnomaly] = Field(
-        description="List of potential risks or concerning/negative anomalies",
-        default_factory=list,
     )
 
 
@@ -224,7 +218,7 @@ prompt_template_jira = PromptTemplate(
     },
 )
 
-llm = get_llm(max_tokens=5_000).with_structured_output(JiraAnomalyReport) | to_clean_dict_parser
+llm = get_llm(max_tokens=5_000).with_structured_output(JiraAnomalyReport) | to_dict_parser
 jira_anomaly_analysis_chain = prompt_template_jira | llm
 
 
@@ -304,13 +298,9 @@ class JiraAnomalySummary(BaseModel):
     )
 
 
-class JiraAnomalyReportSummary(BaseModel):
+class JiraAnomalyReportSummary(BaseModelThatRemovesTags):
     anomaly_insights: list[JiraAnomalySummary] = Field(
         description="List of significant positive anomalies", default_factory=list
-    )
-    risk_insights: list[JiraAnomalySummary] = Field(
-        description="List of potential risks or concerning/negative anomalies",
-        default_factory=list,
     )
 
 
@@ -322,65 +312,8 @@ summary_prompt_template_jira = PromptTemplate(
     },
 )
 
-llm = get_llm(max_tokens=5_000).with_structured_output(JiraAnomalyReportSummary) | to_clean_dict_parser
+llm = get_llm(max_tokens=5_000).with_structured_output(JiraAnomalyReportSummary) | to_dict_parser
 jira_anomaly_analysis_summary_chain = summary_prompt_template_jira | llm
-
-
-system_template_anomaly = """
-
-### **TAG DEFINITIONS**
-{tag_definitions}
-
-You are an expert in analyzing critical anomalies in JIRA data and project management workflows.
-
-Given a list of anomalies from different JIRA projects, rank them in order of importance based on the severity of the issue, potential business impact, risk to project timelines, and critical consequences for product development or team productivity.
-
-A critical blocker affecting multiple teams is more severe than minor workflow inefficiencies. Security and compliance risks should be prioritized over cosmetic issues. Service disruptions should be prioritized over documentation gaps.
-
-### **Category Definitions:**
-[ANOMALY_CATEGORY_DEFINITIONS]
-
-### Input Format:
-A list of objects where each object contains:
-- "repo": Project name or identifier
-- "critical_anomaly": Description of the JIRA anomaly or risk
-
-### Task:
-1. Analyze the JIRA anomalies and rank them from most to least critical.
-2. Maintain the same structure in the output, but reorder the list based on critical priority.
-3. Consider factors like:
-   - Impact on business continuity or revenue
-   - Number of affected stakeholders or teams
-   - Risk to product quality or release timelines
-   - Compliance or governance violations
-   - Historical patterns that indicate systemic issues
-
-Here is the data:{analysis_content}
-
-### Output Format:
-- **Do NOT include introductory text** such as "Here is the ranked JSON".
-"""
-
-
-class Anomaly(BaseModel):
-    repo: str
-    critical_anomaly: str
-
-
-class RankedAnomalies(BaseModel):
-    critical_anomalies: list[Anomaly]
-
-
-prompt_template_summary = PromptTemplate(
-    template=system_template_anomaly,
-    input_variables=["analysis_content"],
-    partial_variables={
-        "tag_definitions": get_tags_prompt(format_as_bullet_points=True, include_anomaly_categories=True)
-    },
-)
-
-llm = get_llm(max_tokens=5_000).with_structured_output(RankedAnomalies) | to_clean_dict_parser
-anomaly_ranking_chain = prompt_template_summary | llm
 
 
 # Define Pydantic models for skip-a-meeting output
@@ -392,33 +325,13 @@ class SkipMeetingMessage(BaseModel):
 
 
 class JiraSkipMeetingInsight(BaseModel):
-    project_name: str = Field(description="The repository or project name")
-    category: Annotated[InsightCategory, category_validator] = Field(description="The category of the insight")
-    insight: str = Field(description="Pattern-first description of the anomaly or risk. [FORMAT_AS_BULLET_POINTS]")
-    evidence: str = Field(description="Specific evidence from the analysis. [FORMAT_AS_BULLET_POINTS]")
-    significance_score: int = Field(description="Significance score from 1-10")
-    confidence_level: ConfidenceLevel = Field(description="Level of confidence in the insight")
     resolution: str = Field(description="Actionable plan to communicate this insight without a meeting")
     messages: list[SkipMeetingMessage] = Field(description="List of messages for different audiences")
-    source: list[str] = Field(
-        description=(
-            "Extract all valid, standalone JIRA ticket IDs from the 'evidence' field. "
-            "A valid JIRA ID matches the pattern [A-Z]+-[0-9]+ (e.g., 'PROJ-123'). "
-            "Do not include IDs embedded within other words or patterns (e.g., exclude 'abcDEF-33'). "
-            "Ensure the ID is not immediately preceded by another letter-hyphen pattern. "
-            "Use regex: (?<![A-Za-z]{1,10}-)[A-Z]+-\\d+"
-        ),
-        examples=[["BF-18", "X-88", "ABCDEFGHIJKL-999", "ABC-1"]],
-    )
 
 
-class JiraSkipMeetingReport(BaseModel):
-    anomaly_insights: list[JiraSkipMeetingInsight] = Field(
-        description="List of significant positive anomalies", default_factory=list
-    )
-    risk_insights: list[JiraSkipMeetingInsight] = Field(
-        description="List of potential risks or negative anomalies",
-        default_factory=list,
+class JiraSkipMeetingReport(BaseModelThatRemovesTags):
+    skip_a_meeting_insight: JiraSkipMeetingInsight | None = Field(
+        default=None, description="actions to skip a meeting based on insight"
     )
 
 
@@ -518,5 +431,13 @@ prompt_template_skip_meeting = PromptTemplate(
 
 
 # Initialize the model with the proper configuration
-llm = get_llm(max_tokens=10000).with_structured_output(JiraSkipMeetingReport) | to_clean_dict_parser
+llm = get_llm(max_tokens=10000).with_structured_output(JiraSkipMeetingReport) | to_dict_parser
 skip_meeting_analysis_chain = prompt_template_skip_meeting | llm
+
+
+class PostprocessedInsight(JiraAnomaly):
+    need_to_be_removed: bool = Field(default=False, description="If True, the insight should be removed")
+
+
+llm_insights_postprocessing = get_llm(max_tokens=5000).with_structured_output(PostprocessedInsight) | to_dict_parser
+llm_postprocessing_chain = prompt_template_anomalies_postprocessing | llm_insights_postprocessing

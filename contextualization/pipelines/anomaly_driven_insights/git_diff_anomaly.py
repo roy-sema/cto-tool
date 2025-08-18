@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from pathlib import Path
 
 import pandas as pd
 from otel_extensions import instrumented
@@ -15,11 +16,11 @@ from contextualization.tools.llm_tools import run_async_batch, separate_big_inpu
 # Git diff SUMMARY
 # TODO: Not really sure this works as expected
 @instrumented
-def find_anomalies_in_git_diffs(
-    df_lists,
-    output_path,
-    error_log_path,
-):
+async def find_anomalies_in_git_diffs(
+    df_lists: list[pd.DataFrame],
+    output_path: str | Path,
+    error_log_path: str | Path,
+) -> pd.DataFrame | None:
     if os.path.exists(output_path):
         logging.info("removing previous csv files non error batches as it exists")
         os.remove(output_path)
@@ -32,28 +33,24 @@ def find_anomalies_in_git_diffs(
 
     async def analyze_change_with_token_callback(batch_content):
         results_with_tokens = []
-        try:
-            inputs = [{"diff_file": diff, "task": task} for diff in batch_content]
-            tasks = []
-            small_inputs, big_inputs = await separate_big_inputs(inputs)
-            if small_inputs:
-                tasks.append(diff_anomaly_analyser_chain.abatch(small_inputs))
+        inputs = [{"diff_file": diff, "task": task} for diff in batch_content]
+        tasks = []
+        small_inputs, big_inputs = await separate_big_inputs(inputs)
+        if small_inputs:
+            tasks.append(diff_anomaly_analyser_chain.abatch(small_inputs))
 
-            if big_inputs:
-                tasks.append(run_async_batch(diff_anomaly_analyser_chain_big_text, big_inputs))
-            outputs = await asyncio.gather(*tasks)
-            outputs = [item for sublist in outputs for item in sublist]
-            for output in outputs:
-                if output is not None:
-                    result = {
-                        "Completion_Tokens": output.usage_metadata.get("total_tokens", 0),
-                        "anomaly_summary": output.content,
-                    }
-                results_with_tokens.append(result)
-            return results_with_tokens
-        except Exception:
-            logging.exception("Pipeline Git anomaly insights - Error processing batch")
-            return [None] * len(batch_content)
+        if big_inputs:
+            tasks.append(run_async_batch(diff_anomaly_analyser_chain_big_text, big_inputs))
+        outputs = await asyncio.gather(*tasks)
+        outputs = [item for sublist in outputs for item in sublist]
+        for output in outputs:
+            if output is not None:
+                result = {
+                    "Completion_Tokens": output.usage_metadata.get("total_tokens", 0),
+                    "anomaly_summary": output.content,
+                }
+            results_with_tokens.append(result)
+        return results_with_tokens
 
     all_success_batches = []
     # Process the DataFrame in batches
@@ -63,7 +60,7 @@ def find_anomalies_in_git_diffs(
             raise ValueError("The DataFrame must contain a 'code' column.")
         error_records = []
         # Apply the analysis to each 'code' entry in the batch with error handling
-        batch_results = asyncio.run(analyze_change_with_token_callback(batch["code"].tolist()))
+        batch_results = await analyze_change_with_token_callback(batch["code"].tolist())
 
         # Convert batch_results to a Series to use .isna()
         batch_results_series = pd.Series(batch_results)

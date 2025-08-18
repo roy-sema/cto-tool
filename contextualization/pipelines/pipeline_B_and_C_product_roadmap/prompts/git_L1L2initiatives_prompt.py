@@ -2,7 +2,7 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """You are analyzing a git code summary  to extract Initiatives (L1) and Epics (L2). 
 Focus only on the code data provided in the git code summary data .You are also provided with purpose of change and impact on product columns. 
@@ -67,7 +67,7 @@ class Initiative(BaseModel):
     epics: list[Epic] = Field(description="List of epics under the initiative")
 
 
-class Initiatives(BaseModel):
+class Initiatives(BaseModelThatRemovesTags):
     initiatives: list[Initiative] = Field(
         description="List of initiatives with their name, percentage, and justification."
     )
@@ -78,5 +78,5 @@ prompt_template = PromptTemplate(
     input_variables=["csv_schema", "csv", "task", "chat_prompt"],
 )
 
-llm = get_llm(max_tokens=5_000).with_structured_output(Initiatives) | to_clean_dict_parser
+llm = get_llm(max_tokens=5_000).with_structured_output(Initiatives) | to_dict_parser
 git_initiatives_chain = prompt_template | llm

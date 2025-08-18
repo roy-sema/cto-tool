@@ -1,5 +1,9 @@
 # Recursively go through the JSON and round the fields provided
-def round_percentages(data, fields=["percentage"]):
+from collections.abc import Sequence
+from typing import Any
+
+
+def round_percentages(data: Any, fields: Sequence[str] = ("percentage",)) -> None:
     if isinstance(data, dict):
         for key, value in data.items():
             if key in fields:

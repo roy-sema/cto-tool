@@ -8,7 +8,9 @@ from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.pipeli
 )
 
 
-def summarize_git_initiatives(git_data_initiatives: list[dict[str, Any]], output_file: Path) -> dict[str, Any] | None:
+async def summarize_git_initiatives(
+    git_data_initiatives: list[dict[str, Any]], output_file: Path
+) -> dict[str, Any] | None:
     """
     Reads a JSON file containing a list of dictionaries with a 'response' key, combines the responses,
     sends them to an LLM for summarization, and writes the summary to a new JSON file.
@@ -24,7 +26,7 @@ def summarize_git_initiatives(git_data_initiatives: list[dict[str, Any]], output
         # # Extract and combine all 'response' values
         # combined_text = [entry["changes"] for entry in data if "changes" in entry]
 
-        output = summary_chain.invoke({"list_of_results": git_data_initiatives})
+        output = await summary_chain.ainvoke({"list_of_results": git_data_initiatives})
 
         # Add the "Other" category
         other_category = {

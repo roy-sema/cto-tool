@@ -2,7 +2,7 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 system_template = """
 Analyze the provided Git/VCS initiative JSON dataset to identify and highlight:
@@ -45,7 +45,7 @@ class Initiatives(BaseModel):
     needs_reconciliation: bool = Field(description="True or False")
 
 
-class Insights(BaseModel):
+class Insights(BaseModelThatRemovesTags):
     insights: list[Initiatives] = Field(description="Actionable insights for CxO on the given json data.")
 
 
@@ -54,5 +54,5 @@ prompt_template = PromptTemplate(
     input_variables=["jira_initiatives", "git_initiatives"],
 )
 
-llm = get_llm(max_tokens=8000).with_structured_output(Insights) | to_clean_dict_parser
+llm = get_llm(max_tokens=8000).with_structured_output(Insights) | to_dict_parser
 insights_chain = prompt_template | llm

@@ -2,6 +2,7 @@ import logging
 import os
 from contextlib import nullcontext
 from pathlib import Path
+from typing import Any
 
 try:
     from vcr import VCR
@@ -13,7 +14,7 @@ except ImportError:
 logging.getLogger("vcr").setLevel(logging.CRITICAL)
 
 
-def before_record_response(response):
+def before_record_response(response: dict[str, Any]) -> dict[str, Any] | None:
     if response["status"]["code"] != 200:
         return None  # skip recording this response
 
@@ -50,7 +51,8 @@ def calls_context(pipeline_file_name: str):
         record_mode=RecordMode.NEW_EPISODES,
         match_on=["method", "uri", "body"],
         decode_compressed_response=True,
+        ignore_hosts=["api.honeycomb.io"],
         before_record_response=before_record_response,
-        serializer="json",
+        serializer="yaml",
     )
     return vcr.use_cassette(path)

@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.tools.llm_tools import get_input_runnable
-from contextualization.utils.output_parser import to_clean_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags
 
 system_template = """
 You are an expert code reviewer and analysis assistant. Your role is to analyze code changes using `git diff` data. When analyzing, always focus on the following:
@@ -35,21 +35,18 @@ Commit description:
 </txt> 
 
 <task> 
-{task} 
+Analyze the following `git diff` based on the system-level instructions. Provide the analysis in sections, 
+covering the summary, categorization, maintenance relevance, detailed analysis, intent, and whether the changes 
+are additive/enhancing or significant. Address potential bugs, code quality, test coverage, and any impact on dependencies.
+Add specific examples, such as repos or folders in the code, specific technologies, and libraries used.
+Even when there is a lot of data, pick out 1-2 specific anecdotes to illustrate your points. Mention the specific repository when you provide examples from files in the codebase.
+Keep the justification field short. If you do not find examples do not write: "it's not possible to mention specific repositories", or "no specific examples of repositories, folders, technologies, or libraries were provided in the given summary".
 </task>
 
 Strictly keep the same format everywhere.
 Do provide any additional categories other than these Bug fix, New Feature, Tech debt, Security, Documentation, Testing, and Other.
 Note: Do not include any boilerplate context like here is the json before the actual json output.
 """
-
-
-def get_dev_activity_categories_from_json(categories: dict) -> str:
-    """
-    Converts a JSON string of developer activity categories into a
-    formatted string.
-    """
-    return ", ".join(field.replace("_", " ").capitalize() for field, value in categories.items() if value)
 
 
 class DevActivityCategories(BaseModel):
@@ -79,7 +76,7 @@ class DevActivityCategories(BaseModel):
     )
 
 
-class DiffAnalyzer(BaseModel):
+class DiffAnalyzer(BaseModelThatRemovesTags):
     Summary: str = Field(description="Summary as per given task.")
     Categorization_of_Changes: DevActivityCategories = Field(
         description="Categorization_of_Changes as per given task.",
@@ -106,11 +103,11 @@ class DiffAnalyzer(BaseModel):
 
 prompt_template = PromptTemplate(
     template=system_template,
-    input_variables=["diff", "title", "description", "task"],
+    input_variables=["diff", "title", "description"],
 )
 
 llm = get_llm(max_tokens=5_000).with_structured_output(DiffAnalyzer)
-diff_analyser_chain = prompt_template | llm | to_clean_dict_parser
+diff_analyser_chain = prompt_template | llm
 
 llm = get_llm(max_tokens=5_000, big_text=True).with_structured_output(DiffAnalyzer)
-diff_analyser_chain_big_text = get_input_runnable(big_text=True) | prompt_template | llm | to_clean_dict_parser
+diff_analyser_chain_big_text = get_input_runnable(big_text=True) | prompt_template | llm
