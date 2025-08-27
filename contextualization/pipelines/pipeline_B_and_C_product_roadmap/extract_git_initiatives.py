@@ -22,6 +22,8 @@ from contextualization.tools.llm_tools import (
     get_batches_to_merge,
 )
 
+logger = logging.getLogger(__name__)
+
 batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 token_limit = conf["llms"][llm_name]["token_limit"]
 
@@ -58,7 +60,7 @@ async def analyze_commits_with_task(
     for i in range(0, len(chunks), chunks_per_batch):
         # Select the current batch of chunks
         chunk_batch = chunks[i : i + chunks_per_batch]
-        logging.info(f"Processing {len(chunk_batch)} chunk(s) out of total {len(chunks)}..")
+        logger.info(f"Processing {len(chunk_batch)} chunk(s) out of total {len(chunks)}..")
         try:
             output = await commit_analyser_chain.abatch(
                 [
@@ -74,7 +76,7 @@ async def analyze_commits_with_task(
 
             outputs.append(output)
         except Exception as e:
-            logging.exception(f"Pipeline B/C - Error processing chunks", extra={"chunk_number": i})
+            logger.exception(f"Pipeline B/C - Error processing chunks", extra={"chunk_number": i})
             continue
 
     return outputs
@@ -106,11 +108,11 @@ async def analyze_git_commits(
     df = await calculate_token_count_async(
         df, text_columns=selected_columns["columns"], token_column="output_tik_tokens"
     )
-    logging.info(f"Git Dataframe shape with token count column added: {df.shape}")
+    logger.info(f"Git Dataframe shape with token count column added: {df.shape}")
 
     # Split the DataFrame into chunks (assuming get_batches_to_merge function is defined)
     df_chunks = get_batches_to_merge(df, tiktoken_column="output_tik_tokens")
-    logging.info(f"Number of chunks of git data: {len(df_chunks)}")
+    logger.info(f"Number of chunks of git data: {len(df_chunks)}")
 
     # Analyze commits using the provided analyzer and filter columns
     outputs = await analyze_commits_with_task(df_chunks, selected_columns, git_initiatives_chain, task, chat_input)
@@ -124,7 +126,7 @@ async def analyze_git_commits(
     with open(output_file, "w") as f:
         json.dump(flat_output, f, indent=4)
 
-    logging.info(f"Saving the list of git initiatives json to a file: {output_file} ")
+    logger.info(f"Saving the list of git initiatives json to a file: {output_file} ")
     output_file_path = file_path.parent / f"{file_path.stem}_git_data_initiatives_combined.json"
     summary = await summarize_git_initiatives(flat_output, output_file_path)
 

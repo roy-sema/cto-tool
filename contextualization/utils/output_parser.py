@@ -2,7 +2,6 @@ from typing import Any
 
 from langchain_core.runnables import RunnableLambda
 from pydantic import BaseModel, model_validator
-from pydantic.v1 import BaseModel as BaseModelV1
 
 from contextualization.conf.rate_limit import NoResponseException
 from contextualization.tags import ALL_TAGS
@@ -31,7 +30,7 @@ class BaseModelThatRemovesTags(BaseModel):
 
 
 def parse_raw(parsed: BaseModel | None):
-    if not isinstance(parsed, BaseModel | BaseModelV1) or parsed is None:
+    if not isinstance(parsed, BaseModel) or parsed is None:
         raise NoResponseException
 
     if hasattr(parsed, "model_dump"):

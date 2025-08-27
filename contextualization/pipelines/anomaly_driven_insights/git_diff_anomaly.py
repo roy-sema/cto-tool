@@ -12,6 +12,8 @@ from contextualization.pipelines.anomaly_driven_insights.prompts.prompt import (
 )
 from contextualization.tools.llm_tools import run_async_batch, separate_big_inputs
 
+logger = logging.getLogger(__name__)
+
 
 # Git diff SUMMARY
 # TODO: Not really sure this works as expected
@@ -22,12 +24,12 @@ async def find_anomalies_in_git_diffs(
     error_log_path: str | Path,
 ) -> pd.DataFrame | None:
     if os.path.exists(output_path):
-        logging.info("removing previous csv files non error batches as it exists")
+        logger.info("removing previous csv files non error batches as it exists")
         os.remove(output_path)
     if os.path.exists(error_log_path):
-        logging.info("removing previous csv files for error batches as it exists")
+        logger.info("removing previous csv files for error batches as it exists")
         os.remove(error_log_path)
-    logging.info("generating anomaly summaries from git diff code")
+    logger.info("generating anomaly summaries from git diff code")
 
     task = """Analyze the provided git diff code to extract 0-3 significant highlights that represent notable changes rather than normal routine modifications. Focus on identifying substantial code improvements, architectural changes, performance optimizations, security enhancements, and critical bug fixes. Distinguish between normal development activities and true anomalies or innovations that would be relevant for executive reporting. These highlights will serve as the foundation for identifying anomaly insights in development patterns and risk areas."""
 
@@ -94,5 +96,5 @@ async def find_anomalies_in_git_diffs(
     if all_success_batches:
         return pd.concat(all_success_batches, ignore_index=True)
     else:
-        logging.error(f"Git anomaly summary file not created", extra={"output_path": output_path})
+        logger.error(f"Git anomaly summary file not created", extra={"output_path": output_path})
         return None

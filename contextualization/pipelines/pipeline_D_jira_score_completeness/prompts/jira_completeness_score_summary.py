@@ -2,7 +2,6 @@ from langchain.prompts import PromptTemplate
 from pydantic.v1 import BaseModel, Field  # No idea why it doesn't work on V2
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import to_dict_parser
 
 # NOTE: Uncommented the code to reuse the category_summary_chain
 # Category summary prompt (for excellent, average, and initial categories)
@@ -40,7 +39,7 @@ category_summary_prompt = PromptTemplate(
     input_variables=["jira_tickets_data"],
 )
 
-llm = get_llm(max_tokens=4000).with_structured_output(CategorySummary) | to_dict_parser
+llm = get_llm(max_tokens=4000).with_structured_output(CategorySummary)
 category_summary_chain = category_summary_prompt | llm
 
 # Final consolidated summary prompt
@@ -75,5 +74,5 @@ final_summary_prompt = PromptTemplate(
 )
 
 # Configure LLM with sufficient tokens for complex analysis
-llm = get_llm(max_tokens=4000).with_structured_output(FinalSummary) | to_dict_parser
-final_summary_chain = final_summary_prompt | llm
+llm_final = get_llm(max_tokens=4000).with_structured_output(FinalSummary)
+final_summary_chain = final_summary_prompt | llm_final

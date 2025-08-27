@@ -112,7 +112,7 @@ def add_ticket_categories_post_process(insights_json: dict, jira_data_df: pd.Dat
                     except Exception as e:
                         logger.exception("Error processing ticket", extra={"ticket_id": ticket_id})
 
-                insight["ticket_categories"] = sorted(list(categories))
+                insight["ticket_categories"] = sorted(categories)
 
                 total_insights_processed += 1
                 total_categories_added += len(categories)
@@ -145,20 +145,20 @@ async def find_insights_and_risks_in_jira_tickets(combined_text_batches: list[st
 
 
 def rank_jira_insights(insights_list: list[dict]) -> list[dict]:
-    return list(sorted(insights_list, key=lambda insight: int(insight["significance_score"]), reverse=True))
+    return sorted(insights_list, key=lambda insight: int(insight["significance_score"]), reverse=True)
 
 
 @instrumented
 async def summarize_insights_for_project(
     project_results: list[dict], project_name: str, output_dir: Path, jira_data_df: pd.DataFrame
 ) -> dict:
-    logging.info(f"Summarizing insights for project: {project_name} across {len(project_results)} batches")
+    logger.info(f"Summarizing insights for project: {project_name} across {len(project_results)} batches")
     output_summary_path = output_dir / f"{project_name}_summary_jira_anomalies.json"
 
-    logging.info(f"Analyzing and summarizing {project_name} data...")
+    logger.info(f"Analyzing and summarizing {project_name} data...")
     summarized_result = await jira_anomaly_analysis_summary_chain.ainvoke({"jira_data": json.dumps(project_results)})
 
-    logging.info(f"Post-processing ticket categories for {project_name}")
+    logger.info(f"Post-processing ticket categories for {project_name}")
     summarized_result = add_ticket_categories_post_process(summarized_result, jira_data_df)
 
     for insight in summarized_result["anomaly_insights"]:
@@ -173,25 +173,26 @@ async def summarize_insights_for_project(
     summarized_result["project"] = project_name
     summarized_result["batch_count"] = len(project_results)
 
-    logging.info(f"Created summary with {len(summarized_result.get('anomaly_insights', []))} anomaly insights")
+    logger.info(f"Created summary with {len(summarized_result.get('anomaly_insights', []))} anomaly insights")
     with open(output_summary_path, "w") as f:
         json.dump(summarized_result, f, indent=2)
 
-    logging.info(f"Saved summarized results to {output_summary_path}")
+    logger.info(f"Saved summarized results to {output_summary_path}")
 
     return summarized_result
 
 
 @instrumented
 async def find_jira_insights_in_project(project_name: str, project_df: pd.DataFrame, output_dir: Path) -> list[dict]:
-    logging.info(f"Processing project: {project_name} with {len(project_df)} records")
+    logger.info(f"Processing project: {project_name} with {len(project_df)} records")
 
     # Define output paths for this project
     base_filename = f"{project_name}_anomaly_analysis"
     output_json_path = output_dir / f"{project_name}_anomaly_insight.json"
     error_log_path = output_dir / f"{base_filename}_error.csv"
 
-    project_results = await find_insights_and_risks_in_jira_tickets(await get_jira_issues_batches(project_df))
+    combined_text_batches = await get_jira_issues_batches(project_df)
+    project_results = await find_insights_and_risks_in_jira_tickets(combined_text_batches)
     project_results = [
         ({**result, "project": project_name} if isinstance(result, dict) else result) for result in project_results
     ]
@@ -199,14 +200,14 @@ async def find_jira_insights_in_project(project_name: str, project_df: pd.DataFr
     with open(output_json_path, "w") as f:
         json.dump(project_results, f, indent=2)
 
-    logging.info(f"Analysis completed for project {project_name} with {len(project_results)} batch results")
+    logger.info(f"Analysis completed for project {project_name} with {len(project_results)} batch results")
     return project_results
 
 
 def combine_all_project_summaries_and_rank_insights(
     all_summaries: list[dict], output_dir: Path, jira_data_df: pd.DataFrame
 ) -> dict:
-    logging.info(f"Combining and ranking insights from {len(all_summaries)} projects")
+    logger.info(f"Combining and ranking insights from {len(all_summaries)} projects")
 
     all_anomaly_insights = []
 
@@ -221,7 +222,7 @@ def combine_all_project_summaries_and_rank_insights(
     with open(combined_path, "w") as f:
         json.dump(combined_result, f, indent=2)
 
-    logging.info(f"Saved combined ranked insights to {combined_path}")
+    logger.info(f"Saved combined ranked insights to {combined_path}")
 
     return combined_result
 
@@ -249,7 +250,7 @@ async def enhance_insight_with_skip_a_meeting(insight: dict) -> dict:
 async def find_skip_a_meeting_insights_from_combined_insights(
     combined_insights: dict, output_dir: Path
 ) -> SkipMeetingInsights:
-    logging.info("Processing skip-a-meeting analysis for combined insights")
+    logger.info("Processing skip-a-meeting analysis for combined insights")
 
     anomaly_insights = combined_insights.get("anomaly_insights", [])
     tasks = [enhance_insight_with_skip_a_meeting(insight) for insight in anomaly_insights]
@@ -261,7 +262,7 @@ async def find_skip_a_meeting_insights_from_combined_insights(
     combined_skip_path = output_dir / "jira_all_projects_skip_meeting.json"
     with open(combined_skip_path, "w") as f:
         json.dump(enhanced_results, f, indent=2)
-    logging.info(f"Saved combined skip-a-meeting results to {combined_skip_path}")
+    logger.info(f"Saved combined skip-a-meeting results to {combined_skip_path}")
 
     return SkipMeetingInsights(**enhanced_results)
 
@@ -270,7 +271,7 @@ async def run_jira_anomaly_driven_insights_pipeline(
     output_path: str,
     jira_data_df: pd.DataFrame,
 ) -> JiraCombinedInsights | None:
-    logging.info(f"Running pipeline Jira anomalies with params: {output_path=}")
+    logger.info(f"Running pipeline Jira anomalies with params: {output_path=}")
 
     with calls_context("jira_anomaly_driven_insights.yaml"):
         output_dir = Path(output_path)
@@ -282,9 +283,9 @@ async def run_jira_anomaly_driven_insights_pipeline(
         is_valid, missing_columns = validate_dataframe(df)
         if not is_valid:
             if "DataFrame is empty" in missing_columns:
-                logging.error("Pipeline Jira anomalies - No JIRA data found. The CSV file is empty. Exiting.")
+                logger.error("Pipeline Jira anomalies - No JIRA data found. The CSV file is empty. Exiting.")
             else:
-                logging.error(
+                logger.error(
                     f"Pipeline Jira anomalies - Missing required columns",
                     extra={"missing_columns": ", ".join(missing_columns)},
                 )
@@ -297,7 +298,7 @@ async def run_jira_anomaly_driven_insights_pipeline(
         projects_to_run = []
         for project_name, project_df in project_groups:
             if project_name == "UNKNOWN":
-                logging.warning(f"Skipping 'UNKNOWN' project group with {len(project_df)} records")
+                logger.warning(f"Skipping 'UNKNOWN' project group with {len(project_df)} records")
                 continue
             projects_to_run.append((project_name, project_df))
 
@@ -313,14 +314,14 @@ async def run_jira_anomaly_driven_insights_pipeline(
             combined_summary_path = output_dir / "all_projects_summary.json"
             with open(combined_summary_path, "w") as f:
                 json.dump(project_summary_results, f, indent=2)
-            logging.info(f"Saved all projects summary to {combined_summary_path}")
+            logger.info(f"Saved all projects summary to {combined_summary_path}")
 
             combined_anomaly_results = combine_all_project_summaries_and_rank_insights(
                 project_summary_results,
                 output_dir,
                 jira_data_df=jira_data_df,
             )
-            logging.info("Processing skip-a-meeting insights for combined results")
+            logger.info("Processing skip-a-meeting insights for combined results")
             skip_meeting_results = await find_skip_a_meeting_insights_from_combined_insights(
                 combined_anomaly_results, output_dir
             )

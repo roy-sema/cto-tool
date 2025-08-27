@@ -188,7 +188,7 @@ def summarize_data_for_git_initiative(git_df: pd.DataFrame, jira_df: pd.DataFram
                             [
                                 int(line.count("+")) + int(line.count("-"))
                                 for line in str(x).split("\n")
-                                if line.startswith("+") or line.startswith("-")
+                                if line.startswith(("+", "-"))
                             ]
                         )
                         if isinstance(x, str)
@@ -416,10 +416,11 @@ def summarize_data_for_git_initiative(git_df: pd.DataFrame, jira_df: pd.DataFram
                                 all_labels.extend(parsed_labels)
                             else:
                                 all_labels.append(labels)
-                        except:
+                        except Exception as e:
+                            logger.warning("Labels are not in JSON format: %s", e)
                             # If it's not JSON, treat as a single label or comma-separated list
                             if "," in labels:
-                                all_labels.extend([l.strip() for l in labels.split(",")])
+                                all_labels.extend([label.strip() for label in labels.split(",")])
                             else:
                                 all_labels.append(labels)
 
@@ -523,7 +524,7 @@ def normalize_initiative_name(name: str | None) -> str:
     try:
         # Convert to lowercase and remove special characters
         return "".join(c.lower() for c in str(name) if c.isalnum() or c.isspace()).strip()
-    except:
+    except Exception:
         return ""
 
 

@@ -18,13 +18,13 @@ Highlights critical delays or achievements
 Maintains focus on quantitative metrics over descriptions
 Round percentages to whole numbers
 
-Do not include unescaped newlines or invalid characters. Before finalizing the output, validate that the response is well-formed JSON. If it isn't, correct it and return valid JSON only.
+Do not include unescaped newlines or invalid characters or bold formatting. Before finalizing the output, validate that the response is well-formed JSON. If it isn't, correct it and return valid JSON only.
 Note: Do not include any boilerplate context like here is the json before the actual json output.
 """
 
 
 class Summary(BaseModelThatRemovesTags):
-    summary: str = Field(description="Summary based on the given json data.")
+    summary: str = Field(description="Summary based on the given json data. [FORMAT_AS_BULLET_POINTS]")
 
 
 prompt_template = PromptTemplate(

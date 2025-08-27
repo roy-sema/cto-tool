@@ -2,6 +2,8 @@ import logging
 import os
 import re
 
+logger = logging.getLogger(__name__)
+
 IRRELEVANT_PATTERNS = [
     # Development and build artifacts
     r".*\.(log|tmp|cache|bak)$",
@@ -74,12 +76,12 @@ IRRELEVANT_EXTENSIONS = [
 def is_irrelevant_file(file_path: str) -> bool:
     # Check if file matches any irrelevance pattern
     if any(re.search(pattern, str(file_path), re.IGNORECASE) for pattern in IRRELEVANT_PATTERNS):
-        logging.info(f"Irrelevant file: {file_path}")
+        logger.info(f"Irrelevant file: {file_path}")
         return True
     # Check file extension
     file_ext = os.path.splitext(str(file_path))[1]
     if file_ext in IRRELEVANT_EXTENSIONS:
-        logging.info(f"Irrelevant file: {file_path}")
+        logger.info(f"Irrelevant file: {file_path}")
         return True
     return False
 
@@ -150,7 +152,7 @@ def filter_irrelevant_files_records(records):
     else:
         removal_percentage = 0
 
-    logging.info(
+    logger.info(
         f"Total files: {total_files} Removed files: {removed_files} Removal percentage: {removal_percentage:.2f}%"
     )
     return filtered_records

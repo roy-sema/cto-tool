@@ -1,10 +1,9 @@
-from typing import Literal
-
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
-from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
+from contextualization.models.ticket_completeness import StageCategory
+from contextualization.utils.output_parser import BaseModelThatRemovesTags
 
 classify_stage_to_category_prompt_template_string = """
 You are an expert in JIRA analysis, product management, and scrum practices. 
@@ -53,9 +52,7 @@ classify_stage_to_category_prompt_template = PromptTemplate(
 
 class StageClassifierOutput(BaseModel):
     original_stage: str = Field(description="The original ticket status or stage")
-    category: Literal["Done", "Will Not Do", "Underway", "Ready for Work", "Backlog"] = Field(
-        description="Mapped categories for each stage"
-    )
+    category: StageCategory = Field(description="Mapped categories for each stage")
 
 
 class StageClassifier(BaseModelThatRemovesTags):
@@ -64,5 +61,5 @@ class StageClassifier(BaseModelThatRemovesTags):
     )
 
 
-llm = get_llm(max_tokens=10_000).with_structured_output(StageClassifier) | to_dict_parser
+llm = get_llm(max_tokens=10_000).with_structured_output(StageClassifier)
 stage_classification_chain = classify_stage_to_category_prompt_template | llm

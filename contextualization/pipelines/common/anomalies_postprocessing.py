@@ -23,9 +23,11 @@ prompt_template_anomalies_postprocessing = PromptTemplate(
     input_variables=["insight"],
 )
 
+logger = logging.getLogger(__name__)
+
 
 async def postprocess_anomaly_insights(insights: dict[str, Any], llm_chain: Runnable):
-    logging.info(f"Postprocessing insights")
+    logger.info(f"Postprocessing insights")
 
     results = await llm_chain.abatch([{"insight": insight} for insight in insights["anomaly_insights"]])
     insights["anomaly_insights"].clear()
@@ -35,6 +37,6 @@ async def postprocess_anomaly_insights(insights: dict[str, Any], llm_chain: Runn
             result["significance_score"] = min(result["significance_score"], 8)
 
         if result["need_to_be_removed"]:
-            logging.info(f"Removing insight: {result}")
+            logger.info(f"Removing insight: {result}")
         else:
             insights["anomaly_insights"].append(result)
