@@ -3,7 +3,6 @@ from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.pipelines.pipeline_A_automated_process.models import DevelopmentActivityType
-from contextualization.tools.llm_tools import get_input_runnable
 from contextualization.utils.output_parser import BaseModelThatRemovesTags
 
 system_template = """
@@ -50,8 +49,7 @@ For each category found:
 ## Output Requirements
 
 ### Style Guidelines
-- Use active voice (e.g., "Deletion functionality was implemented")
-- Do not use self-referential phrases like "This change…" or "The change…". Begin directly with the effect.
+- Use active voice (e.g., "Deletion functionality was implemented" not "this change implements")
 - Focus on concrete, observable changes from the git diff
 - Provide 1-2 specific anecdotes to illustrate key points
 - Keep justifications concise and technical
@@ -103,6 +101,3 @@ prompt_template = PromptTemplate(
 
 llm = get_llm(max_tokens=5_000).with_structured_output(DiffAnalyzer)
 diff_analyser_chain = prompt_template | llm
-
-llm = get_llm(max_tokens=5_000, big_text=True).with_structured_output(DiffAnalyzer)
-diff_analyser_chain_big_text = get_input_runnable(big_text=True) | prompt_template | llm

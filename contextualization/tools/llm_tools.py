@@ -14,6 +14,8 @@ from rest_framework import status
 from contextualization.conf.config import conf, get_config, llm_name
 from contextualization.conf.get_llm import get_llm
 
+logger = logging.getLogger(__name__)
+
 batch_threshold = conf["llms"][llm_name]["batch_threshold"]
 token_limit = conf["llms"][llm_name]["token_limit"]
 
@@ -53,13 +55,13 @@ def get_batches(data: pd.DataFrame, tiktoken_column: str, prompt_token_length: i
             batch = data_copy.iloc[current_batch_indices]
             dataframes.append(batch)
 
-        logging.info(
+        logger.info(
             f"Split data into {len(dataframes)} batches using token column {tiktoken_column} and threshold {batch_threshold}"
         )
         return dataframes
 
     except Exception:
-        logging.exception(
+        logger.exception(
             f"Error creating batches using token column",
             extra={"tiktoken_colum": tiktoken_column},
         )
@@ -85,7 +87,7 @@ async def count_tokens(input_values: list[str]) -> list[int]:
     result = [0] * len(input_values)
     for i, idx in enumerate(valid_indices):
         if isinstance(token_counts[i], Exception):
-            logging.exception("Error while calculating token count")
+            logger.exception("Error while calculating token count")
             result[idx] = 0
         else:
             result[idx] = token_counts[i]
@@ -96,7 +98,7 @@ async def count_tokens(input_values: list[str]) -> list[int]:
 @instrumented(span_name="calculate_token_count")
 async def calculate_token_count_async(
     df,
-    text_columns=["Summary"],
+    text_columns: list[str] | None = None,
     token_column="summary_tik_token",
 ):
     """
@@ -110,12 +112,14 @@ async def calculate_token_count_async(
     Returns:
         pd.DataFrame: The DataFrame with an additional column for total token counts.
     """
+    if text_columns is None:
+        text_columns = ["Summary"]
 
     if df.empty:
         error_msg = f"DataFrame is empty for calculating the token count. Stopping the process."
         raise ValueError(error_msg)
 
-    logging.info(f"Calculating token count for {len(text_columns)} columns")
+    logger.info(f"Calculating token count for {len(text_columns)} columns")
 
     # Check which columns actually exist in the dataframe
     available_columns = [col for col in text_columns if col in df.columns]
@@ -139,7 +143,7 @@ async def calculate_token_count_async(
 
         df[token_column] += token_count
 
-    logging.info(f"Token counting completed. Column '{token_column}' contains the total token counts.")
+    logger.info(f"Token counting completed. Column '{token_column}' contains the total token counts.")
     return df
 
 
@@ -150,7 +154,7 @@ def get_batches_to_merge(
     Create batches that are going to be merged into a single API call to the LLM.
     A single call has to fit into the context window of the LLM.
     """
-    logging.info("Creating chunks from the data")
+    logger.info("Creating chunks from the data")
 
     try:
         dataframes = []
@@ -171,7 +175,7 @@ def get_batches_to_merge(
         return dataframes
 
     except Exception:
-        logging.exception(f"Error while creating chunks")
+        logger.exception(f"Error while creating chunks")
         return []
 
 
@@ -186,7 +190,7 @@ async def run_async_batch(chain: Runnable, batches: list[dict]) -> list[Any]:
 
 
 async def truncate_input(inputs: dict) -> dict:
-    for input_key in inputs.keys():
+    for input_key in inputs:
         input_value = inputs[input_key]
         if input_value is None or not isinstance(input_value, str):
             continue
@@ -200,7 +204,7 @@ async def truncate_input(inputs: dict) -> dict:
         try:
             tokens = await llm.aget_num_tokens_from_messages(messages)
         except Exception:
-            logging.exception("Error while calculating token count")
+            logger.exception("Error while calculating token count")
             tokens = 0
 
         excess = tokens - token_limit
@@ -223,7 +227,7 @@ async def truncate_input(inputs: dict) -> dict:
 def truncate_input_gemini(inputs: dict) -> dict:
     gemini = get_llm(big_text=True)
     config = get_config(big_text=True)
-    for input_key in inputs.keys():
+    for input_key in inputs:
         input_value = inputs[input_key]
         if input_value is None or not isinstance(input_value, str):
             continue
@@ -236,7 +240,7 @@ def truncate_input_gemini(inputs: dict) -> dict:
         try:
             tokens = gemini.get_num_tokens(input_value)
         except Exception:
-            logging.exception("Error while calculating token count")
+            logger.exception("Error while calculating token count")
             tokens = 0
         excess = tokens - config.token_limit
 

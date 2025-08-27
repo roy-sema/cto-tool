@@ -8,6 +8,8 @@ from pydantic import Field
 from contextualization.conf.get_llm import get_llm
 from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
+logger = logging.getLogger(__name__)
+
 # Define a system prompt for column filtering without descriptions
 column_filter_template = """
 You are analyzing a dataset of task-related information. Here are the available column names:
@@ -55,8 +57,8 @@ async def filter_columns(df: pd.DataFrame, task: str) -> dict[str, Any] | None:
 
         # Run the chain to filter columns
         selected_columns = await column_filter_chain.ainvoke({"columns": columns, "task": task})
-        logging.info(f"filtered columns required to do the analysis::{selected_columns}")
+        logger.info(f"filtered columns required to do the analysis::{selected_columns}")
 
         return selected_columns
     except Exception as e:
-        logging.exception(f"Pipeline B/C - Error while selecting Jira columns")
+        logger.exception(f"Pipeline B/C - Error while selecting Jira columns")

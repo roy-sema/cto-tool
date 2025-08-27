@@ -2,6 +2,7 @@ from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 from contextualization.conf.get_llm import get_llm
+from contextualization.tags import get_tags_prompt
 from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
 
 
@@ -31,7 +32,7 @@ class DataRelationshipAssessment(BaseModel):
 class VelocityAnalysis(BaseModel):
     historical_velocity: str = Field(description="Metrics used with actual values")
     team_capacity_factors: str = Field(description="Considerations with data points")
-    complexity_assessment: str = Field(description="Rating and rationale")
+    complexity_assessment: str = Field(description="Rating and rationale. [FORMAT_AS_BULLET_POINTS]")
 
 
 class DeliveryAcceleration(BaseModel):
@@ -134,6 +135,9 @@ Your responsibilities include:
 git_prompt_template = PromptTemplate(
     template=git_system_template,
     input_variables=["summary_data", "initiative", "current_date"],
+    partial_variables={
+        "tag_definitions": get_tags_prompt(format_as_bullet_points=True, include_anomaly_categories=False)
+    },
 )
 
 # Initialize LLM

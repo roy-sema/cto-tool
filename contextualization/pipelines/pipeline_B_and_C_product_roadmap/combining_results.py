@@ -7,6 +7,8 @@ from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.pipeli
     summary_chain,
 )
 
+logger = logging.getLogger(__name__)
+
 
 async def summarize_git_initiatives(
     git_data_initiatives: list[dict[str, Any]], output_file: Path
@@ -20,9 +22,9 @@ async def summarize_git_initiatives(
         output_file (Path): Path to the output JSON file where the summary will be written.
     """
     try:
-        logging.info("Summarizing the git initiatives")
+        logger.info("Summarizing the git initiatives")
         # Read input JSON file
-        logging.info(f"Length of git initiatives loaded to combine the summaries: {len(git_data_initiatives)}")
+        logger.info(f"Length of git initiatives loaded to combine the summaries: {len(git_data_initiatives)}")
         # # Extract and combine all 'response' values
         # combined_text = [entry["changes"] for entry in data if "changes" in entry]
 
@@ -42,9 +44,9 @@ async def summarize_git_initiatives(
         with open(output_file, "w") as outfile:
             json.dump(output, outfile, indent=4)
 
-        logging.info(f"Final git initiatives results saved to file: {output_file}")
+        logger.info(f"Final git initiatives results saved to file: {output_file}")
         return output
 
     except Exception:
-        logging.exception(f"Pipeline B/C - An error occurred while summurizing the git initiatives")
+        logger.exception(f"Pipeline B/C - An error occurred while summurizing the git initiatives")
         return None

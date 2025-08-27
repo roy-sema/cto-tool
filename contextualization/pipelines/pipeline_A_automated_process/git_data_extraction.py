@@ -11,6 +11,8 @@ from contextualization.conf.config import conf, llm_name
 from contextualization.pipelines.pipeline_A_automated_process.models import CommitCollection, CommitData
 from contextualization.utils.file_filters import filter_irrelevant_files_records
 
+logger = logging.getLogger(__name__)
+
 
 class Result:
     def __init__(self, returncode, stdout, stderr):
@@ -23,9 +25,7 @@ token_limit = conf["llms"][llm_name]["token_limit"]
 
 
 def is_commit_start_line(line: str) -> bool:
-    if line and "|" in line and "---COMMIT_STARTS_HERE---" in line:
-        return True
-    return False
+    return line and "|" in line and "---COMMIT_STARTS_HERE---" in line
 
 
 def parse_commit_start_line(line: str, all_data: dict, repo_name: str) -> tuple[str, dict]:
@@ -89,7 +89,7 @@ async def get_commit_data_as_collection(
         default_branch = result.stdout.strip()  # e.g., 'origin/main'
         git_log_command.append(default_branch)
         branch_name_acted_on = default_branch
-        logging.info(
+        logger.info(
             f"[Git Log] Using remote default branch '{default_branch}' with {result=}",
             extra={"repo_name": repo_name},
         )
@@ -111,12 +111,12 @@ async def get_commit_data_as_collection(
         current_branch = current_branch_result.stdout.strip()
         git_log_command.append(current_branch)
         branch_name_acted_on = current_branch
-        logging.warning(
+        logger.warning(
             f"[Git Log] Remote HEAD not found with {result=}: '{current_branch=}'",
             extra={"repo_name": repo_name},
         )
 
-    logging.info(
+    logger.info(
         f"[Git Log] Command: {' '.join(git_log_command)}",
         extra={"repo_name": repo_name},
     )
@@ -181,7 +181,7 @@ async def get_commit_data_as_collection(
         commits.append(CommitData(**commit_data))
 
     collection = CommitCollection(commits=commits)
-    logging.info(
+    logger.info(
         f"[Git Log] Final branch used: {branch_name_acted_on=}, collection size={len(collection)}",
         extra={"repo_name": repo_name},
     )
@@ -207,10 +207,10 @@ async def get_code_changes_for_collection(
 
             if result.returncode == 0:
                 # If the command is successful, return the changes
-                logging.info(f"Git diff commit {commit_id} with returncode=0", extra={"repo_name": repo_name})
+                logger.info(f"Git diff commit {commit_id} with returncode=0", extra={"repo_name": repo_name})
                 return result.stdout
             else:
-                logging.error(
+                logger.error(
                     f"Pipeline A - Error in a commit",
                     extra={
                         "commit_sha": commit_sha,
@@ -220,7 +220,7 @@ async def get_code_changes_for_collection(
                 return None  # Returning None for error cases
 
         except Exception:
-            logging.exception(
+            logger.exception(
                 "Pipeline A - Error in commit",
                 extra={
                     "commit_sha": commit_sha,
@@ -321,24 +321,24 @@ async def gather_process_all_repos_data(
 
         # Check if the path is a directory and contains a .git folder
         if os.path.isdir(repo_path) and ".git" in os.listdir(repo_path):
-            logging.info(f"Processing repository: {repo_name}")
+            logger.info(f"Processing repository: {repo_name}")
             repo_collection = await get_commit_data_as_collection(repo_path, repo_name, start_date, end_date)
-            logging.info(f"getting code changes for: {repo_name}: with collection size {len(repo_collection)}")
+            logger.info(f"getting code changes for: {repo_name}: with collection size {len(repo_collection)}")
             repo_collection = await get_code_changes_for_collection(repo_collection, repo_path, repo_name)
-            logging.info(f"got code changes for: {repo_name}: with collection size {len(repo_collection)}")
+            logger.info(f"got code changes for: {repo_name}: with collection size {len(repo_collection)}")
 
             repo_collection = filter_irrelevant_files_collection(repo_collection)
             repo_collection = postprocess_collection(repo_collection)
-            logging.info(
+            logger.info(
                 f"size for repo: {repo_name}: after removing null rows and filtering by date: {len(repo_collection)}"
             )
             repo_collection = count_tokens_collection(repo_collection)
-            logging.info(f"size for repo: {repo_name}: after trimming records: {len(repo_collection)}")
+            logger.info(f"size for repo: {repo_name}: after trimming records: {len(repo_collection)}")
 
             # Append the repository data to the main collection, excluding empty collections
             if not repo_collection.is_empty():
                 main_collection.commits.extend(repo_collection.commits)
         else:
-            logging.info(f"Skipping {repo_name}: {repo_path} is not a git repository")
+            logger.info(f"Skipping {repo_name}: {repo_path} is not a git repository")
 
     return main_collection

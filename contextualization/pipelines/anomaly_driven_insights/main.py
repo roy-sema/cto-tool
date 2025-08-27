@@ -23,6 +23,7 @@ from contextualization.pipelines.anomaly_driven_insights.prompts.prompt import (
     skip_a_meeting_chain,
 )
 from contextualization.pipelines.common.anomalies_postprocessing import postprocess_anomaly_insights
+from contextualization.pipelines.pipeline_A_automated_process.models import CommitCollection
 from contextualization.tools.llm_tools import (
     calculate_token_count_async,
     get_batches,
@@ -30,6 +31,8 @@ from contextualization.tools.llm_tools import (
 )
 from contextualization.utils.otel_utils import suppress_prompt_logging
 from contextualization.utils.vcr_mocks import calls_context
+
+logger = logging.getLogger(__name__)
 
 token_limit = conf["llms"][llm_name]["token_limit"]
 batch_threshold = conf["llms"][llm_name]["batch_threshold"]
@@ -41,9 +44,9 @@ def generate_git_tree(
     git_tree_file = os.path.join(dir_name, f"{repo_name}_git_tree_file.txt")
     if os.path.exists(git_tree_file):
         os.remove(git_tree_file)
-        logging.info(f"Deleted existing file: {git_tree_file}")
+        logger.info(f"Deleted existing file: {git_tree_file}")
     # git_tree_file = f"{repo_name}_git_tree_file_{timestamp}.txt"
-    logging.info(f"Generating git tree for {repo_path}...")
+    logger.info(f"Generating git tree for {repo_path}...")
 
     result = subprocess.run(
         [
@@ -94,7 +97,7 @@ def generate_git_tree(
         f.write(git_tree_content)
 
     commit_count = len(git_tree_content.splitlines())
-    logging.info(f"Number of commits (number of lines) in git tree file: {commit_count}")
+    logger.info(f"Number of commits (number of lines) in git tree file: {commit_count}")
 
     return git_tree_content, commit_count
 
@@ -103,7 +106,7 @@ def generate_git_tree(
 async def find_insights_in_commit_summaries(
     anamoly_summary_output_df: pd.DataFrame, dir_name: str, repo_name: str
 ) -> list[dict]:
-    logging.info("Function to generate summary from anomaly summary")
+    logger.info("Function to generate summary from anomaly summary")
 
     required_columns = {"anomaly_summary", "id", "files", "branch_name"}
     if not required_columns.issubset(anamoly_summary_output_df.columns):
@@ -149,7 +152,7 @@ async def find_insights_in_commit_summaries(
         )
         chunks.append(row_str)
 
-    logging.info(f"Total chunks to be processed: {len(chunks)}")
+    logger.info(f"Total chunks to be processed: {len(chunks)}")
 
     repo_result_list = await analyse_chunks_chain.abatch([{"chunk": chunk} for chunk in chunks])
 
@@ -158,7 +161,7 @@ async def find_insights_in_commit_summaries(
     with open(path_to_store_json, "w") as json_file:  # noqa: ASYNC230
         json.dump(repo_result_list, json_file, indent=4)
 
-    logging.info(f"Saved analysis file at location: {path_to_store_json}")
+    logger.info(f"Saved analysis file at location: {path_to_store_json}")
 
     return repo_result_list
 
@@ -170,8 +173,8 @@ async def find_anomaly_insights_in_git_tree_and_commit_summaries(
     analysis_file = os.path.join(dir_name, f"{repo_name}_analysis_git_tree.txt")
     if os.path.exists(analysis_file):
         os.remove(analysis_file)
-        logging.info(f"Deleted existing file analysis git tree file: {analysis_file}")
-    logging.info(f"Analyzing git tree for {repo_name}...")
+        logger.info(f"Deleted existing file analysis git tree file: {analysis_file}")
+    logger.info(f"Analyzing git tree for {repo_name}...")
 
     coroutines = [analyse_git_tree_chain.ainvoke({"git_tree_content": git_tree_content})]
     if anamoly_summary_output_df is not None:
@@ -197,9 +200,9 @@ async def generate_git_diff_summary_for_anomaly_insights(
     summary_file = os.path.join(dir_name, f"{repo_name}_anomaly_driven_insights.json")
     if os.path.exists(summary_file):
         os.remove(summary_file)
-        logging.info(f"Deleted existing cto insights file: {summary_file}")
+        logger.info(f"Deleted existing cto insights file: {summary_file}")
     # summary_file = f"{repo_name}_summary_{timestamp}.txt"
-    logging.info("Synthesizing recommendations...")
+    logger.info("Synthesizing recommendations...")
 
     anomaly_insights = await cto_summary_chain_anomaly_insights.ainvoke(
         {
@@ -212,7 +215,7 @@ async def generate_git_diff_summary_for_anomaly_insights(
     with open(summary_file, "w") as json_file:  # noqa: ASYNC230
         json.dump(summary_content, json_file, indent=4)
 
-    logging.info(f"Saved cto insights file at location: {summary_file}")
+    logger.info(f"Saved cto insights file at location: {summary_file}")
 
     return summary_content
 
@@ -231,7 +234,7 @@ def combine_cto_summary_analysis_and_rank_anomalies(
     for repo in repo_list:
         file_path = os.path.join(base_path, f"{repo}_anomaly_driven_insights.json")
         if not os.path.exists(file_path):
-            logging.info(f"Warning: {file_path} not found.")
+            logger.info(f"Warning: {file_path} not found.")
             raise FileNotFoundError(f"Input file not found: {file_path}")
 
         data = summary_contents[repo]
@@ -264,7 +267,7 @@ def combine_cto_summary_analysis_and_rank_anomalies(
     with open(combine_cto_summry_result_file_path, "w") as out_file:
         json.dump(combine_cto_summary_result, out_file, indent=4)
 
-    logging.info(f"Saved ranked insights at: {combine_cto_summry_result_file_path}")
+    logger.info(f"Saved ranked insights at: {combine_cto_summry_result_file_path}")
     return combine_cto_summary_result, combine_cto_summry_result_file_path
 
 
@@ -282,7 +285,7 @@ async def find_blind_spot_insights(insights: dict, insights_path: str) -> dict:
 
     # Process 'anomaly_insights' if present
     if "anomaly_insights" in insights:
-        logging.info(f"Processing {len(insights['anomaly_insights'])} anomaly insights to add blind spot.")
+        logger.info(f"Processing {len(insights['anomaly_insights'])} anomaly insights to add blind spot.")
         results = await blind_spot_chain.abatch(insights["anomaly_insights"])
         for insight, blind_spot_result in zip(insights["anomaly_insights"], results):
             insight.update(blind_spot_result)
@@ -290,7 +293,7 @@ async def find_blind_spot_insights(insights: dict, insights_path: str) -> dict:
     # Save the updated insights back to the file
     with open(insights_path, "w") as file:
         json.dump(insights, file, indent=4)
-    logging.info(f"Successfully updated insights with blind spot and saved to {insights_path}")
+    logger.info(f"Successfully updated insights with blind spot and saved to {insights_path}")
 
     return insights
 
@@ -311,7 +314,7 @@ async def find_skip_a_meeting_insights(insights: dict, insights_path: str) -> di
 
     # Process 'anomaly_insights' if present
     if "anomaly_insights" in insights:
-        logging.info(f"Processing {len(insights['anomaly_insights'])} anomaly insights.")
+        logger.info(f"Processing {len(insights['anomaly_insights'])} anomaly insights.")
         results = await skip_a_meeting_chain.abatch(
             [{"analysis_content": insight} for insight in insights["anomaly_insights"]]
         )
@@ -321,7 +324,7 @@ async def find_skip_a_meeting_insights(insights: dict, insights_path: str) -> di
     # Save the updated insights back to the file
     with open(insights_path, "w") as file:
         json.dump(insights, file, indent=4)
-    logging.info(f"Successfully updated insights and saved to {insights_path}")
+    logger.info(f"Successfully updated insights and saved to {insights_path}")
 
     return insights
 
@@ -348,10 +351,10 @@ async def find_anomaly_insights_for_repo(
         end_date: The end date for the analysis period.
     """
 
-    logging.info(f"Generating git tree from {start_datetime} to {end_datetime}")
+    logger.info(f"Generating git tree from {start_datetime} to {end_datetime}")
     git_tree_content, commit_count = generate_git_tree(repo_path, repo_name, start_datetime, end_datetime, dir_name)
 
-    logging.info(f"Analyzing git tree for {repo_name}")
+    logger.info(f"Analyzing git tree for {repo_name}")
     analysis_content, git_diff_analysis = await find_anomaly_insights_in_git_tree_and_commit_summaries(
         repo_name,
         git_tree_content,
@@ -388,7 +391,7 @@ async def analyse_git_data(
     and saves outputs dynamically in a folder.
     """
     if not os.path.exists(git_csv_path):
-        logging.info(f"checking if the csv exists for git data")
+        logger.info(f"checking if the csv exists for git data")
         raise FileNotFoundError(f"Input file not found: {git_csv_path}")
 
     if output_path is None:
@@ -397,7 +400,7 @@ async def analyse_git_data(
         anomaly_summary_output_path = os.path.join(dir_name, f"{name}_anomaly_output{ext}")
         error_log_file = os.path.join(dir_name, f"{name}_error_output{ext}")
     else:
-        logging.info("Creating path for error output folders")
+        logger.info("Creating path for error output folders")
         # Just reuse the original file name structure
         base_name = os.path.basename(git_csv_path)
         name, ext = os.path.splitext(base_name)
@@ -405,16 +408,16 @@ async def analyse_git_data(
         error_log_file = os.path.join(output_path, f"{name}_error_output{ext}")
 
     # Gather and process repository data
-    logging.info(f"Gathering data from git repositories")
+    logger.info(f"Gathering data from git repositories")
     data = summary_data_df
-    logging.info(f"shape of data from git loaded: {data.shape}")
+    logger.info(f"shape of data from git loaded: {data.shape}")
 
     dataframes = get_batches(data, tiktoken_column="tik_tokens")
 
     # Analyze code changes and save results
     with suppress_prompt_logging():
         summary_data = await find_anomalies_in_git_diffs(dataframes, anomaly_summary_output_path, error_log_file)
-    logging.info("extracted anomaly summary data")
+    logger.info("extracted anomaly summary data")
     assert summary_data is not None
 
     # Convert to datetime (ensure it includes time)
@@ -432,10 +435,10 @@ async def analyse_git_data(
         repo_path = os.path.join(main_folder_path, repo_name)
         # Check if the path is a directory and contains a .git folder
         if os.path.isdir(repo_path) and ".git" in os.listdir(repo_path):
-            logging.info(f"Processing repository: {repo_name}")
+            logger.info(f"Processing repository: {repo_name}")
             repo_data = summary_data[summary_data["repository"] == repo_name]
             if repo_data.shape[0] > 0:
-                logging.info(f"Found data for anomaly summary: {repo_data.shape[0]}")
+                logger.info(f"Found data for anomaly summary: {repo_data.shape[0]}")
                 repo_list.append(repo_name)
                 coroutines.append(
                     find_anomaly_insights_for_repo(
@@ -444,13 +447,13 @@ async def analyse_git_data(
                 )
                 repo_names.append(repo_name)
             else:
-                logging.info(f"Data not found for anomaly summary skipping this repo")
+                logger.info(f"Data not found for anomaly summary skipping this repo")
         else:
-            logging.info(f"skipping directory repository: {repo_name}")
+            logger.info(f"skipping directory repository: {repo_name}")
     if len(repo_list) > 0:
         results = await execute_concurrently(coroutines)
-        summary_contents = {repo_name: result for repo_name, result in zip(repo_names, results)}
-        logging.info(f"combining cto based anomaly insights summary")
+        summary_contents = dict(zip(repo_names, results))
+        logger.info(f"combining cto based anomaly insights summary")
         await postprocess_organization_insights(summary_contents)
         combined_anomaly_insights, combined_anomaly_insights_path = combine_cto_summary_analysis_and_rank_anomalies(
             repo_list, dir_name, summary_contents
@@ -463,15 +466,16 @@ async def analyse_git_data(
 
         return combined_insights
     else:
-        logging.info(f"No repositories found to combining git tree based anomaly insights summary")
+        logger.info(f"No repositories found to combining git tree based anomaly insights summary")
 
 
 async def run_anomaly_driven_insights(
     git_data_path: str,
     git_repo_path: str,
-    summary_data_df: pd.DataFrame,
+    summary_data: CommitCollection,
     output_path: str | None = None,
 ) -> GitCombinedInsights | None:
-    logging.info(f"Running anomaly insights pipeline with params: {git_data_path=} {git_repo_path=} {output_path=}")
+    summary_data_df = pd.DataFrame(summary_data.to_records())
+    logger.info(f"Running anomaly insights pipeline with params: {git_data_path=} {git_repo_path=} {output_path=}")
     with calls_context("anomaly_driven_insights.yaml"):
         return await analyse_git_data(git_data_path, git_repo_path, summary_data_df, output_path)

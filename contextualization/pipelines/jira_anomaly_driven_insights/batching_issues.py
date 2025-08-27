@@ -1,12 +1,16 @@
+import logging
+
 import pandas as pd
 
 from contextualization.conf.config import get_config
 from contextualization.tools.llm_tools import count_tokens
 
+logger = logging.getLogger(__name__)
+
 
 async def get_jira_issues_batches(dataframe: pd.DataFrame, prompt_tokens: int = 1500) -> list[str]:
     config = get_config()
-    full_prompt_token_limit = 10000 + prompt_tokens
+    full_prompt_token_limit = config.token_limit - prompt_tokens
 
     dataframe["combined"] = dataframe.apply(lambda row: " ".join(map(str, row)), axis=1)
 
@@ -18,7 +22,7 @@ async def get_jira_issues_batches(dataframe: pd.DataFrame, prompt_tokens: int = 
     token_sum = 0
     text_accumulated = ""
     for idx, row in dataframe.iterrows():
-        if token_sum >= full_prompt_token_limit:
+        if token_sum + row["combined_token_count"] > full_prompt_token_limit and text_accumulated:
             text_batches.append(text_accumulated)
             token_sum = 0
             text_accumulated = ""
@@ -29,4 +33,5 @@ async def get_jira_issues_batches(dataframe: pd.DataFrame, prompt_tokens: int = 
     if text_accumulated:
         text_batches.append(text_accumulated)
 
+    logger.info(f"Split into {len(text_batches)} batches.")
     return text_batches

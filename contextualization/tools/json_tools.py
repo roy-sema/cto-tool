@@ -8,9 +8,9 @@ def round_percentages(data: Any, fields: Sequence[str] = ("percentage",)) -> Non
         for key, value in data.items():
             if key in fields:
                 data[key] = round(data[key])
-            elif isinstance(value, dict) or isinstance(value, list):
+            elif isinstance(value, dict | list):
                 round_percentages(value, fields)
     elif isinstance(data, list):
         for item in data:
-            if isinstance(item, dict) or isinstance(item, list):
+            if isinstance(item, dict | list):
                 round_percentages(item, fields)

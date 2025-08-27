@@ -4,6 +4,8 @@ from typing import Any
 
 import pandas as pd
 
+logger = logging.getLogger(__name__)
+
 
 def parse_changelog_data(changelog_value: Any) -> list[dict[str, Any]]:
     """Parse the structured data from a single issue's changelog"""
@@ -20,7 +22,7 @@ def parse_changelog_data(changelog_value: Any) -> list[dict[str, Any]]:
 
         # Case 1: If changelog is NOT dict
         if not isinstance(changelog, dict):
-            logging.warning(
+            logger.warning(
                 f"Changelog is not a dict.",
                 extra={"type": type(changelog), "value": changelog},
             )
@@ -28,7 +30,7 @@ def parse_changelog_data(changelog_value: Any) -> list[dict[str, Any]]:
 
         # Case 2: If it's a dict but doesn't have 'histories' key
         if "histories" not in changelog:
-            logging.warning(
+            logger.warning(
                 f"'histories' key missing in changelog dict.",
                 extra={"value": changelog},
             )
@@ -59,7 +61,7 @@ def parse_changelog_data(changelog_value: Any) -> list[dict[str, Any]]:
                 changelog_entries.append(change_entry)
 
     except Exception:
-        logging.exception(
+        logger.exception(
             "Error while parsing the changelog",
             extra={"changelog": changelog},
         )

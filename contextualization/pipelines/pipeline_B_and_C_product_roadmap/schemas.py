@@ -90,8 +90,21 @@ class Insights(BaseModel):
     insights: list[Insight]
 
 
+class InitiativeAccelerations(BaseModel):
+    name: str
+    increase_weeks: int
+
+
+class AccelerationSummary(BaseModel):
+    universal_strategies: list[str]
+    key_changes_needed: list[str]
+    initiative_accelerations: list[InitiativeAccelerations]
+    result: str
+
+
 class PipelineBCResultItem(BaseModel):
     git_initiatives: GitInitiatives
+    acceleration_summary: AccelerationSummary | None
     insights: Insights | None = None
 
 

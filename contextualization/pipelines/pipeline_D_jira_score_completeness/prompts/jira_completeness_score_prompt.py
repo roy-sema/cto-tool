@@ -3,7 +3,7 @@ from pydantic import Field
 
 from contextualization.conf.get_llm import get_llm
 from contextualization.tags import get_tags_prompt
-from contextualization.utils.output_parser import BaseModelThatRemovesTags, to_dict_parser
+from contextualization.utils.output_parser import BaseModelThatRemovesTags
 
 system_template = """
 
@@ -99,5 +99,5 @@ prompt_template = PromptTemplate(
     },
 )
 
-llm = get_llm(max_tokens=5000).with_structured_output(JiraScore) | to_dict_parser
+llm = get_llm(max_tokens=5000).with_structured_output(JiraScore)
 jira_completeness_score_chain = prompt_template | llm

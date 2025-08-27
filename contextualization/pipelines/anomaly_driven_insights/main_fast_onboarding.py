@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 import warnings
 from pathlib import Path
@@ -12,10 +11,6 @@ from pipelines.anomaly_driven_insights.main import (
 # from logging_config import setup_logging
 warnings.filterwarnings("ignore")
 
-from sentry_utils import configure_sentry_for_contextualization
-from utils.logging_config import setup_logging
-
-setup_logging()
 configure_sentry_for_contextualization()
 
 
@@ -35,18 +30,18 @@ def fast_analyze_git_data(
         repo_path = os.path.join(main_folder_path, repo_name)
         # Check if the path is a directory and contains a .git folder
         if os.path.isdir(repo_path) and ".git" in os.listdir(repo_path):
-            logging.info(f"Generating git tree for {repo_name} from {start_date} to {end_date}")
+            logger.info(f"Generating git tree for {repo_name} from {start_date} to {end_date}")
             git_tree_content, commit_count = generate_git_tree(repo_path, repo_name, start_date, end_date, output_dir)
-            logging.info(f"Git tree for {repo_name} has {commit_count} commits")
+            logger.info(f"Git tree for {repo_name} has {commit_count} commits")
 
             if commit_count > max_commits:
                 max_commits = commit_count
                 repo_name_with_max_commits = repo_name
         else:
-            logging.info(f"skipping directory repository: {repo_name}")
+            logger.info(f"skipping directory repository: {repo_name}")
 
     if repo_name_with_max_commits is None:
-        logging.error(
+        logger.error(
             f"No commits in repositories",
             extra={
                 "main_folder_path": main_folder_path,
@@ -57,8 +52,8 @@ def fast_analyze_git_data(
         return
 
     repo_path = os.path.join(main_folder_path, repo_name_with_max_commits)
-    logging.info(f"Processing repository: {repo_name_with_max_commits}")
-    logging.info(f"Use only Git tree to find anomalies.")
+    logger.info(f"Processing repository: {repo_name_with_max_commits}")
+    logger.info(f"Use only Git tree to find anomalies.")
     summary_content = find_anomaly_insights_for_repo(
         repo_name_with_max_commits,
         repo_path,

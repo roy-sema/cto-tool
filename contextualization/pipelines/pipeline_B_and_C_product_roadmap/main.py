@@ -19,6 +19,9 @@ from tenacity import (
 )
 
 from contextualization.conf.config import conf, llm_name
+from contextualization.pipelines.pipeline_B_and_C_product_roadmap.acceleration_summary import (
+    generate_acceleration_summary,
+)
 from contextualization.pipelines.pipeline_B_and_C_product_roadmap.delivery_estimates import (
     append_git_delivery_estimates,
 )
@@ -41,7 +44,11 @@ from contextualization.pipelines.pipeline_B_and_C_product_roadmap.prompts.topic_
     chain_topic_assign_git,
     chain_topic_assign_to_jira_from_git,
 )
-from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import PipelineBCResult, PipelineBCResultItem
+from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import (
+    GitInitiatives,
+    PipelineBCResult,
+    PipelineBCResultItem,
+)
 from contextualization.tools.json_tools import round_percentages
 from contextualization.tools.llm_tools import (
     calculate_token_count_async,
@@ -50,6 +57,9 @@ from contextualization.tools.llm_tools import (
 from contextualization.utils.csv_loader import load_csv_safely
 from contextualization.utils.parse_jira_fields import parse_changelog_data
 from contextualization.utils.vcr_mocks import calls_context
+
+logger = logging.getLogger(__name__)
+
 
 token_limit = conf["llms"][llm_name]["token_limit"]
 batch_threshold = conf["llms"][llm_name]["batch_threshold"]
@@ -78,7 +88,7 @@ async def git_topic_assign_to_git_data(
 
     async def analyze_change_with_token_callback(batch_content: list[str]) -> list[Any]:
         try:
-            logging.info("Assigning Git initiatives to the current batch of Git data...")
+            logger.info("Assigning Git initiatives to the current batch of Git data...")
             outputs = await chain_topic_assign_git.abatch(
                 [
                     {
@@ -90,7 +100,7 @@ async def git_topic_assign_to_git_data(
                 ]
             )
 
-            logging.info(
+            logger.info(
                 f"Successfully assigned Git initiatives to records of git data.",
                 extra={
                     "batches_type": "git_initiatives_git_data",
@@ -99,7 +109,7 @@ async def git_topic_assign_to_git_data(
             return outputs
 
         except Exception:
-            logging.exception("Pipeline B/C - Error processing batch")
+            logger.exception("Pipeline B/C - Error processing batch")
             return [None] * len(batch_content)
 
     batch_number = 0
@@ -108,7 +118,7 @@ async def git_topic_assign_to_git_data(
         for batch in df_lists:
             batch_number += 1
             batch_size = len(batch)
-            logging.info(f"Processing Batch {batch_number} with size {batch_size}...")
+            logger.info(f"Processing Batch {batch_number} with size {batch_size}...")
 
             # Ensure the 'Summary' column exists
             if "Summary" not in batch.columns:
@@ -120,7 +130,7 @@ async def git_topic_assign_to_git_data(
             process_batch_results(batch, batch_results, batch_number, output_path, error_log_path)
 
     except Exception:
-        logging.exception("Pipeline B/C - Error occurred while assigning git initiatives to git data batches")
+        logger.exception("Pipeline B/C - Error occurred while assigning git initiatives to git data batches")
 
     # Load and return the full, saved DataFrame with original and new columns
     if os.path.exists(output_path):
@@ -154,7 +164,7 @@ async def project_exists(
         response = await client.get(api_url, auth=(user, confluence_token), headers=headers)
 
     if response.status_code != 200:
-        logging.warning(
+        logger.warning(
             f"No project found with key",
             extra={"project_key": project_key, "jira_url": jira_url},
         )
@@ -187,7 +197,7 @@ async def _fetch_data_jira_api(
         response.raise_for_status()
     except httpx.HTTPStatusError:
         if response.status_code == 400:
-            logging.exception(
+            logger.exception(
                 "JIRA API returned 400 (Bad Request). Possibly due to malformed JQL or empty project list.",
                 extra={
                     "response_status": response.status_code,
@@ -236,7 +246,7 @@ async def get_jira_data_contextualization(
                 project_names_that_exist.append(project)
 
         if not project_names_that_exist:
-            logging.info("No valid JIRA projects found. Skipping JIRA data fetch.")
+            logger.info("No valid JIRA projects found. Skipping JIRA data fetch.")
             return pd.DataFrame()
 
         project_list = ",".join([f'"{p}"' for p in project_names_that_exist])
@@ -276,7 +286,7 @@ async def get_jira_data_contextualization(
 
             start_at += max_results  # Increment pagination
 
-        logging.info(
+        logger.info(
             f"Total amount of issues fetched: {len(total_issues)}",
             extra={"issues_count": len(total_issues)},
         )
@@ -294,7 +304,7 @@ async def get_jira_data_contextualization(
         Just logging the exception and not re-raising here because the pipeline should
         continue on GIT data even if the JIRA data is not fetched successfully or is absent.
         """
-        logging.exception("Error occurred while fetching JIRA data using JIRA API")
+        logger.exception("Error occurred while fetching JIRA data using JIRA API")
         return pd.DataFrame()
 
 
@@ -325,7 +335,7 @@ async def process_jira_data(
         get_current_span().set_attribute("ticket_count", len(df))
 
         if df.empty:
-            logging.warning("No tickets data returned by Jira API")
+            logger.warning("No tickets data returned by Jira API")
             return df
 
         # Normalize fields
@@ -389,7 +399,7 @@ async def process_jira_data(
 
         return timezone_filtered_df
     except Exception:
-        logging.exception("Pipeline B/C - Error occurred while processing JIRA data")
+        logger.exception("Pipeline B/C - Error occurred while processing JIRA data")
         return pd.DataFrame()
 
 
@@ -416,7 +426,7 @@ async def git_topic_assign_to_jira_data(
 
     async def analyze_change_with_token_callback(batch_content: list[str]) -> list[Any]:
         try:
-            logging.info("Assigning Git initiatives to the current batch of Jira data...")
+            logger.info("Assigning Git initiatives to the current batch of Jira data...")
             outputs = await chain_topic_assign_to_jira_from_git.abatch(
                 [
                     {
@@ -427,7 +437,7 @@ async def git_topic_assign_to_jira_data(
                     for file_content in batch_content
                 ]
             )
-            logging.info(
+            logger.info(
                 f"Successfully assigned Git initiatives to records of jira data.",
                 extra={
                     "batches_type": "git_initiatives_jira_data",
@@ -436,7 +446,7 @@ async def git_topic_assign_to_jira_data(
             return outputs
 
         except Exception:
-            logging.exception("Pipeline B/C - Error processing batch")
+            logger.exception("Pipeline B/C - Error processing batch")
             return [None] * len(batch_content)
 
     batch_number = 0
@@ -445,7 +455,7 @@ async def git_topic_assign_to_jira_data(
         for batch in df_lists:
             batch_number += 1
             batch_size = len(batch)
-            logging.info(f"Processing Batch {batch_number} with size {batch_size}...")
+            logger.info(f"Processing Batch {batch_number} with size {batch_size}...")
             # Ensure the 'Summary' column exists
             if "description" not in batch.columns:
                 raise ValueError("The DataFrame must contain a 'description' column.")
@@ -456,7 +466,7 @@ async def git_topic_assign_to_jira_data(
             process_batch_results(batch, batch_results, batch_number, output_path, error_log_path)
 
     except Exception:
-        logging.exception("Pipeline B/C - Error occurred while assigning git initiatives to jira data batches")
+        logger.exception("Pipeline B/C - Error occurred while assigning git initiatives to jira data batches")
 
     # Load and return the full, saved DataFrame with original and new columns
     if os.path.exists(output_path):
@@ -480,7 +490,7 @@ def process_batch_results(
     batch_results_series = pd.Series(batch_results)
 
     success_results = [res for res in batch_results if res is not None]
-    logging.info(f"Length of successful results obtained for batch {batch_number}: {len(success_results)}")
+    logger.info(f"Length of successful results obtained for batch {batch_number}: {len(success_results)}")
     error_indices = batch.index[batch_results_series.isna()]
 
     if success_results:
@@ -513,7 +523,7 @@ def update_changes_with_percentages(
     Updates the 'initiatives' key in the provided JSON-like dictionary `data`
     with the percentages of each category from the DataFrame `df`.
     """
-    logging.info("Updating the percentage with actual percentages of git initiatives.")
+    logger.info("Updating the percentage with actual percentages of git initiatives.")
     try:
         # Calculate category percentages
         category_counts = df[column_name].value_counts()
@@ -534,7 +544,7 @@ def update_changes_with_percentages(
         return data
 
     except Exception:
-        logging.exception(
+        logger.exception(
             f"Pipeline B/C - Error while updating the percentage with actual percentages for git initiatives"
         )
         return data
@@ -550,7 +560,7 @@ def add_jira_initiative_completion_percentage(
     Updates the 'initiatives' key in the provided JSON-like dictionary `data`
     with the percentages of each category from the Jira data.
     """
-    logging.info("Updating the completion percentage for each initiative")
+    logger.info("Updating the completion percentage for each initiative")
 
     try:
         # Read Jira data
@@ -567,7 +577,7 @@ def add_jira_initiative_completion_percentage(
         percentage_done_dict = percentage_done.to_dict()
         done_count_dict = done_count.to_dict()
         total_count_dict = total_count.to_dict()
-        logging.info(f"Got percentages of initiatives: {percentage_done_dict}")
+        logger.info(f"Got percentages of initiatives: {percentage_done_dict}")
 
         # Ensure all initiatives in `data["initiatives"]` are updated, including missing ones
         for change in data.get("initiatives", []):
@@ -580,12 +590,12 @@ def add_jira_initiative_completion_percentage(
                 change["total_tickets"] = total_count_dict.get(category_name, 0)  # Default to 0 if not found
                 change["estimated_end_date"] = end_date_dict.get(category_name, 0)  # Default to 0 if not found
 
-        logging.info("Updated the completion percentage for each initiative")
+        logger.info("Updated the completion percentage for each initiative")
 
         return data
 
     except Exception as e:
-        logging.exception(f"Pipeline B/C - Error while updating the completion percentage of initiatives")
+        logger.exception(f"Pipeline B/C - Error while updating the completion percentage of initiatives")
         return data  # Return the original data even in case of an error
 
 
@@ -594,7 +604,7 @@ async def add_summary(input_data: dict[str, Any], file_path: Path) -> dict[str, 
     """
     Reads a JSON file, processes its data using the summary chain, and updates the file.
     """
-    logging.info("Updating the git initiative json with summary.")
+    logger.info("Updating the git initiative json with summary.")
     try:
         # Validate the JSON structure
         if not isinstance(input_data, dict):
@@ -608,12 +618,12 @@ async def add_summary(input_data: dict[str, Any], file_path: Path) -> dict[str, 
         with open(file_path, "w") as file:  # Directly open in 'w' mode for overwriting
             json.dump(input_data, file, indent=4)
 
-        logging.info("Updated the git initiative json with summary.")
+        logger.info("Updated the git initiative json with summary.")
 
         return input_data
 
     except Exception:
-        logging.exception(f"Pipeline B/C - An error occurred while updating the git initiative json with summary")
+        logger.exception(f"Pipeline B/C - An error occurred while updating the git initiative json with summary")
 
 
 def add_start_date(
@@ -644,7 +654,7 @@ def add_start_date(
 
         # Save updated DataFrame to CSV
         updated_data.to_csv(output_csv, index=False)
-        logging.info(f"'start_date' column added to Jira data and saved to {output_csv}")
+        logger.info(f"'start_date' column added to Jira data and saved to {output_csv}")
 
         # Convert to dictionary for an easy lookup
         start_date_dict = dict(
@@ -657,13 +667,13 @@ def add_start_date(
         # Add 'start_date' to JSON
         for change in json_data.get("initiatives", []):  # Use .get() to prevent KeyError
             initiative_name = change.get("initiative_name")
-            start_date_value = start_date_dict.get(initiative_name, None)
+            start_date_value = start_date_dict.get(initiative_name)
             change["start_date"] = str(start_date_value) if start_date_value is not None else None
 
-        logging.info(f"'start_date' added to initiatives successfully")
+        logger.info(f"'start_date' added to initiatives successfully")
 
     except Exception:
-        logging.exception(f"Pipeline B/C - An error occurred while adding the start_date")
+        logger.exception(f"Pipeline B/C - An error occurred while adding the start_date")
 
     return json_data, updated_data
 
@@ -673,7 +683,7 @@ def delete_existing_files(*file_paths: Path) -> None:
     for file_path in file_paths:
         if file_path.exists():
             os.remove(file_path)
-            logging.info(f"Deleted existing file: {file_path}")
+            logger.info(f"Deleted existing file: {file_path}")
 
 
 @instrumented
@@ -683,7 +693,7 @@ def get_estimated_end_date(
     """
     Takes jira data as input and returns a dictionary with initiatives and their end date estimates.
     """
-    logging.info(f"calculating estimated end date")
+    logger.info(f"calculating estimated end date")
     done_status = jira_data[jira_data["status"] == "Done"]
     if done_status.shape[0] == 0:
         return {}
@@ -692,7 +702,7 @@ def get_estimated_end_date(
     with open(filepath, "w") as f:
         json.dump(done_status.to_dict(), f, indent=4)
 
-    logging.info(f"original jira data saved to {filepath}")
+    logger.info(f"original jira data saved to {filepath}")
 
     def parse_jira_datetime(timestamp: str) -> datetime:
         return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
@@ -717,12 +727,14 @@ def get_estimated_end_date(
                 for item in log["items"]:
                     if item["field"] == "status":
                         if (
-                            item.get("fromString") == "In Progress"
-                            and item.get("toString") == "Done"
+                            (
+                                item.get("fromString") == "In Progress"
+                                and item.get("toString") == "Done"
+                                and done_time is None
+                            )
+                            or item.get("toString") == "Done"
                             and done_time is None
                         ):
-                            done_time = created_time
-                        elif item.get("toString") == "Done" and done_time is None:
                             done_time = created_time
                         elif item.get("toString") == "In Progress":
                             in_progress_time = created_time
@@ -733,14 +745,14 @@ def get_estimated_end_date(
                 return (done_time - in_progress_time).total_seconds() / 3600, done_time  # Hours
             return "cannot calculate", "cannot calculate"
         except Exception as e:
-            logging.exception(f"Pipeline B/C - An error occurred while adding the start_date")
+            logger.exception(f"Pipeline B/C - An error occurred while adding the start_date")
             return "cannot calculate", "cannot calculate"
 
     done_status["changelog"] = done_status["changelog"].apply(lambda x: eval(x))
     done_status[["completed_time", "done_date"]] = (
         done_status["changelog"].apply(lambda x: calculate_status_time_difference(x["histories"])).apply(pd.Series)
     )
-    logging.info(f"calculating the average time take by task per initiative to complete")
+    logger.info(f"calculating the average time take by task per initiative to complete")
     # Convert 'completed_time' to numeric, setting errors='coerce' to ignore strings
     done_status["completed_time"] = pd.to_numeric(done_status["completed_time"], errors="coerce")
 
@@ -750,7 +762,7 @@ def get_estimated_end_date(
         done_status.groupby(initiative_column_label).agg({"completed_time": "mean"}).reset_index()
     )
 
-    logging.info(f"calculating the maximum done date for every initiatve")
+    logger.info(f"calculating the maximum done date for every initiatve")
     ## this will be used if the initiative is 100% completed the estimated date will be the max done date.
     # Convert 'completed_time' to numeric, setting errors='coerce' to ignore strings
     done_status["done_date"] = pd.to_datetime(done_status["done_date"], errors="coerce")
@@ -791,7 +803,7 @@ def get_estimated_end_date(
     # then return the max date.
 
     if count_df.empty:
-        logging.info("Analysis data is empty, fallback to empty return")
+        logger.info("Analysis data is empty, fallback to empty return")
         return {}
 
     count_df["estimated_end_date"] = count_df.apply(add_hours_to_date, axis=1).astype(str)
@@ -806,11 +818,11 @@ def get_estimated_end_date(
 
 
 async def add_estimated_end_date_insights(input_data: dict[str, Any]) -> dict[str, Any]:
-    logging.info("Adding estimated end date insights to initiatives.")
+    logger.info("Adding estimated end date insights to initiatives.")
 
     initiatives = input_data["initiatives"]
     if not initiatives:
-        logging.info("No initiatives to process.")
+        logger.info("No initiatives to process.")
         return input_data
 
     batch_inputs = []
@@ -842,7 +854,7 @@ async def add_estimated_end_date_insights(input_data: dict[str, Any]) -> dict[st
             initiative_mappings.append(idx)
 
     if batch_inputs:
-        logging.info(f"Processing {len(batch_inputs)} initiatives with LLM batch processing...")
+        logger.info(f"Processing {len(batch_inputs)} initiatives with LLM batch processing...")
         try:
             end_date_insights = await end_date_insights_chain.abatch(batch_inputs)
 
@@ -850,12 +862,12 @@ async def add_estimated_end_date_insights(input_data: dict[str, Any]) -> dict[st
                 initiatives[initiative_idx]["estimated_end_date_insights"] = insight_result
 
         except Exception:
-            logging.exception("Error processing end date insights batch")
+            logger.exception("Error processing end date insights batch")
             for initiative_idx in initiative_mappings:
                 initiatives[initiative_idx]["estimated_end_date_insights"] = "Error generating end date insights."
 
     input_data["initiatives"] = initiatives
-    logging.info("Updated the initiatives with estimated end date insights.")
+    logger.info("Updated the initiatives with estimated end date insights.")
 
     return input_data
 
@@ -871,7 +883,7 @@ def normalize_epics_percentage(initiatives_json: dict[str, Any]) -> dict[str, An
             total_epic_percentage = sum(epic.get("epic_percentage", 0) for epic in initiative.get("epics", []))
 
             if total_epic_percentage == 0:
-                logging.warning(
+                logger.warning(
                     f"Total epic percentage is zero for initiative: {initiative.get('initiative_name', 'Unknown')}"
                 )
                 continue
@@ -883,12 +895,12 @@ def normalize_epics_percentage(initiatives_json: dict[str, Any]) -> dict[str, An
                     "initiative_percentage", 0
                 )
                 epic["epic_percentage"] = normalized_percentage
-                logging.info(f"Updated epic percentage for epic {epic['epic_name']}: {normalized_percentage:.2f}")
+                logger.info(f"Updated epic percentage for epic {epic['epic_name']}: {normalized_percentage:.2f}")
 
         return initiatives_json
 
     except Exception as e:
-        logging.exception(f"Pipeline B/C - Error normalizing epic percentages")
+        logger.exception(f"Pipeline B/C - Error normalizing epic percentages")
         return initiatives_json
 
 
@@ -897,14 +909,14 @@ async def reconciliation_insights(git_initiatives: dict[str, Any], insights_path
     insights = []
     try:
         insights = await insights_chain.ainvoke({"git_initiatives": git_initiatives})
-        logging.info(f"Extracted the reconciliation insights from the data.")
+        logger.info(f"Extracted the reconciliation insights from the data.")
 
         # Store the insights into json file
         with open(insights_path, "w") as file:
             json.dump(insights, file, indent=4)
-        logging.info(f"Successfully stored the reconciliation insights at {insights_path}")
+        logger.info(f"Successfully stored the reconciliation insights at {insights_path}")
     except Exception as e:
-        logging.exception(f"Pipeline B/C - An error occurred while generating the reconciliation insights")
+        logger.exception(f"Pipeline B/C - An error occurred while generating the reconciliation insights")
     return insights
 
 
@@ -922,7 +934,7 @@ async def add_expedited_date_recommendation_insights(
         batch_inputs = []
         initiative_mappings = []
 
-        logging.info(f"Generating the expedited date recommendation insights..")
+        logger.info(f"Generating the expedited date recommendation insights..")
         for idx, initiative in enumerate(initiatives.get("initiatives", [])):
             batch_inputs.append({"initiative": initiative, "current_date": current_date})
             initiative_mappings.append(idx)
@@ -937,15 +949,15 @@ async def add_expedited_date_recommendation_insights(
                     initiatives["initiatives"][idx].update(recommendation_insight)
 
             except Exception:
-                logging.exception(f"Pipeline B/C - Error processing batch recommendations")
+                logger.exception(f"Pipeline B/C - Error processing batch recommendations")
 
         # Save the updated initiatives back to the file
         with open(initiative_path, "w") as file:
             json.dump(initiatives, file, indent=4)
-        logging.info(f"Updated initiatives with recommendation insights saved to: {initiative_path}")
+        logger.info(f"Updated initiatives with recommendation insights saved to: {initiative_path}")
 
     except Exception:
-        logging.exception(f"Pipeline B/C - An error occurred while generating the recommendation insights")
+        logger.exception(f"Pipeline B/C - An error occurred while generating the recommendation insights")
 
     return initiatives
 
@@ -958,7 +970,7 @@ async def main(
     git_data_summary_csv_path: Path | None = None,
 ) -> PipelineBCResultItem:
     # Load git data
-    logging.info(f"Git data loaded with shape: {git_data_with_summary_df.shape}")
+    logger.info(f"Git data loaded with shape: {git_data_with_summary_df.shape}")
 
     git_data_summary_csv_path = Path(git_data_summary_csv_path)
 
@@ -1069,7 +1081,7 @@ async def main(
         )
 
         end_time_estimates = get_estimated_end_date(output_jira_data, "Categorization_of_initiative_git", jira_only_dir)
-        logging.info(f"End time estimates for git initiatives::{end_time_estimates}")
+        logger.info(f"End time estimates for git initiatives::{end_time_estimates}")
 
         git_updated_initiatives = add_jira_initiative_completion_percentage(
             git_initiatives,
@@ -1087,7 +1099,7 @@ async def main(
 
     git_updated_initiatives = normalize_epics_percentage(git_updated_initiatives)
 
-    logging.info("Round percentages")
+    logger.info("Round percentages")
     round_percentages(
         git_updated_initiatives,
         ("initiative_percentage", "epic_percentage", "percentage_tickets_done"),
@@ -1096,9 +1108,9 @@ async def main(
     try:
         with open(git_initiatives_path, "w") as file:
             json.dump(git_updated_initiatives, file, indent=4)
-        logging.info(f"Successfully saved the updated git initiatives at {git_initiatives_path}")
+        logger.info(f"Successfully saved the updated git initiatives at {git_initiatives_path}")
     except Exception as e:
-        logging.exception(f"Pipeline B/C - Error saving git initiatives")
+        logger.exception(f"Pipeline B/C - Error saving git initiatives")
 
     insights = None
     if jira_data_df is not None and not jira_data_df.empty:  # If Jira data is available
@@ -1114,21 +1126,21 @@ async def main(
         )
 
         # Add delivery estimates to Git initiatives
-        logging.info("Adding delivery estimates to Git initiatives...")
-        try:
-            git_updated_initiatives = await append_git_delivery_estimates(
-                output_data_git,
-                jira_df,
-                git_updated_initiatives,
-                git_initiatives_path,
-            )
-            logging.info(f"Successfully added delivery estimates to Git initiatives at {git_initiatives_path}")
-        except Exception as e:
-            logging.exception(f"Error adding delivery estimates")
+        logger.info("Adding delivery estimates to Git initiatives...")
+        git_updated_initiatives = await append_git_delivery_estimates(
+            output_data_git,
+            jira_df,
+            git_updated_initiatives,
+            git_initiatives_path,
+        )
+
+    initiatives = GitInitiatives.model_validate(git_updated_initiatives)
+    acceleration_summary = await generate_acceleration_summary(initiatives)
 
     return PipelineBCResultItem(
-        git_initiatives=git_updated_initiatives,
+        git_initiatives=initiatives,
         insights=insights,
+        acceleration_summary=acceleration_summary,
     )
 
 
@@ -1146,7 +1158,7 @@ async def run_pipeline_b_c(
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> PipelineBCResult:
-    logging.info(
+    logger.info(
         f"Running pipeline B/C with params: "
         f"{data_dir=} {confluence_user=} confluence_token~={bool(confluence_token)} "
         f"{jira_url=} {chat_input=} jira_access_token~={bool(jira_access_token)} "
@@ -1163,11 +1175,11 @@ async def run_pipeline_b_c(
         output_dir.mkdir(parents=True, exist_ok=True)
         git_data_path = output_dir / f"{git_folder_path.stem}_git_data_summary.csv"
         if not os.path.exists(git_data_path):
-            logging.info("Repo group git data has not been created")
+            logger.info("Repo group git data has not been created")
             continue
 
         git_data_with_summary_df = summary_data_dfs[group_name]
-        logging.info(f"Git data loaded. Shape: {git_data_with_summary_df.shape}")
+        logger.info(f"Git data loaded. Shape: {git_data_with_summary_df.shape}")
         if not (start_date and end_date):
             start_date = git_data_with_summary_df["date"].min()
             end_date = git_data_with_summary_df["date"].max()
@@ -1176,8 +1188,8 @@ async def run_pipeline_b_c(
         with calls_context("pipeline_bc.yaml"):
             jira_project_names = repo_group_jira_projects.get(group_name)
             if ((confluence_user and confluence_token) or jira_access_token) and jira_project_names:
-                logging.info(f"Fetching Jira data securely using Confluence token authentication.")
-                logging.info(
+                logger.info(f"Fetching Jira data securely using Confluence token authentication.")
+                logger.info(
                     f"Fetching data from date: {start_date} Till date: {end_date} Project names: {jira_project_names}"
                 )
                 jira_data_df = await process_jira_data(
@@ -1191,9 +1203,9 @@ async def run_pipeline_b_c(
                 )
 
             if jira_data_df is not None and not jira_data_df.empty:
-                logging.info(f"Jira data loaded using Confluence token. Shape: {jira_data_df.shape} ")
+                logger.info(f"Jira data loaded using Confluence token. Shape: {jira_data_df.shape} ")
             else:
-                logging.info(
+                logger.info(
                     f"Jira data not provided locally, nor fetched via JIRA API. Proceeding with git data.",
                     extra={"jira_project": jira_project_names},
                 )

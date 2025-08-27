@@ -11,6 +11,9 @@ from contextualization.pipelines.insights_aggregation_pipeline.prompts.summary_p
 )
 from contextualization.utils.vcr_mocks import calls_context
 
+logger = logging.getLogger(__name__)
+
+
 if TYPE_CHECKING:
     from mvp.services.contextualization_service import ContextualizationResults
 
@@ -32,7 +35,7 @@ def add_unique_ids_to_insights(file_paths: list[str], contextualization_results:
     results = {}
 
     if contextualization_results.pipeline_anomaly_insights_result:
-        logging.info(f"Adding the unique ids for anomaly insights in anomaly_insights pipieline result")
+        logger.info(f"Adding the unique ids for anomaly insights in anomaly_insights pipieline result")
         for i, insight in enumerate(contextualization_results.pipeline_anomaly_insights_result.anomaly_insights):
             insight.unique_id = f"GIT_AN_{i + 1:02d}"
 
@@ -42,7 +45,7 @@ def add_unique_ids_to_insights(file_paths: list[str], contextualization_results:
         results[git_anomaly_file] = contextualization_results.pipeline_anomaly_insights_result
 
     if contextualization_results.pipeline_jira_anomaly_insights_result and jira_anomaly_file:
-        logging.info(f"Adding the unique ids for anomaly insights in jira_anomaly_insights pipieline result")
+        logger.info(f"Adding the unique ids for anomaly insights in jira_anomaly_insights pipieline result")
         for i, insight in enumerate(
             contextualization_results.pipeline_jira_anomaly_insights_result.skip_meeting_insights.anomaly_insights
         ):
@@ -93,7 +96,7 @@ async def aggregate_anomalies(
         Helper function to process a specific type of insights (anomaly or risk).
         """
         if not insights:
-            logging.info(f"No '{insight_type}' found in data.")
+            logger.info(f"No '{insight_type}' found in data.")
             return None
 
         formatted_insights = [
@@ -119,17 +122,17 @@ async def aggregate_anomalies(
             # Append this group into the main 'groups_of_insights' list
             new_json["groups_of_insights"].append(group)
 
-        logging.info(
+        logger.info(
             f"Finished processing {insight_type}. Total groups formed: {len(result.get('similar_insights', []))}"
         )
 
     # Process collected anomaly and risk insights
-    logging.info("Processing similar anomaly insights")
+    logger.info("Processing similar anomaly insights")
     await process_insights("anomaly_insights", all_anomaly_insights)
 
     with open(output_path, "w") as file:
         json.dump(new_json, file, indent=4)
-    logging.info(f"Aggregated insights saved to: {output_path}")
+    logger.info(f"Aggregated insights saved to: {output_path}")
 
     return new_json
 
@@ -139,7 +142,7 @@ async def summarize_details(insights_json_path: str, data: dict) -> dict:
     data.update(result)
     with open(insights_json_path, "w") as file:
         json.dump(data, file, indent=4)
-    logging.info(f"Summarized insights saved to: {insights_json_path}")
+    logger.info(f"Summarized insights saved to: {insights_json_path}")
 
     return data
 
@@ -149,7 +152,7 @@ async def run_insights_aggregation_pipeline(
     contextualization_results: "ContextualizationResults",
     output_folder: str | None = None,
 ) -> dict:
-    logging.info(f"Running insights aggregation pipeline with params: {input_files=} {output_folder=}")
+    logger.info(f"Running insights aggregation pipeline with params: {input_files=} {output_folder=}")
 
     with calls_context("insights_aggregation_pipeline.yaml"):
         # Use directory of first input file if output_folder is not provided
