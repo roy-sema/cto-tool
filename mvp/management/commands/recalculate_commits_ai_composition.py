@@ -44,9 +44,9 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
         )
 
     def handle(self, *args, **options):
-        organization_id = options.get("orgid", None)
-        repository_id = options.get("repoid", None)
-        commit_sha = options.get("commit_sha", None)
+        organization_id = options.get("orgid")
+        repository_id = options.get("repoid")
+        commit_sha = options.get("commit_sha")
         force = options.get("force", False)
         is_all = options.get("all", False)
 

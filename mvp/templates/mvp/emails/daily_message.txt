@@ -5,7 +5,11 @@ Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y 
 Organization - {{ organization.name }}
 
 {% if no_commits_message %}
-No commits found throughout the system since the last update.
+<p>No repository commits found throughout the system since the last update.</p>
+{% endif %}
+
+{% if no_data_after_filter %}
+<p>No data found after your filters were applied.</p>
 {% else %}
 
 ANOMALY INSIGHTS - CODE & JIRA

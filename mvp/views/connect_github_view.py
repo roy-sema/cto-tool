@@ -77,6 +77,6 @@ class ConnectGitHubView(LoginRequiredMixin, PermissionRequiredMixin, View):
         }
 
         DownloadRepositoriesTask().run(organization_id=org.id)
-        service.process_organization(org, pipelines=pipelines)
-        ImportContextualizationDataTask().run(org)
+        results = service.process_organization(org, pipelines=pipelines)
+        ImportContextualizationDataTask(organization=org, pipeline_results=results).run()
         GitHubIntegration().fetch_data(connection)

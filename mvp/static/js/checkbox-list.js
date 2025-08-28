@@ -18,7 +18,11 @@
     selectAll.addEventListener('click', function (e) {
       e.preventDefault();
       checkboxes.forEach(function (checkbox) {
-        checkbox.checked = true;
+        // Only select checkboxes that are visible (not filtered out)
+        var checkboxContainer = checkbox.closest('div[id^="repository-"], div[id^="project-"]');
+        if (!checkboxContainer || checkboxContainer.style.display !== 'none') {
+          checkbox.checked = true;
+        }
       });
       updateNumSelected();
     });
@@ -26,7 +30,11 @@
     selectNone.addEventListener('click', function (e) {
       e.preventDefault();
       checkboxes.forEach(function (checkbox) {
-        checkbox.checked = false;
+        // Only unselect checkboxes that are visible (not filtered out)
+        var checkboxContainer = checkbox.closest('div[id^="repository-"], div[id^="project-"]');
+        if (!checkboxContainer || checkboxContainer.style.display !== 'none') {
+          checkbox.checked = false;
+        }
       });
       updateNumSelected();
     });

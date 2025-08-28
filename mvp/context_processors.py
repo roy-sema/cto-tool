@@ -10,9 +10,7 @@ def active_system_messages(request):
 
 
 def global_settings(request):
-    """
-    Define here settings that need to be available in every view.
-    """
+    """Define here settings that need to be available in every view."""
     return {
         "APP_NAME": settings.APP_NAME,
     }

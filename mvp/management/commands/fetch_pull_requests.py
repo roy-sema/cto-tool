@@ -5,7 +5,6 @@ from datetime import timedelta
 import requests
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from sentry_sdk import capture_exception, push_scope
 from sentry_sdk.crons import monitor
 
 from api.tasks import ProcessPullRequestTask
@@ -17,13 +16,7 @@ from compass.integrations.integrations import (
     get_git_providers,
 )
 from mvp.mixins import InstrumentedCommandMixin, SingleInstanceCommandMixin
-from mvp.models import (
-    DataProviderConnection,
-    Organization,
-    Repository,
-    RepositoryPullRequest,
-)
-from mvp.utils import traceback_on_debug
+from mvp.models import DataProviderConnection, Organization, Repository, RepositoryPullRequest
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +45,7 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
 
     @monitor(monitor_slug="fetch_pull_requests")
     def handle(self, *args, **options):
-        organization_id = options.get("orgid", None)
+        organization_id = options.get("orgid")
         providers = options.get("providers", [])
         if not self.validate_providers(providers):
             return
@@ -65,7 +58,7 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
             except Exception:
                 logger.exception(
                     "Failed to process organization in fetch pull requests",
-                    extra={"organization": organization, "providers": providers},
+                    extra={"organization": organization.name, "providers": providers},
                 )
 
     def process_organization(self, organization: Organization, providers: [str] = None):
@@ -138,15 +131,16 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
                 # TODO: mark repo as "inactive" in the database to avoid fetching it again
                 return 0
 
-            with push_scope() as scope:
-                scope.set_extra("provider", integration.provider.name)
-                scope.set_extra("repository", repository.full_name())
-                scope.set_extra("organization", repository.organization.name)
-                scope.set_extra("repository_data", repository_data)
+            logger.exception(
+                "Failed to fetch Pull Requests",
+                extra={
+                    "provider": integration.provider.name,
+                    "repository": repository.full_name(),
+                    "organization": repository.organization.name,
+                    "repository_data": repository_data,
+                },
+            )
 
-                logger.exception("Failed to fetch Pull Requests")
-                traceback_on_debug()
-                capture_exception(error)
             return 0
 
         if not pull_requests:
@@ -173,17 +167,17 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
                 repository_data, pull_request_data
             )
             data = integration.parse_pull_request_data(format_data)
-        except Exception as error:
-            with push_scope() as scope:
-                scope.set_extra("provider", integration.provider.name)
-                scope.set_extra("repository", repository.full_name())
-                scope.set_extra("organization", repository.organization.name)
-                scope.set_extra("repository_data", repository_data)
-                scope.set_extra("pull_request_data", pull_request_data)
-
-                logger.exception("Failed to parse Pull Request")
-                traceback_on_debug()
-                capture_exception(error)
+        except Exception:
+            logger.exception(
+                "Failed to parse Pull Request",
+                extra={
+                    "provider": integration.provider.name,
+                    "repository": repository.full_name(),
+                    "organization": repository.organization.name,
+                    "repository_data": repository_data,
+                    "pull_request_data": pull_request_data,
+                },
+            )
             return False
 
         if self.pull_request_exists(repository, data.pr_number):

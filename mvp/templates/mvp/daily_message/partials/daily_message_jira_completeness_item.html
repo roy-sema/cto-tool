@@ -12,7 +12,7 @@
         {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category=item.quality_category text=item.llm_category only %}
         {% include "mvp/daily_message/partials/daily_message_jira_quality_category.html" with quality_category=item.quality_category text="Stage: "|add:item.stage_category only %}
       </div>
-      {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=item.explanation_jira_completeness_score only %}
+      {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=item.explanation_jira_completeness_score as_bullets=True only %}
     </div>
   </div>
   <div style="display: flex; width: 100%">

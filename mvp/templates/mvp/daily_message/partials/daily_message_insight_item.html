@@ -1,4 +1,109 @@
-<div id="insight--{{ id_prepend }}-{{ id }}" style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden">
+{% load static %}
+<style>
+  details[open] summary span {
+    transform: rotate(90deg);
+  }
+  
+  /* Custom tooltip styles */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 280px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -140px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+  }
+  
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  /* Feedback button styles */
+  .feedback-btn {
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  
+  .feedback-btn.thumbs-up {
+    border: 1px solid #28a745;
+    background: none;
+    color: #28a745;
+  }
+  
+  .feedback-btn.thumbs-up img {
+    filter: brightness(0) saturate(100%) invert(35%) sepia(76%) saturate(3016%) hue-rotate(114deg) brightness(92%) contrast(91%);
+  }
+  
+  .feedback-btn.thumbs-up.selected {
+    background: #28a745;
+    color: #ffffff;
+  }
+  
+  .feedback-btn.thumbs-up.selected img {
+    filter: brightness(0) invert(1);
+  }
+  
+  .feedback-btn.thumbs-down {
+    border: 1px solid #dc3545;
+    background: none;
+    color: #dc3545;
+  }
+  
+  .feedback-btn.thumbs-down img {
+    filter: brightness(0) saturate(100%) invert(26%) sepia(87%) saturate(2466%) hue-rotate(342deg) brightness(96%) contrast(97%);
+  }
+  
+  .feedback-btn.thumbs-down.selected {
+    background: #dc3545;
+    color: #ffffff;
+  }
+  
+  .feedback-btn.thumbs-down.selected img {
+    filter: brightness(0) invert(1);
+  }
+  
+  .feedback-info-icon {
+    width: 16px;
+    height: 16px;
+    color: #0081A7;
+    cursor: pointer;
+    margin-right: 5px;
+  }
+</style>
+<div id="insight--{{ id_prepend }}-{{ id }}"{% if item.id %} data-anomaly-insight-id="{{ item.id }}"{% endif %} style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden">
   <h2 style="font-size: 20px; font-weight: 600; padding: 15px 20px; margin: 0; flex: 1">{{ item.title }}</h2>
   <div style="background-color: #f5f5f5; padding: 12px 15px; border-bottom: 1px solid #dddddd; display: flex; justify-content: space-between; align-items: center">
     <h3 style="font-size: 16px; font-weight: 600; margin: 0; flex: 1">
@@ -21,22 +126,61 @@
       <div style="font-weight: 600; margin-bottom: 3px">Category <span style="display: inline-block; padding: 3px 8px; border-radius: 16px; font-size: 12px; background-color: #f5f5f5; margin-right: 5px">{{ item.category }}</span></div>
       <div style="color: #444">Confidence Level: <span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 13px; margin-left: 5px; background-color: #f5f5f5">{{ item.confidence_level }}</span></div>
     </div>
-    <div id="evidence--{{ id_prepend }}-{{ id }}" style="background-color: #f5f5f5; padding: 15px; margin-top: 15px; border-radius: 4px; border-left: 3px solid #495057">
-      <div style="font-weight: 600; color: #495057; margin-bottom: 10px; font-size: 15px">Evidence</div>
-      {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=item.evidence sources=item.detailed_sources_and_files only %}
+    
+    {% if item.id %}
+    <!-- Feedback Section -->
+    <div class="feedback-buttons" data-anomaly-insight-id="{{ item.id }}" style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 600; color: #495057; margin-right: 5px;">Was this helpful?</span>
+        <div class="tooltip">
+            <svg class="feedback-info-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+            <span class="tooltiptext">Want to share detailed feedback? Click 'Contact us' in the footer.</span>
+        </div>
+        <button 
+            class="feedback-btn thumbs-up{% if item.user_feedback.rating == 'thumbs_up' %} selected{% endif %}" 
+            data-rating="thumbs_up"
+            data-insight-id="{{ item.id }}"
+            onclick="window.handleFeedbackClick(event)"
+        >
+            <img src="{% static 'images/vendor/heroicons/outline/hand-thumb-up.svg' %}" width="16" height="16" />
+            <span class="feedback-text">Helpful</span>
+        </button>
+        <button 
+            class="feedback-btn thumbs-down{% if item.user_feedback.rating == 'thumbs_down' %} selected{% endif %}" 
+            data-rating="thumbs_down" 
+            data-insight-id="{{ item.id }}"
+            onclick="window.handleFeedbackClick(event)"
+        >
+            <img src="{% static 'images/vendor/heroicons/outline/hand-thumb-down.svg' %}" width="16" height="16" />
+            <span class="feedback-text">Not helpful</span>
+        </button>
+    </div>
+    {% endif %}
+    
+    <details style="margin-top: 15px">
+      <summary style="font-weight: 600; color: #495057; margin-bottom: 10px; font-size: 15px; cursor: pointer; list-style: none; padding: 10px 15px; background-color: #f5f5f5; border-radius: 4px; border-left: 3px solid #495057; display: flex; align-items: center">
+        <span style="margin-right: 8px; transition: transform 0.2s ease; display: inline-block; font-size: 12px">▶</span>More details
+      </summary>
+      <div style="margin-top: 10px">
+        <div id="evidence--{{ id_prepend }}-{{ id }}" style="background-color: #f5f5f5; padding: 15px; margin-bottom: 15px; border-radius: 4px; border-left: 3px solid #495057">
+          <div style="font-weight: 600; color: #495057; margin-bottom: 10px; font-size: 15px">Evidence</div>
+          {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=item.evidence sources=item.detailed_sources_and_files only %}
+          <div class="no-copy-clipboard" style="text-align: right; margin-top: 10px; color: #0066cc; cursor: pointer" onclick="copyText('evidence--{{ id_prepend }}-{{ id }}')" >copy</div>
+        </div>
+        <div id="resolution--{{ id_prepend }}-{{ id }}" style="background-color: #f8f9fa; padding: 15px; margin-top: 30px; margin-bottom: 15px; border-radius: 4px; border-left: 3px solid #6c757d">
+          <div style="font-weight: 600; color: #495057; margin-bottom: 10px; font-size: 15px">Potential Next Steps</div>
+          {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=item.resolution only %}
+          <div class="no-copy-clipboard" style="text-align: right; margin-top: 10px; color: #0066cc; cursor: pointer" onclick="copyText('resolution--{{ id_prepend }}-{{ id }}')" >copy</div>
+        </div>
+        {% for message in item.messages %}
+        <div id="skip-a-meeting--{{ id_prepend }}-{{ id }}-{{ forloop.counter }}" style="background-color: #f0f7ff; padding: 15px; margin-top: 30px; margin-bottom: 15px; border-radius: 4px; border-left: 3px solid #0066cc">
+          <div style="font-weight: 600; color: #0066cc; margin-bottom: 10px; font-size: 15px">SkipAMeeting: {{ message.audience }}</div>
+          {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=message.message_for_audience only %}
+          <div class="no-copy-clipboard" style="text-align: right; margin-top: 10px; color: #0066cc; cursor: pointer" onclick="copyText('skip-a-meeting--{{ id_prepend }}-{{ id }}-{{ forloop.counter }}')" >copy</div>
+        </div>
+        {% endfor %}
       </div>
-      <div class="no-copy-clipboard" style="float: right; color: #0066cc; cursor: pointer" onclick="copyText('evidence--{{ id_prepend }}-{{ id }}')" >copy</div>
-      <div id="resolution--{{ id_prepend }}-{{ id }}" style="background-color: #f8f9fa; padding: 15px; margin-top: 45px; border-radius: 4px; border-left: 3px solid #6c757d">
-        <div style="font-weight: 600; color: #495057; margin-bottom: 10px; font-size: 15px">Potential Next Steps</div>
-        {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=item.resolution only %}
-      </div>
-      <div class="no-copy-clipboard" style="float: right; padding-right: 5px; color: #0066cc; cursor: pointer" onclick="copyText('resolution--{{ id_prepend }}-{{ id }}')" >copy</div>
-      {% for message in item.messages %}
-      <div id="skip-a-meeting--{{ id_prepend }}-{{ id }}-{{ forloop.counter }}" style="background-color: #f0f7ff; padding: 15px; margin-top: 45px; border-radius: 4px; border-left: 3px solid #0066cc">
-        <div style="font-weight: 600; color: #0066cc; margin-bottom: 10px; font-size: 15px">SkipAMeeting: {{ message.audience }}</div>
-        {% include "mvp/daily_message/partials/daily_message_preformatted_block.html" with content=message.message_for_audience only %}
-      </div>
-      <div class="no-copy-clipboard" style="float: right; color: #0066cc; cursor: pointer" onclick="copyText('skip-a-meeting--{{ id_prepend }}-{{ id }}-{{ forloop.counter }}')" >copy</div>
-      {% endfor %}
+    </details>
     </div>
 </div>

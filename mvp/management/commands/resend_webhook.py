@@ -32,7 +32,7 @@ class Command(BaseCommand):
         logger.info(f"Response Content: {response.content}")
 
     def read_webhook_data(self, json_file_path):
-        with open(json_file_path, "r") as file:
+        with open(json_file_path) as file:
             data = json.load(file)
 
         headers = data.get("headers", {})

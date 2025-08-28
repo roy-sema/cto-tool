@@ -28,7 +28,7 @@ class DecodePublicIdMixin:
 
 class CommandNameMixin:
     def get_command_name(self):
-        for name, obj in inspect.getmembers(sys.modules[self.__module__]):
+        for _name, obj in inspect.getmembers(sys.modules[self.__module__]):
             if (
                 inspect.isclass(obj)
                 and issubclass(obj, CommandNameMixin)

@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.db import IntegrityError, transaction
@@ -50,10 +52,9 @@ class RepositoryGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permissio
                 # then re-execute insight generation for default date range
                 messages.success(request, f"Repository group '{saved_group.name}' updated!")
                 return self.redirect_to_view(request)
-            else:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
         except IntegrityError:
             messages.error(request, "Group names should be unique")
 
@@ -62,7 +63,7 @@ class RepositoryGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permissio
     def render_page(self, request, repo_group_id):
         current_org = request.current_organization
         try:
-            repo_group = RepositoryGroup.objects.prefetch_related("repository_set", "rules", "jiraproject_set").get(
+            repo_group = RepositoryGroup.objects.prefetch_related("repositories", "rules", "jira_projects").get(
                 id=repo_group_id, organization=current_org
             )
         except RepositoryGroup.DoesNotExist:
@@ -89,6 +90,13 @@ class RepositoryGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permissio
                 "usage_categories": usage_categories,
                 "potential_productivity_improvement_defaults": potential_productivity_improvement_defaults,
                 "org_projects": org_projects,
+                # These are used for filtering inside the template.
+                "org_repositories_search_json": json.dumps(
+                    [{repo.full_name().lower(): repo.id} for repo in org_repositories]
+                ),
+                "org_projects_search_json": json.dumps(
+                    [{(project.name.lower() + " " + project.key.lower()): project.id} for project in org_projects]
+                ),
                 "form": form,
             },
         )
@@ -103,8 +111,13 @@ class RepositoryGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permissio
         project_ids = self.get_project_ids(request)
 
         # Update repositories in the group
-        Repository.objects.filter(group=repo_group).update(group=None)
-        Repository.objects.filter(id__in=repo_ids).update(group=repo_group)
+        repos_to_remove = Repository.objects.filter(repository_group=repo_group).exclude(id__in=repo_ids)
+        for repo in repos_to_remove:
+            repo.repository_group.remove(repo_group)
+
+        repos_to_add = Repository.objects.filter(id__in=repo_ids)
+        for repo in repos_to_add:
+            repo.repository_group.add(repo_group)
 
         # Update projects in the group
         projects_to_remove = JiraProject.objects.filter(repository_group=repo_group).exclude(id__in=project_ids)
@@ -119,28 +132,28 @@ class RepositoryGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permissio
 
     def get_repository_ids(self, request):
         repo_ids = request.POST.getlist("repositories")
-        return set([self.decode_id(repo_id) for repo_id in repo_ids])
+        return {self.decode_id(repo_id) for repo_id in repo_ids}
 
     def get_project_ids(self, request):
         project_ids = request.POST.getlist("projects")
-        return set([project_id for project_id in project_ids])
+        return set(project_ids)
 
     def get_organization_repositories(self, organization, top_group):
-        repositories = Repository.objects.filter(organization=organization).prefetch_related("group")
+        repositories = Repository.objects.filter(organization=organization).prefetch_related("repository_group")
 
         # show current group's repositories first, then ungrouped repositories, then the rest by group
         return sorted(
             repositories,
             key=lambda repo: (
-                0 if repo.group == top_group else 1 if repo.group is None else 2,
-                repo.group.name if repo.group else "",
-                repo.owner,
-                repo.name,
+                0 if top_group in repo.repository_group.all() else 1 if repo.repository_group.count() == 0 else 2,
+                sorted(g.name for g in repo.repository_group.all()),
+                repo.owner.lower(),
+                repo.full_name().lower(),
             ),
         )
 
     def get_organization_projects(self, organization, group):
-        """gets jira projects sorted by selected for this group"""
+        """Get jira projects sorted by selected for this group."""
         projects = JiraProject.objects.filter(organization=organization, is_selected=True).prefetch_related(
             "repository_group"
         )
@@ -149,11 +162,10 @@ class RepositoryGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permissio
         for project in projects:
             project._repo_groups = list(project.repository_group.all())
 
-        sorted_projects = sorted(
+        return sorted(
             projects,
             key=lambda project: (
                 (0 if group in project._repo_groups else 1 if project._repo_groups else 2),
-                project.name,
+                project.name.lower(),
             ),
         )
-        return sorted_projects

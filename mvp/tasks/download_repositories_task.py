@@ -5,10 +5,10 @@ import uuid
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
-from sentry_sdk import capture_exception, capture_message, push_scope
 
+from compass.integrations.apis.base_rest_api import GitInstallationDoesNotExist
 from compass.integrations.integrations import (
     GitBaseIntegration,
     GitRepositoryData,
@@ -74,7 +74,9 @@ class DownloadRepositoriesTask:
                     force=force,
                 )
             except Exception:
-                logger.exception("Failed to process organization", extra={"organization": organization["organization"]})
+                logger.exception(
+                    "Failed to process organization", extra={"organization": organization["organization"].name}
+                )
 
     def process_organization(self, organization, connections, repository_name=None, force=False):
         if self.organization_reached_max_scans(organization):
@@ -136,7 +138,7 @@ class DownloadRepositoriesTask:
 
         # doing this here to avoid sending it when no repositories are found
         if not organization.first_email_sent:
-            delivered = EmailService.send_analysis_started_email(organization)
+            delivered = EmailService().send_analysis_started_email(organization)
             if delivered:
                 organization.first_email_sent = True
                 organization.save()
@@ -150,12 +152,23 @@ class DownloadRepositoriesTask:
                 self.write_commit_config_file(commit, {"previous_analysis_path": repository.last_analysis_file})
                 self.update_repository_last_commit(repository, commit)
 
-    def get_connection_repositories(self, connection):
+    def get_connection_repositories(self, connection: DataProviderConnection):
         integration = get_git_provider_integration(connection.provider)
         if not integration:
             return []
 
-        return integration.get_connected_repositories_with_integration(connection)
+        logger.info(f"Fetching repositories with provider {connection.provider}")
+
+        try:
+            return integration.get_connected_repositories_with_integration(connection)
+        except GitInstallationDoesNotExist:
+            # Intentionally preventing sentry from grouping those
+            logger.exception(
+                f"Git installation does not exist for {connection.organization.name} with provider {connection.provider}."
+                f" Contact Product Team (Matt) to tell the user to re-connect the provider.",
+                extra={"organization": connection.organization.name, "provider": connection.provider},
+            )
+            return []
 
     def create_repository_commit(
         self,
@@ -184,6 +197,9 @@ class DownloadRepositoriesTask:
             return None, None
 
         db_repository = self.get_or_update_repository(organization, repository, integration)
+        if not db_repository:
+            logger.info(f"Skipping '{repository.name}' repository. Data provider not found")
+            return None, None
 
         if not force and db_repository and db_repository.last_commit_sha == last_commit.sha:
             logger.info(f"Skipping '{repository.name}' repository - no new commits, provider: {integration.provider}")
@@ -260,6 +276,7 @@ class DownloadRepositoriesTask:
         integration: GitBaseIntegration,
         force=False,
     ):
+        os.umask(0o002)
         org_directory = organization.get_download_directory()
         os.makedirs(org_directory, exist_ok=True)
 
@@ -277,13 +294,14 @@ class DownloadRepositoriesTask:
 
         git_url = integration.get_repository_git_url(repository_data)
         if not git_url:
-            with push_scope() as scope:
-                scope.set_extra("repository_name", repository.name)
-                scope.set_extra("integration_provider", integration.provider)
-                scope.set_extra("repository_data", repository_data)
-                capture_message(
-                    f"Could not find download link for '{repository.name}', provider: '{integration.provider}'"
-                )
+            logger.warning(
+                "Could not find download link for repository",
+                extra={
+                    "repository": repository.name,
+                    "provider": integration.provider,
+                    "repository_data": repository_data,
+                },
+            )
             return False
 
         try:
@@ -385,12 +403,11 @@ class DownloadRepositoriesTask:
             raise ValueError(f"Failed to clone repository")
 
     def _setup_sparse_checkout(self, folder: str) -> None:
-        """
-        Configures sparse checkout to include only relevant files from the given Git ref.
+        """Configure sparse checkout to include only relevant files from the given Git ref.
+
         This improves performance when working with large repositories by excluding
         unnecessary or bulky files (e.g., media, binaries, models) based on file extensions.
         """
-
         excluded_patterns = {
             ".7z",
             ".aac",
@@ -497,7 +514,7 @@ class DownloadRepositoriesTask:
 
             raise CheckoutRepositoryException(f"Failed to checkout repository: {error}")
 
-    def get_connections(self, organization_id=None):
+    def get_connections(self, organization_id=None) -> QuerySet[DataProviderConnection]:
         qs = DataProviderConnection.objects.filter(
             provider__in=get_git_providers(), data__isnull=False
         ).prefetch_related("organization")
@@ -507,9 +524,12 @@ class DownloadRepositoriesTask:
 
         return qs.all()
 
-    def get_organizations_from_connections(self, connections):
+    def get_organizations_from_connections(self, connections: QuerySet[DataProviderConnection]):
         organizations = {}
         for connection in connections:
+            if not connection.is_connected():
+                logger.info(f"Skipping provider {connection.provider} - not connected")
+                continue
             if connection.organization.id not in organizations:
                 organizations[connection.organization.id] = {
                     "organization": connection.organization,
@@ -533,19 +553,17 @@ class DownloadRepositoriesTask:
     def _extract_branch_from_provider_meta(self, provider_name: str, meta: dict):
         if provider_name == "GitHub":
             return meta.get("default_branch")
-        elif provider_name == "BitBucket":
+        if provider_name == "BitBucket":
             return meta.get("mainbranch", {}).get("name")
-        elif provider_name == "AzureDevOps":
+        if provider_name == "AzureDevOps":
             default_branch = meta.get("default_branch")
             if not default_branch:
                 return None
             parts = default_branch.split("/")
             if len(parts) > 2:
                 return "/".join(parts[2:])
-            else:
-                return parts[-1] if parts else None
-        else:
-            raise ValueError(f"Default branch extraction not implemented for provider: {provider_name}")
+            return parts[-1] if parts else None
+        raise ValueError(f"Default branch extraction not implemented for provider: {provider_name}")
 
     def get_or_update_repository(self, organization, repo: GitRepositoryData, integration: GitBaseIntegration):
         try:
@@ -554,6 +572,18 @@ class DownloadRepositoriesTask:
                 provider=integration.provider,
                 external_id=repo.id,
             )
+        except DataProviderProject.DoesNotExist:
+            logger.exception(
+                "Data provider project does not exist.",
+                extra={
+                    "provider": integration.provider,
+                    "organization": organization.name,
+                    "repo": repo.name,
+                },
+            )
+            return None
+
+        try:
             default_branch_name = self._extract_branch_from_provider_meta(
                 integration.provider.name, data_provider_project.meta
             )
@@ -610,13 +640,20 @@ class DownloadRepositoriesTask:
         config_path = f"{download_directory}.config.json"
 
         try:
-            json.dump(data, open(config_path, "w"))
+            with open(config_path, "w") as f:
+                json.dump(data, f)
         except Exception as e:
             # In case of error, proceed. Only side effect is analyzing more data
             traceback_on_debug()
-            with push_scope() as scope:
-                scope.set_extra("commit", {"sha": commit.sha})
-                capture_exception(e)
+            logger.warning(
+                f"Failed to write config file for commit",
+                extra={
+                    "repository": commit.repository.name,
+                    "organization": commit.repository.organization.name,
+                    "sha": commit.sha,
+                    "error": str(e),
+                },
+            )
 
     def write_organization_config_file(self, organization):
         directory = organization.get_download_directory()
@@ -628,19 +665,25 @@ class DownloadRepositoriesTask:
             "max_lines_per_repository": organization.analysis_max_lines_per_repository,
         }
         try:
-            json.dump(data, open(config_path, "w"))
+            with open(config_path, "w") as f:
+                json.dump(data, f)
         except Exception as e:
             # In case of error, proceed. Only side effect is processing more data
             traceback_on_debug()
-            with push_scope() as scope:
-                scope.set_extra("organization", {"id": organization.id, "name": organization.name})
-                capture_exception(e)
+            logger.warning(
+                f"Failed to write organization config file",
+                extra={
+                    "organization": organization.name,
+                    "directory": directory,
+                    "error": str(e),
+                },
+            )
 
     def organization_reached_max_scans(self, organization):
         if not organization.analysis_max_scans:
             return False
 
-        exceeded = (
+        return (
             Repository.objects.annotate(
                 analyzed_commit_count=Count(
                     "repositorycommit",
@@ -653,8 +696,6 @@ class DownloadRepositoriesTask:
             )
             .exists()
         )
-
-        return exceeded
 
     def delete_repository_from_disk(self, repo_path):
         if settings.TESTING:

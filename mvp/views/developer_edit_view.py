@@ -69,10 +69,9 @@ class DeveloperEditView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequi
     def redirect_to_view(self, request, pk=None):
         if pk is None:
             return redirect(reverse_lazy("other_settings") + "#merge-developers")
-        else:
-            path_name = "developer_edit"
-            kwargs = {"pk_encoded": get_object_or_404(Author, pk=pk).public_id()}
-            return redirect(reverse_lazy(path_name, kwargs=kwargs))
+        path_name = "developer_edit"
+        kwargs = {"pk_encoded": get_object_or_404(Author, pk=pk).public_id()}
+        return redirect(reverse_lazy(path_name, kwargs=kwargs))
 
     def link_developers(self, organization, main_author, developers):
         developer_ids = [self.decode_id(dev) for dev in developers]

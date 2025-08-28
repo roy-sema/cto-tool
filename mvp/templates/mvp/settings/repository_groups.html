@@ -56,7 +56,7 @@
 
             <td class="px-6 py-4 w-1/3 align-top">
               <div class="flex flex-wrap gap-1">
-                {% for project in group.jiraproject_set.all %}
+                {% for project in group.jira_projects.all %}
                   {% include "components/pill.html" with text=project.key only %}
                 {% empty %}
                   -

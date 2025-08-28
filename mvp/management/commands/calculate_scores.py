@@ -39,8 +39,8 @@ class Command(
         if organization_id:
             try:
                 organization = Organization.objects.get(id=organization_id)
-            except Organization.DoesNotExist:
-                raise CommandError(f'Organization with ID "{organization_id}" does not exist.')
+            except Organization.DoesNotExist as exc:
+                raise CommandError(f'Organization with ID "{organization_id}" does not exist.') from exc
 
         organizations = [organization] if organization_id else Organization.objects.all()
 

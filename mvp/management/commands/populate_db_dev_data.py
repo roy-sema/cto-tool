@@ -632,7 +632,7 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
         )
 
         for repository in attach_repositories:
-            repository.group = random.choice(groups)
+            repository.repository_group.add(random.choice(groups))
             repository.save()
 
     def repository_group_generator(self, organization):
@@ -651,7 +651,7 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
 
         files = []
         for python_file in python_files:
-            with open(python_file, "r") as file:
+            with open(python_file) as file:
                 files.append(file.readlines())
 
         return files
@@ -712,8 +712,6 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
                         purpose_of_change="This is the purpose of change",
                         time=timezone.now() - timedelta(days=random.randint(1, 14)),
                     )
-
-        self.write_contextualization_json(organization, ContextualizationService.OUTPUT_FILENAME_COUNT, by_repo)
 
         categories = {}
         for category, num_changes in by_category.items():

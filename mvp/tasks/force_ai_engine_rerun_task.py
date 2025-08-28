@@ -32,11 +32,9 @@ logger = logging.getLogger(__name__)
 
 class ForceAiEngineRerunTask:
     def prepare_pull_request_for_re_analysis(self, pull_request):
-        """
-        Prepares the pull request for re-analysis by deleting
-        the analysis files and marking the commits as pending.
-        Formatted data and integration object are returned to be
-        used by the ProcessPullRequestTask.
+        """Prepare the pull request for re-analysis by deleting the analysis files and marking the commits as pending.
+
+        Formatted data and integration object are returned to be used by the ProcessPullRequestTask.
         """
         provider = pull_request.repository.provider
         integration_class = get_git_provider_integration(provider)

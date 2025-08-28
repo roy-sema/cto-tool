@@ -1,8 +1,9 @@
 import os
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Self
 
 from auditlog.registry import auditlog
 from django.conf import settings
@@ -22,7 +23,6 @@ from imagekit.models import ProcessedImageField
 from imagekit.processors import ResizeToFill
 from timescale.db.models.models import TimescaleModel
 from treebeard.mp_tree import MP_Node
-from typing_extensions import Self
 
 from cto_tool.storages import get_s3_storage
 from mvp.mixins import DecodePublicIdMixin, PublicIdMixin
@@ -35,6 +35,7 @@ class OrgRole:
     COMPLIANCE_LEADER = "ComplianceLeader"
     SETTINGS_EDITOR = "SettingsEditor"
     OWNER = "Owner"
+    USER = "User"
 
 
 class RepositoryCommitStatusChoices(models.TextChoices):
@@ -52,7 +53,7 @@ class RepositoryGroupCategoryChoices(models.TextChoices):
 
     @staticmethod
     def get_as_detailed_list():
-        usage_categories = [
+        return [
             {
                 "id": RepositoryGroupCategoryChoices.PRODUCTION,
                 "label": "Production",
@@ -79,7 +80,6 @@ class RepositoryGroupCategoryChoices(models.TextChoices):
                 "description": "Internal and external users no longer use the code.",
             },
         ]
-        return usage_categories
 
 
 class AITypeChoices(models.TextChoices):
@@ -511,8 +511,7 @@ class CodeAIPercentageFieldsModel(CodeAICountFieldsModel):
         return int(value) if not decimals else value
 
     def percentage_ai_pure(self, decimals=0):
-        """
-        To avoid rounding issues, ignore data on pure and force it by calculating:
+        """To avoid rounding issues, ignore data on pure and force it by calculating:
 
         Pure = Overall - Blended
         """
@@ -605,7 +604,7 @@ class Geography(PublicIdMixin, MP_Node, TimestampedModel):
 
 class Industry(PublicIdMixin, TimestampedModel):
     # Label to display for not set industry
-    LABEL_NONE = "Other (we’ll follow up with you)"
+    LABEL_NONE = "Other (we’ll follow up with you)"  # noqa: RUF001
 
     name = models.CharField(max_length=100, unique=True)
 
@@ -820,18 +819,6 @@ class Organization(PublicIdMixin, SoftDeleteModel, TimestampedModel):
         reasons_for_measuring_genai_dict = dict(MeasureGenAIReasonChoices.choices)
         return [reasons_for_measuring_genai_dict[module] for module in self.reasons_for_measuring_genai]
 
-    @property
-    def url(self):
-        if not self.created_by:
-            return None
-        return self.created_by.company_url
-
-    @property
-    def number_of_developers(self):
-        if not self.created_by:
-            return None
-        return self.created_by.company_number_of_developers
-
     def get_attested_num_lines(self):
         last_commit_shas = self.repository_set.values_list("last_commit_sha", flat=True)
         return sum(
@@ -934,8 +921,7 @@ class CustomUser(TimestampedModel, PublicIdMixin, AbstractUser):
 
     @staticmethod
     def generate_initials_from_names(first_name, last_name):
-        """
-        By default, use the first letter of the first name and last name.
+        """By default, use the first letter of the first name and last name.
 
         If the last name contains multiple words, use the first letter
         of the first two words, producing either 2 or 3 letters total.
@@ -944,9 +930,8 @@ class CustomUser(TimestampedModel, PublicIdMixin, AbstractUser):
 
         if len(last_name_parts) == 1:
             return f"{first_name[:1]}{last_name[:1]}".upper()
-        else:
-            last_initials = "".join(word[0] for word in last_name_parts[:2])
-            return f"{first_name[:1]}{last_initials}".upper()
+        last_initials = "".join(word[0] for word in last_name_parts[:2])
+        return f"{first_name[:1]}{last_initials}".upper()
 
     def role(self):
         # make sure we make use of prefetched data
@@ -964,11 +949,7 @@ class CustomUser(TimestampedModel, PublicIdMixin, AbstractUser):
 
     def check_password_history(self, raw_password):
         password_history = PasswordHistory.objects.filter(user=self).values_list("password", flat=True)
-        for password in password_history:
-            if check_password(raw_password, password):
-                return True
-
-        return False
+        return any(check_password(raw_password, password) for password in password_history)
 
     def has_organizations(self):
         return self.organizations.exists()
@@ -1383,7 +1364,7 @@ class RepositoryGroup(PublicIdMixin, CodeAIPercentageFieldsModel, TimestampedMod
 
     def repository_list(self):
         # Use pre-fetched data, avoid N+1 queries
-        repositories = self.repository_set.all()
+        repositories = self.repositories.all()
         return sorted(repositories, key=lambda r: (r.owner, r.name))
 
     def rule_ids(self):
@@ -1396,14 +1377,13 @@ class RepositoryGroup(PublicIdMixin, CodeAIPercentageFieldsModel, TimestampedMod
         return sorted(rules, key=lambda r: r.name)
 
     def get_attested_num_lines(self, num_lines_by_sha=None):
-        """
-        Get the number of attested lines of code for the repository group.
+        """Get the number of attested lines of code for the repository group.
 
         Note: If num_lines_by_sha is not supplied then it'll be calculated from the database.
         Calculating from the db might cause N+1 queries
         """
         # done this way because repository_set is prefetched
-        last_commit_shas = [repo.last_commit_sha for repo in self.repository_set.all()]
+        last_commit_shas = [repo.last_commit_sha for repo in self.repositories.all()]
         if num_lines_by_sha is not None:
             attested_num_lines = sum([num_lines_by_sha.get(sha, 0) for sha in last_commit_shas])
         else:
@@ -1433,10 +1413,10 @@ class Repository(
     last_commit_sha = models.CharField(max_length=40, default=None, blank=True, null=True)
     last_analysis_file = models.TextField(default=None, blank=True, null=True)
     last_analysis_num_files = models.PositiveIntegerField(default=0)
-    group = models.ForeignKey(RepositoryGroup, on_delete=models.SET_NULL, default=None, blank=True, null=True)
     not_evaluated_num_files = models.PositiveIntegerField(default=0)
     not_evaluated_num_lines = models.PositiveIntegerField(default=0)
     external_data = models.JSONField(default=None, blank=True, null=True)
+    repository_group = models.ManyToManyField(RepositoryGroup, blank=True, related_name="repositories")
 
     analysis_historic_done = models.BooleanField(default=False)
     default_branch_name = models.CharField(max_length=250, default=None, blank=True, null=True)
@@ -1473,8 +1453,7 @@ class Repository(
         return self.external_data and self.external_data.get("manual", False)
 
     def get_attested_num_lines(self, num_lines_by_sha=None):
-        """
-        Get the number of attested lines of code for the repository.
+        """Get the number of attested lines of code for the repository.
 
         Note: If num_lines_by_sha is not supplied then it'll be calculated from the database.
         calculating from the db might cause N+1 queries
@@ -1491,7 +1470,7 @@ class Repository(
 
     @classmethod
     def get_prefetch_commit_before_date(cls, date, attr="until_commit", lte=True):
-        date = date or datetime.now(timezone.utc)
+        date = date or datetime.now(UTC)
         filter_arg = "lte" if lte else "lt"
 
         qs = RepositoryCommit.objects.filter(
@@ -1504,10 +1483,8 @@ class Repository(
 
     @classmethod
     def get_attested_num_of_lines_by_sha(cls, repositories: [Self]) -> dict[str, int]:
-        """
-        Get the number of attested lines of code for the repositories as a dictionary of sha to num_lines.
-        """
-        commit_shas = set(repo.last_commit_sha for repo in repositories)
+        """Get the number of attested lines of code for the repositories as a dictionary of sha to num_lines."""
+        commit_shas = {repo.last_commit_sha for repo in repositories}
         commit_shas |= {
             repo.until_commit[-1].sha
             for repo in repositories
@@ -1621,7 +1598,7 @@ class RepositoryCommit(
     @admin.display(boolean=True)
     def is_pull_request(self):
         # NOTE: this will fail if the folder changes, but we avoid N+1 queries
-        return self.analysis_file != None and os.path.abspath(settings.AI_CODE_PR_DIRECTORY) in self.analysis_file
+        return self.analysis_file is not None and os.path.abspath(settings.AI_CODE_PR_DIRECTORY) in self.analysis_file
 
     def analysis_folder(self):
         return self.analysis_file[:-4] if self.analysis_file else None
@@ -1647,8 +1624,7 @@ class RepositoryCommit(
         return os.path.join(repo_dir, self.sha)
 
     def get_attested_num_lines(self, num_lines_by_sha=None):
-        """
-        Get the number of attested lines of code for the commit.
+        """Get the number of attested lines of code for the commit.
 
         Note: If num_lines_by_sha is not supplied then it'll be calculated from the database.
         calculating from the db might cause N+1 queries
@@ -1898,11 +1874,10 @@ class AuthorStat(TimescaleModel):
         group_id: int,
         commit: RepositoryCommit = None,
         repository: Repository = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> dict:
-        """
-        Retrieves aggregated statistics for a specific group's authors' contributions.
+        """Retrieve aggregated statistics for a specific group's authors' contributions.
 
         Args:
             group_id (int): The ID of the group whose authors' contributions are to be aggregated.
@@ -1926,6 +1901,7 @@ class AuthorStat(TimescaleModel):
         Notes:
             - Retrieves all authors belonging to the specified group and passes their IDs
               to the `get_aggregated_authors_stats` method.
+
         """
         author_ids = Author.objects.filter(
             group_id=group_id,
@@ -1944,12 +1920,10 @@ class AuthorStat(TimescaleModel):
         author_ids: list[int],
         commit: RepositoryCommit = None,
         repository: Repository = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> dict:
-        """
-        Retrieves aggregated statistics for authors' contributions.
-        Authors by linked IDs are included in stats.
+        """Retrieve aggregated statistics for authors' contributions. Authors by linked IDs are included in stats.
 
         Args:
             author_ids (list[int]): A list of IDs of authors to include in the query.
@@ -1973,6 +1947,7 @@ class AuthorStat(TimescaleModel):
 
         Raises:
             ValueError: If `author_ids` is empty or contains invalid values.
+
         """
         linked_authors = Author.objects.filter(
             linked_author__in=author_ids,
@@ -2007,12 +1982,10 @@ class AuthorStat(TimescaleModel):
         author_ids: list[int],
         commit: RepositoryCommit = None,
         repository: Repository = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> dict:
-        """
-        Retrieves annotated statistics for authors' contributions,
-        grouping contributions by either the author's ID or their linked author's ID.
+        """Retrieve annotated statistics for authors' contributions, grouping contributions by either the author's ID or their linked author's ID.
 
         Args:
             author_ids (list[int]): A list of IDs of authors to include in the query.
@@ -2035,6 +2008,7 @@ class AuthorStat(TimescaleModel):
                 - `code_ai_blended_num_lines` (int): Total number of blended AI-human lines of code.
                 - `code_ai_pure_num_lines` (int): Total number of purely AI-generated lines of code.
                 - `code_not_ai_num_lines` (int): Total number of human-written lines of code.
+
         """
         linked_authors = Author.objects.filter(
             linked_author__in=author_ids,
@@ -2087,11 +2061,10 @@ class AuthorStat(TimescaleModel):
         author_ids: list,
         commit: RepositoryCommit = None,
         repository: Repository = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> dict:
-        """
-        Retrieves aggregated statistics for a list of authors, grouped by day.
+        """Retrieve aggregated statistics for a list of authors, grouped by day.
 
         This method calculates daily statistics for the provided authors within the specified
         date range. It supports filtering by commit and repository and returns aggregated
@@ -2115,6 +2088,7 @@ class AuthorStat(TimescaleModel):
 
         Raises:
             ValueError: If invalid arguments are provided, such as an empty author_ids list.
+
         """
         query_params = {
             "author_id__in": author_ids,
@@ -2167,11 +2141,10 @@ class AuthorStat(TimescaleModel):
         author: Author,
         commit: RepositoryCommit = None,
         repository: Repository = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> dict:
-        """
-        Retrieves aggregated daily statistics for a specific author.
+        """Retrieve aggregated daily statistics for a specific author.
 
         This method calculates daily aggregated statistics for the given author and any authors
         linked to them. It supports optional filtering by commit, repository, and date range.
@@ -2201,11 +2174,10 @@ class AuthorStat(TimescaleModel):
         group: AuthorGroup,
         commit: RepositoryCommit = None,
         repository: Repository = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> dict:
-        """
-        Retrieves aggregated daily statistics for a specific group.
+        """Retrieve aggregated daily statistics for a specific group.
 
         This method calculates daily aggregated statistics for the given group and any authors
         linked to them. It supports optional filtering by commit, repository, and date range.
@@ -2231,8 +2203,8 @@ class AuthorStat(TimescaleModel):
     @classmethod
     def get_query_params_for_time(
         cls,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ):
         start_date = start_date or (django_timezone.now() - timedelta(days=settings.DEFAULT_TIME_WINDOW_DAYS + 1))
         if not end_date:
@@ -2248,8 +2220,8 @@ class AuthorStat(TimescaleModel):
     @classmethod
     def get_start_end_params_for_time_bucket_gapfill(
         cls,
-        start_date: datetime = None,
-        end_date: datetime = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ):
         start = start_date or (django_timezone.now() - timedelta(days=settings.DEFAULT_TIME_WINDOW_DAYS + 1))
         end = end_date or django_timezone.now()
@@ -2278,7 +2250,7 @@ class RepositoryFileChunkBlame(TimestampedModel):
 
 class SystemMessageManager(models.Manager):
     def active(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return self.filter(starts_at__lte=now, expires_at__gte=now)
 
 
@@ -2298,7 +2270,7 @@ class SystemMessage(PublicIdMixin, TimestampedModel):
 
     @admin.display(boolean=True)
     def is_showing(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return self.starts_at <= now and (self.expires_at is None or now <= self.expires_at)
 
 
@@ -2315,7 +2287,7 @@ class JiraProject(PublicIdMixin, TimestampedModel):
     key = models.CharField(max_length=255)
     external_id = models.CharField(max_length=100)
     is_selected = models.BooleanField(default=True)
-    repository_group = models.ManyToManyField(RepositoryGroup, blank=True)
+    repository_group = models.ManyToManyField(RepositoryGroup, blank=True, related_name="jira_projects")
 
     class Meta:
         unique_together = ["organization", "external_id"]

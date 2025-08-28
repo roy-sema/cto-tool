@@ -91,7 +91,7 @@ class Command(BaseCommand):
                 f"The following organizations {parsed_orgs} "
                 "could not refresh their Jira tokens. Please ask them to re-connect."
             )
-            EmailService.send_email(
+            EmailService().send_email(
                 "SIP: Organizations with broken Jira connections.",
                 email_message,
                 settings.DEFAULT_FROM_EMAIL,
