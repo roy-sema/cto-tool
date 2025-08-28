@@ -28,19 +28,17 @@ RESOURCE_CACHE.clear = no_op
 def sort_countries(country):
     if country == "united states":
         return 0
-    elif country == "canada":
+    if country == "canada":
         return 1
-    else:
-        return ord(country[0])
+    return ord(country[0])
 
 
 def sort_keys(obj):
     if isinstance(obj, dict):
         return {k: sort_keys(obj[k]) for k in sorted(obj, key=sort_countries)}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [sort_keys(item) for item in obj]
-    else:
-        return obj
+    return obj
 
 
 class MvpConfig(AppConfig):

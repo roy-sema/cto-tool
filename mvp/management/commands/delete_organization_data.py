@@ -3,8 +3,9 @@ import os.path
 
 from django.core.management import CommandError
 from django.core.management.base import BaseCommand
+from django_softdelete.managers import SoftDeleteQuerySet
 
-from compass.contextualization.models import DailyMessage
+from compass.contextualization.models import DailyMessage, QualitySummary, Roadmap
 from compass.dashboard.models import GitDiffRepositoryGroupInsight
 from compass.integrations.integrations import get_git_provider_integration
 from mvp.models import (
@@ -163,6 +164,8 @@ class Command(BaseCommand):
         self.delete_object(RepositoryGroup, organization=organization)
         self.delete_object(Rule, organization=organization)
         self.delete_object(GitDiffRepositoryGroupInsight, organization=organization)
+        self.delete_object_loop(Roadmap, organization=organization)
+        self.delete_object(QualitySummary, organization=organization)
 
         logger.info("Clearing geographies")
         organization.geographies.clear()
@@ -176,10 +179,7 @@ class Command(BaseCommand):
             organization.save()
 
     def delete_path(self, path):
-        """
-        Recursively delete a directory and its contents, uses `rm`
-        """
-
+        """Recursively delete a directory and its contents, uses `rm`."""
         if not os.path.exists(path):
             logger.info(f"Path {path} does not exist, skipping deletion")
             return
@@ -196,10 +196,13 @@ class Command(BaseCommand):
         objects = model.objects.filter(**filters)
 
         logger.info(f"Deleting {len(objects)} {model.__name__}")
-        objects.delete()
+        self.perform_delete(objects)
 
     def delete_object_loop(self, model, **filters):
-        # This method is used to delete objects in a loop, which is useful for large datasets or deeply cascaded deletions.
+        """Delete objects in a loop
+
+        which is useful for large datasets or deeply cascaded deletions to prevent db running out of memory.
+        """
         if not filters:
             raise ValueError("No filters provided. At least one filter is required.")
 
@@ -208,4 +211,12 @@ class Command(BaseCommand):
         logger.info(f"Deleting {len(pks)} {model.__name__}")
 
         for pk in pks:
-            model.objects.filter(id=pk).delete()
+            queryset = model.objects.filter(id=pk)
+            self.perform_delete(queryset)
+
+    @staticmethod
+    def perform_delete(queryset):
+        if isinstance(queryset, SoftDeleteQuerySet):
+            queryset.hard_delete()
+        else:
+            queryset.delete()

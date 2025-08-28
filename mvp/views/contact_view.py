@@ -35,7 +35,7 @@ class ContactView(LoginRequiredMixin, generic.CreateView):
         return render(request, self.template_name, {"form": form})
 
     def send_support_mail(self, organization, user, message):
-        EmailService.send_email(
+        EmailService().send_email(
             f"{settings.APP_NAME} Contact",
             f"Contact from '{user.get_full_name()} <{user.email}>' at organization '{organization.name}':\n\n{message}",
             settings.DEFAULT_FROM_EMAIL,

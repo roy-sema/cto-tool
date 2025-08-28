@@ -49,3 +49,21 @@ class RemoveLinebreaksNode(template.Node):
 @register.filter
 def add_str(arg1, arg2):
     return str(arg1) + str(arg2)
+
+
+@register.filter(name="normalize_newlines")
+def normalize_newlines(text):
+    r"""Convert escaped newline sequences (\n) into real newlines."""
+    if not isinstance(text, str):
+        return text
+
+    return text.replace("\\n", "\n")
+
+
+@register.filter
+def group_max(value: list | tuple, x: int) -> list[list | tuple]:
+    """Split a list into sub lists of length x (last group may be smaller).
+
+    Usage: {{ value|group_max:3 }}
+    """
+    return [value[i : i + x] for i in range(0, len(value), x)]

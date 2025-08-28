@@ -17,12 +17,12 @@ class GroupsAICodeService:
             # to avoid having a change be overridden by the saving the group again (related to replica db setup)
             if override_group and group.id == override_group.id:
                 group = override_group
-            repositories = group.repository_set.all()
+            repositories = group.repositories.all()
             self.set_group_ai_fields(group, repositories)
             group.save()
 
     def get_repository_groups(self):
-        return RepositoryGroup.objects.filter(organization=self.organization).prefetch_related("repository_set")
+        return RepositoryGroup.objects.filter(organization=self.organization).prefetch_related("repositories")
 
     def update_author_groups(self, override_group: AuthorGroup = None):
         groups = self.get_author_groups()
@@ -81,7 +81,7 @@ class GroupsAICodeService:
             group__isnull=True,
         )
         stats = AuthorStat.get_aggregated_authors_stats(author_ids=[dev.id for dev in ungrouped_developers])
-        ungrouped = {
+        return {
             "public_id": None,
             "name": "Ungrouped",
             "developers": [],
@@ -90,7 +90,6 @@ class GroupsAICodeService:
             "rule_risk_list": [],
             "stats": stats,
         }
-        return ungrouped
 
     @classmethod
     def calculate_ai_fields(cls, instances):

@@ -10,6 +10,8 @@ from django.core.validators import URLValidator, validate_email
 from django.forms import inlineformset_factory
 from import_export.forms import ExportForm
 
+from mvp.models import OrgRole
+
 from .mixins import DecodePublicIdMixin
 from .models import (
     AITypeChoices,
@@ -72,15 +74,15 @@ class ComplianceStandardComponentForm(forms.ModelForm):
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(ComplianceStandardComponentForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         rules = Rule.objects.all().order_by("name")
 
         self.fields["rules"].queryset = rules
 
 
 class InviteUserForm(forms.ModelForm):
-    """
-    A form for creating new users when invited.
+    """A form for creating new users when invited.
+
     Includes a repeated password and accept terms field.
     """
 
@@ -108,10 +110,9 @@ class InviteUserForm(forms.ModelForm):
 
 
 class CustomUserCreationForm(InviteUserForm):
-    """
-    A form for creating new users. Includes all the required
-    fields, plus a repeated password, accept terms field and
-    additional fields to create the organization.
+    """A form for creating new users.
+
+    Includes all the required fields, plus a repeated password, accept terms field and additional fields to create the organization.
     """
 
     organization_name = forms.CharField(max_length=100, required=True)
@@ -128,10 +129,9 @@ class CustomUserCreationForm(InviteUserForm):
 
 
 class CustomUserChangeForm(forms.ModelForm):
-    """
-    A form for updating users. Includes all the fields on
-    the user, but replaces the password field with admin's
-    disabled password hash display field.
+    """A form for updating users.
+
+    Includes all the fields on the user but replaces the password field with admin's disabled password hash display field.
     """
 
     password = ReadOnlyPasswordHashField()
@@ -157,8 +157,9 @@ class UserInvitationForm(forms.ModelForm):
         self.request = kwargs.pop("request", None)
         self.user = self.request.user if self.request else None
         self.is_staff = self.user and self.user.is_staff
-        super(UserInvitationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
+        self.fields["role"].queryset = Group.objects.filter(name__in=[OrgRole.OWNER, OrgRole.USER])
         if self.is_staff:
             self.fields["new_organization_name"] = forms.CharField(
                 required=False,
@@ -209,10 +210,13 @@ class UserInvitationForm(forms.ModelForm):
             organization.copy_preset_rules()
             self.instance.organization = organization
 
-        return super(UserInvitationForm, self).save(commit=commit)
+        return super().save(commit=commit)
 
     def create_new_organization(self, name):
-        org = Organization(name=name)
+        org = Organization(
+            name=name,
+            created_by=self.user,
+        )
         org.set_default_flags()
         org.set_default_limits()
         org.save()
@@ -228,9 +232,10 @@ class BulkInviteForm(forms.Form):
     role = forms.ChoiceField(choices=[], required=True)
 
     def __init__(self, *args, **kwargs):
-        super(BulkInviteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-        self.fields["role"].choices = [(group.id, group.name) for group in Group.objects.all()]
+        groups = Group.objects.filter(name__in=[OrgRole.OWNER, OrgRole.USER])
+        self.fields["role"].choices = [(group.id, group.name) for group in groups]
 
     def clean_emails(self):
         emails = self.cleaned_data.get("emails")
@@ -282,8 +287,8 @@ class OrganizationBaseForm(forms.ModelForm):
         else:
             try:
                 cleaned_data["industry"] = Industry.objects.get(id=industry_id)
-            except Industry.DoesNotExist:
-                raise forms.ValidationError("Selected industry does not exist")
+            except Industry.DoesNotExist as exc:
+                raise forms.ValidationError("Selected industry does not exist") from exc
 
         return cleaned_data
 
@@ -319,7 +324,7 @@ class DataProviderProjectAdminForm(forms.ModelForm):
 
 class OrganizationBasePublicForm(DecodePublicIdMixin, OrganizationBaseForm):
     def __init__(self, *args, **kwargs):
-        super(OrganizationBasePublicForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         industries = Industry.objects.all().order_by("name")
 
         choices = [("", Industry.LABEL_NONE)] + [(industry.public_id(), industry.name) for industry in industries]
@@ -353,7 +358,7 @@ class OrganizationSettingsForm(OrganizationBasePublicForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        super(OrganizationSettingsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         unrequired_fields = ["geographies"]
 
@@ -511,8 +516,8 @@ class ConnectMSTeamsForm(forms.ModelForm):
         validator = URLValidator()
         try:
             validator(url)
-        except ValidationError:
-            raise forms.ValidationError("Invalid URL format.")
+        except ValidationError as exc:
+            raise forms.ValidationError("Invalid URL format.") from exc
         return url
 
     def save(self, commit=True):
@@ -564,7 +569,7 @@ class RepositoryGroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
-        super(RepositoryGroupForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         current_org = self.request.current_organization
         self.fields["rules"].queryset = current_org.rule_set_non_global()
         self.fields["time_spent_coding_percentage"].label = "Estimated time coding"
@@ -587,7 +592,7 @@ class RepositoryGroupForm(forms.ModelForm):
 
     def save(self, commit=True):
         self.instance.organization = self.request.current_organization
-        return super(RepositoryGroupForm, self).save(commit=commit)
+        return super().save(commit=commit)
 
 
 class AuthorGroupForm(forms.ModelForm):
@@ -603,7 +608,7 @@ class AuthorGroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
-        super(AuthorGroupForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         current_org = self.request.current_organization
         self.fields["rules"].queryset = current_org.rule_set_non_global()
 
@@ -612,7 +617,7 @@ class AuthorGroupForm(forms.ModelForm):
 
     def save(self, commit=True):
         self.instance.organization = self.request.current_organization
-        return super(AuthorGroupForm, self).save(commit=commit)
+        return super().save(commit=commit)
 
 
 class RuleForm(forms.ModelForm):
@@ -622,7 +627,7 @@ class RuleForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
-        super(RuleForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.conditions = RuleConditionFormSet(self.data or None, instance=self.instance)
 
     def clean(self):
@@ -638,7 +643,7 @@ class RuleConditionForm(forms.ModelForm):
         fields = ["code_type", "operator", "percentage"]
 
     def __init__(self, *args, **kwargs):
-        super(RuleConditionForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["percentage"].widget.attrs.update({"min": "0", "max": "100"})
         if self.instance and self.instance.pk:
             self.fields["public_id"].initial = self.instance.public_id()
@@ -689,7 +694,7 @@ class RepositoryPullRequestStatusCheckForm(forms.ModelForm):
 
 
 class AttestationExportForm(ExportForm):
-    """Customized ExportForm for attestation to allow filtering by organization"""
+    """Customized ExportForm for attestation to allow filtering by organization."""
 
     organization = forms.ModelChoiceField(queryset=Organization.objects.all(), required=False)
 

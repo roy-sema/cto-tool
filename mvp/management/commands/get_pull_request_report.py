@@ -87,20 +87,20 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
             "num_analyzed",
         ]
 
-        totals = df[["num_prs"] + counter].sum()
+        totals = df[["num_prs", *counter]].sum()
         totals["num_prs"] += azure_dev_ops_num_lost + azure_dev_ops_num_no_db
         totals["num_lost"] += azure_dev_ops_num_lost
         totals["num_no_db"] += azure_dev_ops_num_no_db
 
-        for counter in counter:
-            df[counter] = df[counter].fillna(0)
+        for col_name in counter:
+            df[col_name] = df[col_name].fillna(0)
             df["num_prs"] = df["num_prs"].fillna(0)
-            df[counter.replace("num_", "percent_")] = (df[counter] / df["num_prs"] * 100).fillna(0)
+            df[col_name.replace("num_", "percent_")] = (df[col_name] / df["num_prs"] * 100).fillna(0)
 
-            totals[counter] = totals[counter] if totals[counter] is not None else 0
+            totals[col_name] = totals[col_name] if totals[col_name] is not None else 0
             totals["num_prs"] = totals["num_prs"] if totals["num_prs"] is not None else 0
-            totals[counter.replace("num_", "percent_")] = (
-                totals[counter] / totals["num_prs"] * 100 if totals["num_prs"] != 0 else 0
+            totals[col_name.replace("num_", "percent_")] = (
+                totals[col_name] / totals["num_prs"] * 100 if totals["num_prs"] != 0 else 0
             )
 
         logger.info("\nBy repository:")
@@ -281,7 +281,7 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
         return pull_requests
 
     def read_webhook_data(self, json_file_path):
-        with open(json_file_path, "r") as file:
+        with open(json_file_path) as file:
             data = json.load(file)
 
         headers = data.get("headers", {})

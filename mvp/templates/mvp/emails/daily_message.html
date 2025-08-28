@@ -1,3 +1,5 @@
+{% load custom_filters %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,10 +11,14 @@
 
   <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 8px; padding: 20px; border: 1px solid #E1E8ED;">
 
-    {% include "mvp/emails/partials/daily_message_header.html" with last_updated=last_updated organization=organization message_date=message_date site_domain=site_domain only %}
-  
+    {% include "mvp/emails/partials/daily_message_header.html" with last_updated=last_updated organization=organization message_date=message_date site_domain=site_domain analysis_period=data.analysis_period only %}
+
     {% if no_commits_message %}
-      <p>No commits found throughout the system since the last update.</p>
+      <p>No repository commits found throughout the system since the last update.</p>
+    {% endif %}
+
+    {% if no_data_after_filter %}
+      <p>No data found after your filters were applied.</p>
     {% else %}
 
     <!-- Filter Info -->
@@ -59,11 +65,13 @@
           <div style="margin-bottom: 24px;">
             <h3 style="font-size: 15px; font-weight: 600; color: #2C3E50; margin: 0 0 12px 0;">By Product</h3>
             <table style="width: 100%; border-collapse: separate; border-spacing: 5px; table-layout: fixed;">
-              <tr>
-                {% for project in data.jira_completeness_summary.by_projects %}
-                  {% include "mvp/emails/partials/daily_message_jira_completeness_summary_table_cell.html" with item=project only %}
-                {% endfor %}
-              </tr>
+              {% for group in data.jira_completeness_summary.by_projects|group_max:5 %}
+                <tr>
+                  {% for project in group %}
+                    {% include "mvp/emails/partials/daily_message_jira_completeness_summary_table_cell.html" with item=project only %}
+                  {% endfor %}
+                </tr>
+              {% endfor %}
             </table>
           </div>
         {% endif %}
@@ -87,7 +95,7 @@
     <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #E1E8ED; font-size: 12px; color: #5A6C7D; text-align: center;">
       <p style="margin: 0;">
         To change your subscription preferences, visit the
-        <a href="{{ site_domain }}/settings/insights-notifications/" style="color: #4A90A4;">SIP Dashboard Settings</a>
+        <a href="{{ site_domain }}{% url 'daily_message' %}" style="color: #4A90A4;">SIP Dashboard Settings</a>
       </p>
     </div>
   </div>

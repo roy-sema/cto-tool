@@ -42,10 +42,9 @@ class DeveloperGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permission
                 GroupsAICodeService(current_org).update_author_groups(override_group=saved_group)
                 messages.success(request, "Developer group updated!")
                 return self.redirect_to_view(request)
-            else:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
         except IntegrityError:
             messages.error(request, "Group names should be unique")
 
@@ -94,7 +93,7 @@ class DeveloperGroupEditView(LoginRequiredMixin, DecodePublicIdMixin, Permission
 
     def get_author_ids(self, request):
         author_ids = request.POST.getlist("authors")
-        return set([self.decode_id(author_id) for author_id in author_ids])
+        return {self.decode_id(author_id) for author_id in author_ids}
 
     def get_organization_authors(self, organization, top_group):
         authors = (

@@ -2,7 +2,8 @@ from django.contrib import admin, messages
 from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.db.models import Count, F, Max, Q, Sum
+from django.db.models import Count, F, Max, Q, QuerySet, Sum
+from django.http import HttpRequest
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
@@ -14,7 +15,7 @@ from import_export.admin import ExportMixin, ImportExportModelAdmin
 from treebeard.admin import TreeAdmin
 from treebeard.forms import movenodeform_factory
 
-from compass.integrations.integrations import get_git_providers
+from compass.integrations.integrations import IntegrationFactory, get_git_providers
 from mvp.utils import round_half_up
 
 from .forms import (
@@ -330,7 +331,7 @@ class CustomUserAdmin(ExportMixin, BaseUserAdmin):
                 self.add_error("groups", "At least one group must be selected.")
             return cleaned_data
 
-        setattr(form, "clean", clean)
+        form.clean = clean
 
         return form
 
@@ -366,8 +367,8 @@ class CustomUserAdmin(ExportMixin, BaseUserAdmin):
 
 @admin.register(UserInvitation)
 class UserInvitationAdmin(ExportMixin, admin.ModelAdmin):
-    list_display = ("email", "organization", "is_expired", "is_deleted")
-    list_filter = ["is_deleted", "organization"]
+    list_display = ("email", "organization", "is_expired")
+    list_filter = ["organization"]
     search_fields = ["email"]
     readonly_fields = ["organization", "sent_by", "created_at", "updated_at"]
 
@@ -392,15 +393,78 @@ class DataProviderAdmin(admin.ModelAdmin):
 
 @admin.register(DataProviderConnection)
 class DataProviderConnectionAdmin(admin.ModelAdmin):
-    list_display = (
+    list_display = ("organization", "provider", "is_connected", "connected_at", "connected_by")
+    list_filter = ["provider", "organization"]
+    readonly_fields = [
         "organization",
-        "provider",
-        "is_connected",
         "connected_at",
         "connected_by",
-    )
-    list_filter = ["provider", "organization"]
-    readonly_fields = ["organization", "connected_at", "connected_by", "created_at", "updated_at"]
+        "created_at",
+        "updated_at",
+        "is_connected",
+    ]
+
+    actions = ["disconnect_selected"]
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        qs = super().get_queryset(request)
+        return qs.select_related("provider", "organization", "connected_by")
+
+    @admin.action(description="Disconnect selected connections")
+    def disconnect_selected(self, request, queryset):
+        if "confirm" in request.POST:
+            success_count = 0
+            for connection in queryset:
+                if not connection.is_connected():
+                    self.message_user(
+                        request,
+                        f"Connection for {connection.organization} ({connection.provider}) is already disconnected.",
+                        messages.WARNING,
+                    )
+                    continue
+
+                integration = IntegrationFactory().get_integration(connection.provider)
+                if not integration:
+                    self.message_user(
+                        request,
+                        f"No integration found for {connection.organization} ({connection.provider}).",
+                        messages.ERROR,
+                    )
+                    continue
+                try:
+                    integration.disconnect(connection)
+                    success_count += 1
+                except Exception:
+                    self.message_user(
+                        request,
+                        f"Failed to disconnect connection for {connection.organization} ({connection.provider}).",
+                        messages.ERROR,
+                    )
+                    continue
+
+            if success_count:
+                self.message_user(
+                    request,
+                    ngettext(
+                        "connection was disconnected.",
+                        f"{success_count} connections were disconnected.",
+                        success_count,
+                    ),
+                    messages.SUCCESS,
+                )
+            return None
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Are you sure?",
+            "queryset": queryset,
+            "action": "disconnect_selected",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/confirm_disconnect.html", context)
 
 
 @admin.register(DataProviderField)
@@ -492,7 +556,6 @@ class OrganizationAdmin(ExportMixin, admin.ModelAdmin):
         "enable_contextualization",
         "disable_contextualization",
     ]
-    exclude = ("is_deleted",)
     readonly_fields = ("public_id", "created_by", "connection_issued_by", "created_at", "updated_at")
 
     def has_delete_permission(self, request, obj=None):
@@ -717,8 +780,7 @@ class GitProviderFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value():
             return queryset.filter(**{self.parameter_name: self.value()})
-        else:
-            return queryset
+        return queryset
 
 
 class RepositoryGitProviderFilter(GitProviderFilter):
@@ -1179,11 +1241,11 @@ class AuthorStatAdmin(admin.ModelAdmin):
 @admin.register(JiraProject)
 class JiraProjectAdmin(admin.ModelAdmin):
     form = JiraProjectAdminForm
-    list_display = ("organization", "public_id", "name", "key", "is_selected")
+    list_display = ("organization", "public_id", "name", "key", "is_selected", "created_at", "updated_at")
     search_fields = ("organization__name", "name", "key")
     list_filter = ("organization",)
     filter_horizontal = ["repository_group"]
-    readonly_fields = ["organization"]
+    readonly_fields = ("organization", "public_id", "created_at", "updated_at")
 
 
 @admin.register(MessageIntegration)

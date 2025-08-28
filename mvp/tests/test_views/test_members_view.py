@@ -446,3 +446,15 @@ class MembersViewTest(BaseViewTestCase):
         form = response.context["bulk_form"]
         email_errors = form.errors.get("emails")
         self.assertIn(f"{invalid_email} is not a valid email address", email_errors)
+
+    @patch("mvp.views.UsersView.send_invitation_mail")
+    def test_staff_create_new_organization_sets_created_by(self, mock_send_invitation_mail):
+        self.login("staff")
+        payload = {
+            **self.payload_invite_base,
+            "new_organization_name": "NewOrgWithCreatedBy",
+        }
+        with self.subTest("should set created_by field when staff invites a user to a new organization"):
+            self.client.post(reverse("users"), data=payload)
+            org = Organization.objects.get(name=payload["new_organization_name"])
+            self.assertEqual(org.created_by, self.staff)

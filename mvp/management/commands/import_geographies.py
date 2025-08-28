@@ -43,10 +43,10 @@ class Command(BaseCommand):
         jurisdictions_file = kwargs["jurisdictions_file"]
         jurisdiction_info_file = kwargs["jurisdictions_info_file"]
 
-        with open(jurisdictions_file, "r") as f:
+        with open(jurisdictions_file) as f:
             data = json.load(f)
 
-        with open(jurisdiction_info_file, "r") as f:
+        with open(jurisdiction_info_file) as f:
             info_data = json.load(f)
 
         if kwargs["erase"]:

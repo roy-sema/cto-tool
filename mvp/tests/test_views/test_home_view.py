@@ -1,33 +1,18 @@
-from django.contrib.auth.models import Group
 from django.urls import reverse
 
-from mvp.models import CustomUser, Organization
+from mvp.tests.factories import create_organization_owner
 
 from .base_view_test import BaseViewTestCase
 
 
 class HomeViewTests(BaseViewTestCase):
     def setUp(self):
-        self.credentials = {
-            "email": "testuser@domain.com",
-            "password": "testpass456",
-        }
-
-        self.organization = Organization.objects.create(name="TestOrg")
-        self.user = CustomUser.objects.create_user(
-            email=self.credentials["email"],
-            password=self.credentials["password"],
-        )
-
-        owner_group = Group.objects.get(name="Owner")
-        owner_group.user_set.add(self.user)
-        self.user.organizations.add(self.organization)
+        org_owner = create_organization_owner()
+        self.user = org_owner.user
+        self.organization = org_owner.organization
 
     def login(self):
-        self.client.login(
-            email=self.credentials["email"],
-            password=self.credentials["password"],
-        )
+        self.client.force_login(self.user)
 
     def test_load(self):
         self.login()

@@ -43,11 +43,13 @@ class RepositoryGroupsView(
     def render_form(self, request, form):
         current_org = request.current_organization
         repository_groups = current_org.repositorygroup_set.prefetch_related(
-            "repository_set", "rules", "jiraproject_set"
+            "repositories", "rules", "jira_projects"
         ).order_by("name")
         usage_categories = RepositoryGroupCategoryChoices.get_as_detailed_list()
-        ungrouped_repos = Repository.objects.filter(organization=current_org, group__isnull=True).order_by(
-            "owner", "name"
+        ungrouped_repos = (
+            Repository.objects.filter(organization=current_org, repository_group__isnull=True)
+            .order_by("owner", "name")
+            .distinct()
         )
         potential_productivity_improvement_defaults = ProductivityImprovementChoices.get_defaults()
 
@@ -78,10 +80,9 @@ class RepositoryGroupsView(
                 messages.success(request, "Repository group created!")
                 public_id = instance.public_id()
                 return self.redirect_to_edit(request, public_id)
-            else:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
         except IntegrityError:
             messages.error(request, "Group names should be unique")
         except Exception as e:

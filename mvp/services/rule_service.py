@@ -56,16 +56,13 @@ class RuleService:
         if not match_conditions and mode_none:
             return True
 
-        if len(conditions) == match_conditions and mode_all:
-            return True
-
-        return False
+        return len(conditions) == match_conditions and mode_all
 
     @staticmethod
     def get_condition_ai_type(condition):
         if condition.code_type == RuleConditionCodeTypeChoices.AI_BLENDED:
             return AITypeChoices.BLENDED
-        elif condition.code_type == RuleConditionCodeTypeChoices.AI_PURE:
+        if condition.code_type == RuleConditionCodeTypeChoices.AI_PURE:
             return AITypeChoices.PURE
 
         # we display Human rules under Overall
@@ -79,14 +76,16 @@ class RuleService:
     def validate_rule_condition(condition, percent):
         if condition.operator == RuleConditionOperatorChoices.GREATER_THAN:
             return percent > condition.percentage
-        elif condition.operator == RuleConditionOperatorChoices.GREATER_THAN_OR_EQUAL:
+        if condition.operator == RuleConditionOperatorChoices.GREATER_THAN_OR_EQUAL:
             return percent >= condition.percentage
-        elif condition.operator == RuleConditionOperatorChoices.EQUAL:
+        if condition.operator == RuleConditionOperatorChoices.EQUAL:
             return percent == condition.percentage
-        elif condition.operator == RuleConditionOperatorChoices.LESS_THAN_OR_EQUAL:
+        if condition.operator == RuleConditionOperatorChoices.LESS_THAN_OR_EQUAL:
             return percent <= condition.percentage
-        elif condition.operator == RuleConditionOperatorChoices.LESS_THAN:
+        if condition.operator == RuleConditionOperatorChoices.LESS_THAN:
             return percent < condition.percentage
+        # Defensive programming: unknown operator should return False
+        return False
 
     @staticmethod
     def get_rule_risk_color(risk):
@@ -111,7 +110,7 @@ class RuleService:
     def get_rules_by_ai_type(rules, ai_percentages):
         rules = sorted(rules, key=lambda r: r.name)
 
-        by_ai_type = {ai_type: {"list": [], "risk": None} for ai_type in ai_percentages.keys()}
+        by_ai_type = {ai_type: {"list": [], "risk": None} for ai_type in ai_percentages}
 
         for rule in rules:
             risk = RuleService.get_rule_risk(rule, ai_percentages)
@@ -132,8 +131,7 @@ class RuleService:
     def get_instance_rules_list(instance, rules):
         ai_percentages = RuleService.get_instance_ai_percentage(instance)
         rules_by_type = RuleService.get_rules_by_ai_type(rules, ai_percentages)
-        rule_list = {item for rule in rules_by_type.values() for item in rule["list"]}
-        return rule_list
+        return {item for rule in rules_by_type.values() for item in rule["list"]}
 
     @staticmethod
     def get_instance_ai_percentage(instance):
@@ -183,8 +181,7 @@ class RuleService:
 
     @classmethod
     def get_stats_rules_list(cls, stats: dict, rules: list[Rule]):
-        """
-        Generate a list of applicable rules based on author or author group stats.
+        """Generate a list of applicable rules based on author or author group stats.
 
         Unlike models using the CodeAIPercentageFieldsModel mixin, stats for
         authors and author groups are stored in the AuthorStat model. As a result,
@@ -207,11 +204,11 @@ class RuleService:
 
         Returns:
             set: A set of applicable rules extracted from the stats.
+
         """
         ai_percentages = cls.get_stats_ai_percentage(stats)
         rules_by_type = cls.get_rules_by_ai_type(rules, ai_percentages)
-        rule_list = {item for rule in rules_by_type.values() for item in rule["list"]}
-        return rule_list
+        return {item for rule in rules_by_type.values() for item in rule["list"]}
 
     @staticmethod
     def get_stats_ai_percentage(stats: dict):
@@ -223,9 +220,7 @@ class RuleService:
 
     @classmethod
     def get_stats_rules_with_risk(cls, stats: dict, rules: list[Rule]):
-        """
-        Retrieve a list of rules along with their associated risk levels based on
-        author or author group stats.
+        """Retrieve a list of rules along with their associated risk levels based on author or author group stats.
 
         Stats for authors and author groups are stored in the `AuthorStat` model,
         rather than using the `CodeAIPercentageFieldsModel` mixin. As a result,
@@ -248,6 +243,7 @@ class RuleService:
             list: A list of tuples where each tuple contains:
                 - A `Rule` object.
                 - The calculated risk level for the rule.
+
         """
         rules = sorted(rules, key=lambda r: r.name)
         ai_percentages = cls.get_stats_ai_percentage(stats)

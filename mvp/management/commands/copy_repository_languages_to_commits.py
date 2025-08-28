@@ -31,8 +31,8 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
         )
 
     def handle(self, *args, **options):
-        organization_id = options.get("orgid", None)
-        repository_id = options.get("repoid", None)
+        organization_id = options.get("orgid")
+        repository_id = options.get("repoid")
         forced = options.get("force", False)
 
         commits = RepositoryCommit.objects.prefetch_related("repository")

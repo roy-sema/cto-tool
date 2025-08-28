@@ -4,6 +4,7 @@ import logging
 import os
 
 from django.conf import settings
+from django.contrib.postgres.aggregates import StringAgg
 from django.db.models import F
 from django.utils import timezone
 from django.utils.text import slugify
@@ -102,7 +103,7 @@ class ExportGBOMTask:
         if not os.path.exists(file_path):
             return None
 
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             return file.read()
 
     def write_precomputed_gbom(self, organization, content):
@@ -154,7 +155,7 @@ class ExportGBOMTask:
         labels = CodeGenerationLabelChoices
 
         return [
-            chunk["group_name"] or self.UNGROUPED_STR,
+            chunk["group_names"] or self.UNGROUPED_STR,
             self.get_repository_full_name(chunk),
             chunk["file_path"],
             chunk["code_line_start"],
@@ -237,7 +238,7 @@ class ExportGBOMTask:
                 "file",
                 "file__commit",
                 "file__commit__repository",
-                "file__commit__repository__group",
+                "file__commit__repository__repository_group",
             )
             .annotate(
                 file_path=F("file__file_path"),
@@ -246,7 +247,11 @@ class ExportGBOMTask:
                 repository_name=F("file__commit__repository__name"),
                 commit_sha=F("file__commit__sha"),
                 commit_date=F("file__commit__date_time"),
-                group_name=F("file__commit__repository__group__name"),
+                group_names=StringAgg(
+                    "file__commit__repository__repository_group__name",
+                    delimiter=",",
+                    distinct=True,
+                ),
             )
             .values(
                 "id",
@@ -261,7 +266,7 @@ class ExportGBOMTask:
                 "repository_name",
                 "commit_sha",
                 "commit_date",
-                "group_name",
+                "group_names",
                 "code_hash",
             )
         )

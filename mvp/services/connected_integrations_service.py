@@ -123,7 +123,7 @@ class ConnectedIntegrationsService:
         ).first()
 
         if not connection:
-            return
+            return None
 
         return bool(integration.is_connection_connected(connection))
 
