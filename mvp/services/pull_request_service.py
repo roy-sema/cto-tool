@@ -75,7 +75,7 @@ class PullRequestService:
         if not os.path.exists(file_path):
             return []
 
-        with open(file_path, "r") as code_file:
+        with open(file_path) as code_file:
             return code_file.readlines()
 
     def get_pull_request_ai_composition(self, instance, rule_list):
@@ -138,9 +138,7 @@ class PullRequestService:
             row.extend([(None, None)] * (max_length - len(row)))
 
         # invert rows and columns
-        matrix = list(map(list, zip(*matrix)))
-
-        return matrix
+        return list(map(list, zip(*matrix, strict=False)))
 
     def get_code_generation_labels(self):
         return {choice.value: choice.label for choice in self.LABELS_ORDERED}

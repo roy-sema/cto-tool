@@ -4,18 +4,16 @@ import posthog
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
-from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views import generic
-from sentry_sdk import capture_exception, push_scope
 
 from compass.integrations.integrations import MailChimpIntegration
-from mvp.forms import CustomUserCreationForm, InviteUserForm
-from mvp.models import Organization, UserInvitation
-from mvp.utils import start_new_thread, traceback_on_debug
+from mvp.forms import InviteUserForm
+from mvp.models import UserInvitation
+from mvp.utils import start_new_thread
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +53,9 @@ class SignUpView(generic.CreateView):
 
             posthog.capture(invitation.email, event="access_invite")
         else:
-            form = CustomUserCreationForm()
+            # Disabled for now, keeping this in case we want to bring it back
+            # form = CustomUserCreationForm()
+            return redirect("request_access")
 
         return render(
             request,
@@ -72,7 +72,9 @@ class SignUpView(generic.CreateView):
         if invite_token:
             form = InviteUserForm(request.POST)
         else:
-            form = CustomUserCreationForm(request.POST)
+            # Disabled for now, keeping this in case we want to bring it back
+            # form = CustomUserCreationForm(request.POST)
+            return redirect("request_access")
 
         if form.is_valid():
             if self.is_blocked_email(form.cleaned_data["email"]):
@@ -139,24 +141,26 @@ class SignUpView(generic.CreateView):
                 UserInvitation.objects.filter(email=user.email).delete()
 
             invitation.delete()
-        else:
-            # Users that sign up become owners by default
-            owner_group = Group.objects.get(name="Owner")
-            owner_group.user_set.add(user)
-
-            # Create an organization for the user
-            org = Organization(name=organization_name)
-            org.set_default_flags()
-            org.set_default_limits()
-            org.save()
-
-            # Add the user to the organization
-            org.customuser_set.add(user)
-
-            # Copy the default rules to the organization
-            org.copy_preset_rules()
-
-            transaction.on_commit(lambda: self.send_welcome_email_background(user))
+            return None
+        return redirect("request_access")
+        # disabled for now, keeping this in case we want to bring it back
+        # Users that sign up become owners by default
+        # owner_group = Group.objects.get(name="Owner")
+        # owner_group.user_set.add(user)
+        #
+        # # Create an organization for the user
+        # org = Organization(name=organization_name, created_by=user)
+        # org.set_default_flags()
+        # org.set_default_limits()
+        # org.save()
+        #
+        # # Add the user to the organization
+        # org.customuser_set.add(user)
+        #
+        # # Copy the default rules to the organization
+        # org.copy_preset_rules()
+        #
+        # transaction.on_commit(lambda: self.send_welcome_email_background(user))
 
     def get_invite_token(self, request):
         return request.GET.get("invite")
@@ -164,20 +168,16 @@ class SignUpView(generic.CreateView):
     def get_invitation(self, token):
         try:
             return UserInvitation.objects.get(token=token)
-        except (UserInvitation.DoesNotExist, ValidationError) as error:
-            traceback_on_debug()
-
-            with push_scope() as scope:
-                try:
-                    invitation = UserInvitation.deleted_objects.get(token=token)
-                    scope.set_extra("invitation", invitation.email)
-                    scope.set_extra("organization", invitation.organization.name)
-                except (UserInvitation.DoesNotExist, ValidationError):
-                    scope.set_extra("invitation", "unknown")
-                    pass
-
-                capture_exception(error)
-                raise UserInvitation.DoesNotExist
+        except (UserInvitation.DoesNotExist, ValidationError) as original_exc:
+            try:
+                invitation = UserInvitation.deleted_objects.get(token=token)
+                logger.warning(
+                    "Invitation expired.",
+                    extra={"email": invitation.email, "organization": invitation.organization.name},
+                )
+            except (UserInvitation.DoesNotExist, ValidationError):
+                logger.warning("Invitation was not found.")
+            raise UserInvitation.DoesNotExist from original_exc
 
     def handle_invalid_invitation(self, request):
         messages.error(request, self.MESSAGE_INVALID_LINK)

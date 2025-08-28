@@ -30,9 +30,7 @@ class ROIService:
 
     @classmethod
     def has_total_impact(cls, organization: Organization, group: RepositoryGroup) -> bool:
-        """
-        Checks if the total impact fields are enabled.
-        """
+        """Check if the total impact fields are enabled."""
         avg_dev_annual_work_hours = organization.avg_dev_annual_work_hours
         avg_developer_cost = organization.avg_developer_cost
         num_developers = group.num_developers
@@ -50,8 +48,7 @@ class ROIService:
             return None
 
         productivity_factor = cls.get_productivity_achievement(overall_percentage, group) / 100
-        hours_saved = organization.avg_dev_annual_work_hours * productivity_factor * group.num_developers
-        return hours_saved
+        return organization.avg_dev_annual_work_hours * productivity_factor * group.num_developers
 
     @classmethod
     def get_cost_saved(cls, overall_percentage, group: RepositoryGroup, organization: Organization) -> float | None:
@@ -59,8 +56,7 @@ class ROIService:
             return None
 
         productivity_factor = cls.get_productivity_achievement(overall_percentage, group) / 100
-        cost_saved = organization.avg_developer_cost * productivity_factor * group.num_developers
-        return cost_saved
+        return organization.avg_developer_cost * productivity_factor * group.num_developers
 
     @classmethod
     def get_overall_percentage(
@@ -69,14 +65,13 @@ class ROIService:
         organization: Organization,
         repositories: [Repository] = None,
     ) -> (float, dict):
-        """
-        To calculate “the Overall GenAI% of that Repo group for the last 2 weeks”:
+        """To calculate “the Overall GenAI% of that Repo group for the last 2 weeks”:
 
         1. Get the number of lines of code for each repository in the group for the last two weeks
         2. Sum all the lines in the period
         3. Obtain the overall percentage
         """
-        repositories = repositories or group.repository_set.all()
+        repositories = repositories or group.repositories.all()
         until = get_tz_date(datetime.utcnow().date())
         since = get_tz_date(until - timedelta(days=cls.OVERALL_PERCENTAGE_PERIOD_DAYS))
 
@@ -97,8 +92,7 @@ class ROIService:
         if not organization.tools_genai_monthly_cost:
             return None
 
-        cost_of_tools_saved = organization.tools_genai_monthly_cost * group.num_developers * 12
-        return cost_of_tools_saved
+        return organization.tools_genai_monthly_cost * group.num_developers * 12
 
     @classmethod
     def get_tools_cost_saved_percentage(cls, overall_percentage, group: RepositoryGroup, organization: Organization):
@@ -108,5 +102,4 @@ class ROIService:
         if not cost_saved or not tools_cost_saved:
             return None
 
-        tools_cost_saved_percentage = cost_saved / tools_cost_saved * 100
-        return tools_cost_saved_percentage
+        return cost_saved / tools_cost_saved * 100

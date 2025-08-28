@@ -15,8 +15,8 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
 
         try:
             component = getattr(AppComponentChoices, component_key)
-        except AttributeError:
-            raise CommandError(f'Component "{component}" does not exist. Check casing and spelling.')
+        except AttributeError as exc:
+            raise CommandError(f'Component "{component_key}" does not exist. Check casing and spelling.') from exc
 
         version = self.increment_version(component)
 

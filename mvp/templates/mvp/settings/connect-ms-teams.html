@@ -29,10 +29,23 @@
           {{ form.webhook_url|add_class:"block w-full rounded-md bg-white dark:bg-slate-600 border-0 p-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-400 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue sm:text-sm sm:leading-6" }}
         </div>
       </div>
-      <button type="submit" value="submit"
-              class="mt-5 rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
-        Save
-      </button>
+      <div class="mt-5 flex gap-2">
+        <button type="submit" value="submit"
+                class="rounded-md bg-blue px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet dark:hover:bg-pink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+          Save
+        </button>
+
+        {% if is_connected %}
+          <button
+            type="submit"
+            name="action"
+            value="send_message"
+            class="rounded-md bg-gray-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            Send Test Message
+          </button>
+        {% endif %}
+      </div>
     </div>
 
     <hr class="my-4">
@@ -55,30 +68,15 @@
         and then pick "Anyone" under "Who can trigger the flow?" and click "+ New Step".
         <img class="mt-2" src="{% static 'images/ms_teams_guide/workflow_webhook_data.png' %}">
       </p>
-      <p class="my-2">
-        Next, pick "Parse JSON"
-        <img class="my-2" src="{% static 'images/ms_teams_guide/workflow_json.png' %}">
-        and fill the "Content" field with <span class="bg-gray-100 dark:bg-slate-700">@triggerBody()</span> and the
-        "Schema" field with the
-        following JSON:
-        <pre class="bg-gray-100 dark:bg-slate-700 p-2 rounded-md my-2">
-{
-    "type": "object",
-    "properties": {
-        "text": {
-            "type": "string"
-        }
-    }
-}
-        </pre>
-        It'll look like this
-       <img class="my-2" src="{% static 'images/ms_teams_guide/workflow_json_data.png' %}">
-        Then click "+ New Step".
-      </p>
       <p>
-        For the last step select "Post message in a chat or channel" and fill the fields, for the "Message" field, you
-        can select "text" from the dynamic content or just paste <span class="bg-gray-100 dark:bg-slate-700">@{body('Parse_JSON')?['text']}</span>
-        <img class="my-2" src="{% static 'images/ms_teams_guide/workflow_post_message_data.png' %}">
+        Then select "Post message in a chat or channel" and fill the fields, for the "Message" field, click on
+        "Add dynamic content" and then go to the "Expression" tab and paste this
+        <code class="block overflow-auto rounded bg-gray-100 p-2 font-mono text-sm dark:bg-gray-700">triggerBody()?['text']</code>
+        like this
+        <img class="my-2" src="{% static 'images/ms_teams_guide/workflow_post_message_in_chat_expression.png' %}">
+        <span class="block p-2 my-2 border rounded-md w-fit border-gray-300 dark:border-gray-700">Note: Be sure to select your correct Team and Channel, those shown in the screenshot are just examples</span>
+        Then click "OK" and it should look like this (make sure it looks exactly the same).
+        <img class="my-2" src="{% static 'images/ms_teams_guide/workflow_post_message_in_chat_data.png' %}">
         and then click on "Save"
       </p>
       <p class="my-2">
@@ -86,7 +84,7 @@
         <img class="my-2" src="{% static 'images/ms_teams_guide/webhook_url.png' %}">
         and paste it in the field above.
     </div>
-    
+
   </form>
 
 {% endblock %}

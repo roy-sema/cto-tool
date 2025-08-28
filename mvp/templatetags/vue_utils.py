@@ -18,9 +18,7 @@ SETTING_DEFAULT_STATIC_DIR = "vue"
 
 @register.simple_tag()
 def vue_bundle_url(bundle: str) -> str:
-    """
-    Return the url to a vue bundle. 'bundle' should match the input name as defined in vite.config.js.
-    """
+    """Return the url to a vue bundle. 'bundle' should match the input name as defined in vite.config.js."""
     use_ts = getattr(settings, "VUE_FRONTEND_USE_TYPESCRIPT", SETTING_DEFAULT_USE_TYPESCRIPT)
     use_dev_server = getattr(settings, "VUE_FRONTEND_USE_DEV_SERVER", SETTING_DEFAULT_USE_DEV_SERVER)
     dev_server_url = getattr(settings, "VUE_FRONTEND_DEV_SERVER_URL", SETTING_DEFAULT_DEV_SERVER_URL)
@@ -30,8 +28,7 @@ def vue_bundle_url(bundle: str) -> str:
     extension = ".ts" if use_ts and use_dev_server else ".js"
     if use_dev_server:
         return urllib.parse.urljoin(dev_server_url, os.path.join(dev_server_path, bundle + extension))
-    else:
-        return static(os.path.join(static_dir, bundle + extension))
+    return static(os.path.join(static_dir, bundle + extension))
 
 
 @register.simple_tag()

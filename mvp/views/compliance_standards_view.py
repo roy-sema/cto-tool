@@ -134,13 +134,9 @@ class ComplianceStandardsView(LoginRequiredMixin, PermissionRequiredMixin, Decod
         elif order == "last_updated_rev":
             order_field = "updated_at"
         elif order == "status":
-            order_field = Case(
-                *[When(status=status, then=Value(STATUS_ORDER.get(status))) for status in STATUS_ORDER.keys()]
-            )
+            order_field = Case(*[When(status=status, then=Value(STATUS_ORDER.get(status))) for status in STATUS_ORDER])
         elif order == "status_rev":
-            order_field = Case(
-                *[When(status=status, then=-Value(STATUS_ORDER.get(status))) for status in STATUS_ORDER.keys()]
-            )
+            order_field = Case(*[When(status=status, then=-Value(STATUS_ORDER.get(status))) for status in STATUS_ORDER])
         elif order == "risk_level":
             order_field = Case(
                 *[
@@ -148,7 +144,7 @@ class ComplianceStandardsView(LoginRequiredMixin, PermissionRequiredMixin, Decod
                         risk_level=risk_level,
                         then=Value(RISK_LEVEL_ORDER.get(risk_level)),
                     )
-                    for risk_level in RISK_LEVEL_ORDER.keys()
+                    for risk_level in RISK_LEVEL_ORDER
                 ]
             )
         elif order == "risk_level_rev":
@@ -158,12 +154,10 @@ class ComplianceStandardsView(LoginRequiredMixin, PermissionRequiredMixin, Decod
                         risk_level=risk_level,
                         then=-Value(RISK_LEVEL_ORDER.get(risk_level)),
                     )
-                    for risk_level in RISK_LEVEL_ORDER.keys()
+                    for risk_level in RISK_LEVEL_ORDER
                 ]
             )
-        queryset = queryset.order_by(order_field, "name")
-
-        return queryset
+        return queryset.order_by(order_field, "name")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -174,7 +168,7 @@ class ComplianceStandardsView(LoginRequiredMixin, PermissionRequiredMixin, Decod
             "query_params": self.get_filter_params().urlencode(),
             "risk_levels": ComplianceStandardRiskLevelChoices.choices,
             "geographies": self.get_all_geographies(),
-            "ai_usages": list(ComplianceStandardAIUsage.objects.values_list("name", flat=True)) + ["To be determined"],
+            "ai_usages": [*list(ComplianceStandardAIUsage.objects.values_list("name", flat=True)), "To be determined"],
             "industries": self.get_all_industries(),
             "industry_none": Industry.LABEL_NONE,
             "statuses": ComplianceStandardStatusChoices.choices,
@@ -184,7 +178,7 @@ class ComplianceStandardsView(LoginRequiredMixin, PermissionRequiredMixin, Decod
 
     def get_all_industries(self):
         if self._all_industries is None:
-            self._all_industries = sorted(list(Industry.objects.values_list("name", flat=True)) + [Industry.LABEL_NONE])
+            self._all_industries = sorted([*list(Industry.objects.values_list("name", flat=True)), Industry.LABEL_NONE])
 
         return self._all_industries
 

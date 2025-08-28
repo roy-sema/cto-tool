@@ -1,3 +1,5 @@
+import unittest
+
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.urls import reverse
@@ -77,13 +79,20 @@ class SignUpViewTest(BaseViewTestCase):
         messages = list(response.wsgi_request._messages)
         self.assertEqual(str(messages[0]), SignUpView.MESSAGE_INVALID_LINK)
 
+    @unittest.skip("Signup functionality disabled - redirects to request_access")
     def test_no_invite_token(self):
+        # if this gets re-enabled, remove the test_no_invite_token_redirects test
         response = self.client.get(reverse("signup"))
 
         self.assertEqual(response.status_code, 200)
 
         form = response.context["form"]
         self.assertFalse(form.initial)
+
+    def test_no_invite_token_redirects(self):
+        response = self.client.get(reverse("signup"))
+
+        self.assertRedirects(response, reverse("request_access"))
 
     def test_signup_with_invite_valid(self):
         response = self.client.post(
@@ -174,6 +183,7 @@ class SignUpViewTest(BaseViewTestCase):
         messages = list(response.wsgi_request._messages)
         self.assertEqual(str(messages[0]), SignUpView.MESSAGE_INVALID_LINK)
 
+    @unittest.skip("Signup functionality disabled - redirects to request_access")
     def test_signup_without_invite(self):
         payload = {
             **self.payload,
@@ -206,6 +216,7 @@ class SignUpViewTest(BaseViewTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "This field is required.")
 
+    @unittest.skip("Signup functionality disabled - redirects to request_access")
     def test_terms_not_accepted_without_invite(self):
         response = self.client.post(reverse("signup"), {**self.payload, "accept_terms": ""})
 
@@ -223,6 +234,7 @@ class SignUpViewTest(BaseViewTestCase):
             ({},),  # missing organization name
         ]
     )
+    @unittest.skip("Signup functionality disabled - redirects to request_access")
     def test_signup_without_company_fields(self, extra_payload):
         payload = {
             **self.payload,
@@ -240,8 +252,9 @@ class SignUpViewTest(BaseViewTestCase):
         [
             ("on", True),
             ("", True),
-            ("on", False),
-            ("", False),
+            # TODO re-enable this when sign up re-enabled
+            # ("on", False),
+            # ("", False),
         ]
     )
     def test_consent_marketing_notifications(self, consent, with_invite):
@@ -262,3 +275,16 @@ class SignUpViewTest(BaseViewTestCase):
         self.assertEqual(user.consent_marketing_notifications, consent == "on")
 
         self.assertEqual(response.status_code, 302)
+
+    @unittest.skip("Signup functionality disabled - redirects to request_access")
+    def test_signup_without_invite_sets_organization_created_by(self):
+        payload = {
+            **self.payload,
+            "organization_name": "Test Organization",
+        }
+        with self.subTest("should create a user, an organization, and populate organization.created_by"):
+            response = self.client.post(reverse("signup"), payload, follow=True)
+            self.assertEqual(response.status_code, 200)
+            user = CustomUser.objects.get(email=self.payload["email"])
+            organization = user.organizations.first()
+            self.assertEqual(organization.created_by, user)

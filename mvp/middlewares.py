@@ -1,5 +1,5 @@
 import json
-from typing import Callable
+from collections.abc import Callable
 from urllib.parse import unquote
 
 import posthog
@@ -75,7 +75,6 @@ class CurrentOrganizationMiddleware:
                 with push_scope() as scope:
                     scope.set_extra("session_org_id", session_org_id)
                     capture_exception(error)
-                pass
 
         # by the default use first one associated to the user, not the first one alphabetically
         # TODO: allow user to set default organization
@@ -88,10 +87,10 @@ class CurrentOrganizationMiddleware:
 
 
 class MFAMiddleware:
-    """
-    Inspiration:
+    """Inspiration:
+
     https://github.com/pennersr/django-allauth/discussions/3943#discussioncomment-9980609
-    https://github.com/pennersr/django-allauth/issues/3649#issuecomment-2023044039
+    https://github.com/pennersr/django-allauth/issues/3649#issuecomment-2023044039.
     """
 
     allowed_pages = [
@@ -119,7 +118,7 @@ class MFAMiddleware:
     def organization_requires_mfa(self, request):
         # If any organization requires MFA, then the user must have MFA enabled
         organizations = request.user_organizations or []
-        return any([organization.require_mfa for organization in organizations])
+        return any(organization.require_mfa for organization in organizations)
 
     def __call__(self, request):
         if (
@@ -130,8 +129,7 @@ class MFAMiddleware:
         ):
             return redirect("mfa_activate_totp")
 
-        response = self.get_response(request)
-        return response
+        return self.get_response(request)
 
 
 class PostHogMiddleware:
@@ -142,8 +140,7 @@ class PostHogMiddleware:
         request.POSTHOG_PROJECT_API_KEY = settings.POSTHOG_PROJECT_API_KEY
         request.POSTHOG_INSTANCE_ADDRESS = settings.POSTHOG_INSTANCE_ADDRESS
 
-        response = self.reset_on_logout(request)
-        return response
+        return self.reset_on_logout(request)
 
     def connect_backend_frontend_identities(self, request):
         posthog_cookie = request.COOKIES.get(f"ph_{posthog.project_api_key}_posthog")

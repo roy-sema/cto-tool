@@ -21,12 +21,22 @@
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f9f9f9">
   <div style="padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid #dddddd">
     <h1>SIP-Daily Message - {{ organization.name }}</h1>
-    <div style="margin-bottom: 10px; color: #666666">Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}</div>
+    <div style="margin-bottom: 10px; color: #666666">
+      {% if data.analysis_period %}
+        Daily Message - Analysis Period: {{ data.analysis_period.formatted_range }} UTC
+      {% else %}
+        Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}
+      {% endif %}
+    </div>
     <div style="margin-bottom: 10px; color: #666666">Organization: {{ organization.name }}</div>
   </div>
 
   {% if no_commits_message %}
-    <p>No commits found throughout the system since the last update.</p>
+    <p>No repository commits found throughout the system since the last update.</p>
+  {% endif %}
+
+  {% if no_data_after_filter %}
+    <p>No data found after your filters were applied.</p>
   {% else %}
 
     <div style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 6px; padding: 20px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1)">
@@ -44,7 +54,7 @@
         {% if data.anomaly_insights_and_risks.7  %}
           <li style="margin-bottom: 8px"><a href="#significance-level-7" style="color: #0066cc; text-decoration: none">Significance Level 7</a></li>
         {% endif %}
-        {% if data.jira_completeness_score %}
+        {% if data.jira_quality_summary %}
           <li style="margin-bottom: 8px"><a href="#jira-score" style="color: #0066cc; text-decoration: none">Ticket Completeness Score</a></li>
         {% endif %}
         {% if data.aggregated_anomaly_insights %}

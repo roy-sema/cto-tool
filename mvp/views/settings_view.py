@@ -26,7 +26,7 @@ class SettingsView(LoginRequiredMixin, PermissionRequiredMixin, DecodePublicIdMi
         # decode geo ids
         # TODO: we should probably move this inside the form, not here
         post_cleaned = request.POST.copy()
-        geo_ids = map(lambda x: self.decode_id(x), post_cleaned.getlist("geographies"))
+        geo_ids = (self.decode_id(x) for x in post_cleaned.getlist("geographies"))
         post_cleaned.setlist("geographies", geo_ids)
 
         form = OrganizationSettingsForm(post_cleaned, instance=current_org)
@@ -35,10 +35,9 @@ class SettingsView(LoginRequiredMixin, PermissionRequiredMixin, DecodePublicIdMi
             form.save()
             messages.success(request, "Settings saved!")
             return redirect(reverse_lazy("settings"))
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
 
         return self.render_form(request, form)
 
@@ -82,26 +81,24 @@ class OtherSettingsView(LoginRequiredMixin, PermissionRequiredMixin, DecodePubli
 
         if action == "delete_developer_group":
             return self.delete_developer_group(request)
-        elif action == "delete_rule":
+        if action == "delete_rule":
             return self.delete_rule(request)
-        elif "name" in request.POST and "team_type" in request.POST:
+        if "name" in request.POST and "team_type" in request.POST:
             return self.create_author_group(request)
-        elif "conditions-TOTAL_FORMS" in request.POST:
+        if "conditions-TOTAL_FORMS" in request.POST:
             return self.create_rule(request)
-        else:
-            post_cleaned = request.POST.copy()
-            form = OtherSettingsForm(post_cleaned, instance=current_org)
+        post_cleaned = request.POST.copy()
+        form = OtherSettingsForm(post_cleaned, instance=current_org)
 
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Other settings saved!")
-                return redirect(reverse_lazy("other_settings"))
-            else:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Other settings saved!")
+            return redirect(reverse_lazy("other_settings"))
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
 
-            return self.render_form(request, form)
+        return self.render_form(request, form)
 
     def render_form(self, request, form):
         current_org = request.current_organization
@@ -161,10 +158,9 @@ class OtherSettingsView(LoginRequiredMixin, PermissionRequiredMixin, DecodePubli
                 form.save()
                 messages.success(request, "Developer group created!")
                 return redirect(reverse_lazy("other_settings") + "#developer-groups")
-            else:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
         except IntegrityError:
             messages.error(request, "Group names should be unique")
         except Exception as e:
@@ -200,12 +196,11 @@ class OtherSettingsView(LoginRequiredMixin, PermissionRequiredMixin, DecodePubli
                     formset.save()
                 messages.success(request, "Rule created!")
                 return redirect(reverse_lazy("other_settings") + "#genai-radar-rules")
-            else:
-                if formset.non_form_errors():
-                    messages.error(request, "Rule conditions are invalid")
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
+            if formset.non_form_errors():
+                messages.error(request, "Rule conditions are invalid")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
         except IntegrityError:
             messages.error(request, "Rule name should be unique")
         except Exception as e:

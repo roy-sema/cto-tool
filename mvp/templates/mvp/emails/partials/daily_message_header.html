@@ -3,7 +3,11 @@
     SIP-Daily Message
   </h1>
   <div style="font-size: 13px; color: #5A6C7D; margin: 4px 0;">
-    Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}
+    {% if analysis_period %}
+      Daily Message - Analysis Period: {{ analysis_period.formatted_range }} UTC
+    {% else %}
+      Daily Message - Last updated: {% if last_updated %}{{ last_updated|date:"F j, Y h:i A e" }}{% else %}-{% endif %}
+    {% endif %}
   </div>
   <div style="display: flex; align-items: center; margin: 4px 0">
     <div style="font-size: 13px; color: #5A6C7D">Organization: {{ organization.name }}</div>

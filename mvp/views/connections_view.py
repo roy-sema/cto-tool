@@ -11,16 +11,17 @@ from compass.integrations.integrations import (
     GitHubIntegration,
     IRadarIntegration,
     JiraIntegration,
+    MsTeamsIntegration,
     SnykIntegration,
 )
-from mvp.models import DataProviderConnection
+from mvp.models import DataProviderConnection, MessageIntegration, MessageIntegrationServiceChoices
 from mvp.services import ConnectedIntegrationsService
 
 
 class ConnectionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = "mvp.can_edit_connections"
 
-    INTEGRATIONS = {
+    DATA_INTEGRATIONS = {
         ConnectedIntegrationsService.BITBUCKET: {
             "name": "BitBucket",
             "integration": BitBucketIntegration,
@@ -66,6 +67,14 @@ class ConnectionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
             "manual": True,
         },
     }
+    MESSAGE_INTEGRATIONS = {
+        MessageIntegrationServiceChoices.MS_TEAMS: {
+            "name": MessageIntegrationServiceChoices.MS_TEAMS.label,
+            "integration": MsTeamsIntegration,
+            "view": "connect_ms_teams",
+            "manual": True,
+        },
+    }
 
     COMING_SOON_PROVIDERS = [
         {"name": "Veracode"},
@@ -75,21 +84,27 @@ class ConnectionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def get(self, request):
         current_org = request.current_organization
 
-        providers = self.get_providers(current_org)
+        intergrations = self.get_intergrations(current_org)
 
-        is_github_connected = providers.get(ConnectedIntegrationsService.GITHUB, {}).get("connected")
+        is_github_connected = intergrations.get(ConnectedIntegrationsService.GITHUB, {}).get("connected")
 
         return render(
             request,
             "mvp/settings/connections.html",
             {
-                "providers": providers.values(),
+                "providers": intergrations.values(),
                 "comming_soon": self.COMING_SOON_PROVIDERS,
                 "is_github_connected": is_github_connected,
             },
         )
 
-    def get_providers(self, organization):
+    def get_intergrations(self, organization):
+        return {
+            **self.get_data_integrations(organization),
+            **self.get_message_integrations(organization),
+        }
+
+    def get_data_integrations(self, organization):
         connections = DataProviderConnection.objects.filter(
             organization=organization, data__isnull=False
         ).prefetch_related("provider")
@@ -97,7 +112,7 @@ class ConnectionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
         connection_map = {connection.provider.name: connection for connection in connections}
 
         integrations = {}
-        for integration_key, integration in self.INTEGRATIONS.items():
+        for integration_key, integration in self.DATA_INTEGRATIONS.items():
             connection = connection_map.get(integration["integration"]().provider.name)
 
             integrations[integration_key] = {
@@ -105,4 +120,21 @@ class ConnectionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 "connected": connection and connection.is_connected(),
             }
 
+        return integrations
+
+    def get_message_integrations(self, organization):
+        integrations = {}
+        for integration_key, integration in self.MESSAGE_INTEGRATIONS.items():
+            intergration_connection_record = MessageIntegration.objects.filter(
+                organization=organization,
+                service=integration_key,
+            ).first()
+            integration_service = integration["integration"]
+            integrations[integration_key] = {
+                **integration,
+                "connected": (
+                    intergration_connection_record
+                    and integration_service.is_connection_connected(intergration_connection_record)
+                ),
+            }
         return integrations

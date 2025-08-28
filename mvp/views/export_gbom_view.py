@@ -67,7 +67,7 @@ class ExportGBOMView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequired
 
     def send_gbom_ready_email(self, user, organization):
         if not settings.SEND_GBOM_READY_EMAIL_ACTIVE:
-            logging.info("Skipping sending GBOM ready email")
+            logger.info("Skipping sending GBOM ready email")
             return
 
         email_address = user.email
@@ -83,7 +83,7 @@ class ExportGBOMView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequired
             },
         )
 
-        EmailService.send_email(
+        EmailService().send_email(
             f"{settings.APP_NAME} GBOM ready",
             message,
             settings.DEFAULT_FROM_EMAIL,

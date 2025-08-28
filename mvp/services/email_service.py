@@ -1,32 +1,50 @@
-import json
 import logging
-from typing import Any
+from typing import Any, NamedTuple
 
-from django.core.mail import EmailMultiAlternatives, get_connection, send_mass_mail
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.urls import reverse
-from sentry_sdk import capture_exception, push_scope
-
-from cto_tool import settings
-from mvp.utils import traceback_on_debug
 
 logger = logging.getLogger(__name__)
 
 
-class EmailService:
-    # TODO refactor this to reduce code duplication
+class MultiEmailData(NamedTuple):
+    subject: str
+    message_txt: str
+    message_html: str | None
+    sender_email: str
+    recipient_emails: list[str]
 
-    @staticmethod
+
+class EmailService:
+    def __init__(self, fail_silently=False, auth_user=None, auth_password=None, connection=None, is_dry_run=False):
+        self.fail_silently = fail_silently
+        self.auth_user = auth_user
+        self.auth_password = auth_password
+        self.connection = connection
+        self.is_dry_run = is_dry_run
+
+    def get_connection(self):
+        """Return connection to email backend.
+
+        can be used as a method or as a context manager to preserve a connection
+        since all email backends implement __enter__ and __exit__
+        """
+        if not self.connection:
+            self.connection = get_connection(
+                username=self.auth_user,
+                password=self.auth_password,
+                fail_silently=self.fail_silently,
+            )
+        return self.connection
+
     def send_mass_html_mail(
-        datatuple,
-        fail_silently=False,
-        auth_user=None,
-        auth_password=None,
-        connection=None,
+        self,
+        messages_data: list[MultiEmailData],
         headers: dict[str, Any] | None = None,
     ) -> int:
-        """
-        based on django.core.mail.send_mass_mail
+        """Based on django.core.mail.send_mass_mail.
 
         Given a data_tuple of (subject, message, html_message, from_email,
         recipient_list), sends each message to each recipient list. Returns the
@@ -38,130 +56,86 @@ class EmailService:
         If auth_password is None, the EMAIL_HOST_PASSWORD setting is used.
 
         """
-        connection = connection or get_connection(
-            username=auth_user, password=auth_password, fail_silently=fail_silently
-        )
         messages = []
-        for subject, message, message_html, sender, recipient in datatuple:
-            message = EmailMultiAlternatives(subject, message, sender, recipient, headers=headers)
-            if message_html:
-                message.attach_alternative(message_html, "text/html")
+        for email_details in messages_data:
+            message = EmailMultiAlternatives(
+                subject=email_details.subject,
+                body=email_details.message_txt,
+                from_email=email_details.sender_email,
+                to=email_details.recipient_emails,
+                headers=headers,
+            )
+            if email_details.message_html:
+                message.attach_alternative(email_details.message_html, "text/html")
             messages.append(message)
 
+        if self.is_dry_run:
+            logger.info("Dry run mode enabled. Emails will not be sent.")
+            for email in messages:
+                html_content = next(
+                    (body for body, mime in getattr(email, "alternatives", []) if mime == "text/html"),
+                    None,
+                )
+                logger.info(
+                    "[dry-run] Prepared email",
+                    extra={
+                        "subject": email.subject,
+                        "recipient": email.to,
+                        "body": email.body,
+                        "html_body": html_content,
+                    },
+                )
+            return len(messages)
+
+        connection = self.get_connection()
         return connection.send_messages(messages)
 
-    @staticmethod
-    def _send_emails(
+    def send_email(
+        self,
         subject,
+        message,
         from_email,
-        recipient_message_tuples,
-        auth_user=None,
-        auth_password=None,
-        connection=None,
+        recipient_list,
+        html_message=None,
         headers: dict[str, Any] | None = None,
-    ):
-        if not recipient_message_tuples:
+    ) -> bool:
+        messages = [
+            MultiEmailData(
+                subject=subject,
+                message_txt=message,
+                message_html=html_message,
+                sender_email=from_email,
+                recipient_emails=[recipient],
+            )
+            for recipient in recipient_list
+        ]
+        if not messages:
             logger.error(
                 "failed to send emails. Empty recipient list",
                 extra={"subject": subject, "from_email": from_email},
             )
             return False
 
+        delivered_messages_count = 0
         try:
-            messages = [
-                (subject, message, html_message, from_email, [recipient])
-                for recipient, message, html_message in recipient_message_tuples
-            ]
-
-            delivered_messages = EmailService.send_mass_html_mail(
+            delivered_messages_count = self.send_mass_html_mail(
                 messages,
-                auth_user=auth_user,
-                auth_password=auth_password,
-                connection=connection,
-                fail_silently=False,
                 headers=headers,
             )
-            logger.info(f"sent {delivered_messages} emails")
-
+            logger.info(f"sent {delivered_messages_count} emails")
         except Exception:
             logger.exception(
                 "Failed to send emails",
                 extra={
                     "subject": subject,
                     "from_email": from_email,
-                    "recipients": [r for r, _, _ in recipient_message_tuples],
+                    "recipients": recipient_list,
                 },
             )
             return False
+        return delivered_messages_count > 0
 
-        return True
-
-    @staticmethod
-    def send_personalized_emails(
-        subject,
-        messages,
-        from_email,
-        recipient_list,
-        auth_user=None,
-        auth_password=None,
-        connection=None,
-        html_messages=None,
-        headers: dict[str, Any] | None = None,
-    ):
-        if len(recipient_list) != len(messages):
-            logger.error(
-                "Mismatched lengths: recipient_list and messages must be the same size",
-                extra={"subject": subject, "from_email": from_email},
-            )
-            return False
-
-        if html_messages and len(html_messages) != len(recipient_list):
-            logger.error(
-                "Mismatched lengths: recipient_list and html_messages must be the same size",
-                extra={"subject": subject, "from_email": from_email},
-            )
-            return False
-
-        recipient_message_tuples = [
-            (recipient, message, html_messages[i] if html_messages else None)
-            for i, (recipient, message) in enumerate(zip(recipient_list, messages))
-        ]
-
-        return EmailService._send_emails(
-            subject,
-            from_email,
-            recipient_message_tuples,
-            auth_user=auth_user,
-            auth_password=auth_password,
-            connection=connection,
-            headers=headers,
-        )
-
-    @staticmethod
-    def send_email(
-        subject,
-        message,
-        from_email,
-        recipient_list,
-        auth_user=None,
-        auth_password=None,
-        connection=None,
-        html_message=None,
-        headers: dict[str, Any] | None = None,
-    ):
-        recipient_message_tuples = [(recipient, message, html_message) for recipient in recipient_list]
-        return EmailService._send_emails(
-            subject,
-            from_email,
-            recipient_message_tuples,
-            auth_user=auth_user,
-            auth_password=auth_password,
-            connection=connection,
-            headers=headers,
-        )
-
-    @staticmethod
-    def send_analysis_started_email(organization):
+    def send_analysis_started_email(self, organization):
         if not settings.SEND_ANALYSIS_STARTED_EMAIL_ACTIVE:
             logger.info("Skipping sending analysis started email")
             return False
@@ -184,37 +158,22 @@ class EmailService:
                 "APP_NAME": settings.APP_NAME,
             },
         )
-        delivered_messages = 0
         subject = f"{settings.APP_NAME} Started Processing"
-        try:
-            delivered_messages = send_mass_mail(
-                [
-                    (
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [email_to],
-                    )
-                    for email_to in email_addresses
-                ],
-                fail_silently=False,
-            )
+        delivered_messages_count = self.send_mass_html_mail(
+            [
+                MultiEmailData(
+                    subject=subject,
+                    message_txt=message,
+                    message_html=message,
+                    sender_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_emails=[email_to],
+                )
+                for email_to in email_addresses
+            ],
+        )
+        return delivered_messages_count > 0
 
-        except Exception as e:
-            with push_scope() as scope:
-                scope.set_extra("subject", subject)
-                scope.set_extra("message", message)
-                scope.set_extra("from_email", settings.DEFAULT_FROM_EMAIL)
-                scope.set_extra("recipient_list", json.dumps(email_addresses))
-            traceback_on_debug()
-            capture_exception(e)
-            logger.exception(f"failed to send analysis started email to {email_addresses}")
-
-        finally:
-            return delivered_messages > 0
-
-    @staticmethod
-    def send_import_done_email(organization):
+    def send_import_done_email(self, organization):
         if not settings.SEND_IMPORT_DONE_EMAIL_ACTIVE:
             logger.info("Skipping sending import done email")
             return False
@@ -236,30 +195,17 @@ class EmailService:
             },
         )
 
-        delivered_messages = 0
         subject = f"{settings.APP_NAME} Finished Processing"
-        try:
-            delivered_messages = send_mass_mail(
-                [
-                    (
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [email_to],
-                    )
-                    for email_to in email_addresses
-                ],
-                fail_silently=False,
-            )
-
-        except Exception as e:
-            with push_scope() as scope:
-                scope.set_extra("subject", subject)
-                scope.set_extra("message", message)
-                scope.set_extra("from_email", settings.DEFAULT_FROM_EMAIL)
-                scope.set_extra("recipient_list", json.dumps(email_addresses))
-            traceback_on_debug()
-            capture_exception(e)
-            logger.exception(f"failed to send analysis done email to {email_addresses}")
-        finally:
-            return delivered_messages > 0
+        delivered_messages_count = self.send_mass_html_mail(
+            [
+                MultiEmailData(
+                    subject=subject,
+                    message_txt=message,
+                    message_html=message,
+                    sender_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_emails=[email_to],
+                )
+                for email_to in email_addresses
+            ],
+        )
+        return delivered_messages_count > 0

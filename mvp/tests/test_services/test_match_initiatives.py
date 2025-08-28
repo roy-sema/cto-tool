@@ -6,12 +6,14 @@ from django.utils import timezone
 from compass.contextualization.models import Initiative, InitiativeEpic, Roadmap
 from compass.contextualization.tasks.import_pipeline_bc_data_task import ImportPipelineBCDataTask
 from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import (
-    Epic as SchemaEpic,
-)
-from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import (
+    AccelerationSummary,
     GitInitiatives,
+    InitiativeAccelerations,
     PipelineBCResult,
     PipelineBCResultItem,
+)
+from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import (
+    Epic as SchemaEpic,
 )
 from contextualization.pipelines.pipeline_B_and_C_product_roadmap.schemas import (
     Initiative as SchemaInitiative,
@@ -54,14 +56,26 @@ class ImportPipelineBCDataTaskTest(TestCase):
         )
 
     def create_test_result(self, initiatives_data):
-        """Helper method to create PipelineBCResult for tests."""
+        """Create a test result for the pipeline's business context evaluation.
+
+        This method generates a `PipelineBCResult` object, which contains detailed
+        information about the initiatives, acceleration summaries, and other relevant
+        factors pertaining to the pipeline. The result includes structured data for
+        further processing or display.
+        """
         return PipelineBCResult(
             items={
                 self.repo_group.public_id(): PipelineBCResultItem(
                     git_initiatives=GitInitiatives(
                         summary="Roadmap summary",
                         initiatives=initiatives_data,
-                    )
+                    ),
+                    acceleration_summary=AccelerationSummary(
+                        universal_strategies=["Strategy 1"],
+                        key_changes_needed=["Key change 1"],
+                        result="Strategy 1 and Key change 1",
+                        initiative_accelerations=[InitiativeAccelerations(name="Speed up", increase_weeks=2)],
+                    ),
                 )
             }
         )
@@ -69,7 +83,6 @@ class ImportPipelineBCDataTaskTest(TestCase):
     @patch.object(ImportPipelineBCDataTask, "get_group_file_timestamp")
     def test_import_matching_by_initiative_name(self, mock_get_group_file_timestamp):
         """Test imported initiative matches pinned and is marked as pinned."""
-
         mock_get_group_file_timestamp.return_value = timezone.now().timestamp()
 
         result = self.create_test_result(
@@ -101,7 +114,6 @@ class ImportPipelineBCDataTaskTest(TestCase):
     @patch.object(ImportPipelineBCDataTask, "get_group_file_timestamp")
     def test_import_matching_by_initiative_custom_name(self, mock_get_group_file_timestamp):
         """Test imported initiative matches pinned and is marked as pinned."""
-
         mock_get_group_file_timestamp.return_value = timezone.now().timestamp()
 
         result = self.create_test_result(
@@ -133,7 +145,6 @@ class ImportPipelineBCDataTaskTest(TestCase):
     @patch.object(ImportPipelineBCDataTask, "get_group_file_timestamp")
     def test_import_new_initiative_unpinned(self, mock_get_group_file_timestamp):
         """Test imported initiative without match is marked unpinned."""
-
         mock_get_group_file_timestamp.return_value = timezone.now().timestamp()
 
         result = self.create_test_result(
@@ -157,7 +168,6 @@ class ImportPipelineBCDataTaskTest(TestCase):
     @patch.object(ImportPipelineBCDataTask, "get_group_file_timestamp")
     def test_import_mixed_initiatives(self, mock_get_group_file_timestamp):
         """Test multiple initiatives, both matching and new."""
-
         mock_get_group_file_timestamp.return_value = timezone.now().timestamp()
 
         result = self.create_test_result(
@@ -193,7 +203,6 @@ class ImportPipelineBCDataTaskTest(TestCase):
     @patch.object(ImportPipelineBCDataTask, "get_group_file_timestamp")
     def test_import_matching_pinned_epic(self, mock_get_group_file_timestamp):
         """Test imported epic matches pinned epic in same initiative and is marked pinned."""
-
         # Add pinned epic under the pinned initiative
         existing_epic = InitiativeEpic.objects.create(
             name="Epic 1",
@@ -234,7 +243,6 @@ class ImportPipelineBCDataTaskTest(TestCase):
     @patch.object(ImportPipelineBCDataTask, "get_group_file_timestamp")
     def test_epic_not_matched_across_wrong_initiatives(self, mock_get_group_file_timestamp):
         """Test that epics are not matched if names overlap across unrelated initiatives."""
-
         # Another initiative with same epic name
         Initiative.objects.create(
             name="Unrelated Initiative",

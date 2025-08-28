@@ -1,5 +1,4 @@
 import re
-from typing import Dict, List
 
 from django.db.models import Q
 from textdistance import tversky
@@ -9,10 +8,9 @@ from mvp.models import Author, Organization
 
 
 class CommiterDTO:
-    """
-    This class is a port of SCQP Java implementation.
-    Leaving logic as close as possible to make it easier to fix bugs and add new features.
+    """The class is a port of SCQP Java implementation.
 
+    Leaving logic as close as possible to make it easier to fix bugs and add new features.
     Source: https://github.com/Semalab/backend-commitanalysis/blob/master/src/main/java/semalab/commitanalysis/runner/CommiterDTO.java
     """
 
@@ -66,8 +64,7 @@ class CommiterDTO:
         if not_uppercase_score >= 2:
             not_uppercase_score = 2
 
-        score = whitespace_score - not_uppercase_score * 0.1 - special_char_score * 0.2
-        return score
+        return whitespace_score - not_uppercase_score * 0.1 - special_char_score * 0.2
 
     def get_comparable_string(self):
         if self.comparable_string is None:
@@ -77,10 +74,9 @@ class CommiterDTO:
 
 
 class FuzzyMatcher:
-    """
-    This class is a port of SCQP Java implementation.
-    Leaving logic as close as possible to make it easier to fix bugs and add new features.
+    """The class is a port of SCQP Java implementation.
 
+    Leaving logic as close as possible to make it easier to fix bugs and add new features.
     Source: https://github.com/Semalab/backend-commitanalysis/blob/master/src/main/java/semalab/commitanalysis/runner/FuzzyMatcher.java
     """
 
@@ -108,47 +104,43 @@ class FuzzyMatcher:
 
         # create comparable parts from names (Ivan Ivanov -> i ivanov ivanov i ivani ivan etc.)
         comparable_strings_for_first_name = first.get_comparable_string()
-        if first.cleaned_name:
-            if not comparable_strings_for_first_name:
-                # everything but without spaces
-                comparable_strings_for_first_name.append(re.sub(r"\s", "", first.cleaned_name))
-                first_name = first.cleaned_name.strip()
-                if " " in first_name:
-                    first_name = re.sub(r"\s+", " ", first_name)
-                    splits_by = first_name.split(" ")
-                    included_reverse = False
-                    for i in range(len(splits_by)):
-                        for j in range(i, len(splits_by)):
-                            if not included_reverse:
-                                included_reverse = True
-                                comparable_strings_for_first_name.append((splits_by[1] + splits_by[0]).replace(" ", ""))
-                            if i != j:
-                                comparable_strings_for_first_name.append(splits_by[i][0] + splits_by[j])
-                                comparable_strings_for_first_name.append(splits_by[j] + splits_by[i][0])
-                                comparable_strings_for_first_name.append(splits_by[j][0] + splits_by[i])
-                                comparable_strings_for_first_name.append(splits_by[i] + splits_by[j][0])
+        if first.cleaned_name and not comparable_strings_for_first_name:
+            # everything but without spaces
+            comparable_strings_for_first_name.append(re.sub(r"\s", "", first.cleaned_name))
+            first_name = first.cleaned_name.strip()
+            if " " in first_name:
+                first_name = re.sub(r"\s+", " ", first_name)
+                splits_by = first_name.split(" ")
+                included_reverse = False
+                for i in range(len(splits_by)):
+                    for j in range(i, len(splits_by)):
+                        if not included_reverse:
+                            included_reverse = True
+                            comparable_strings_for_first_name.append((splits_by[1] + splits_by[0]).replace(" ", ""))
+                        if i != j:
+                            comparable_strings_for_first_name.append(splits_by[i][0] + splits_by[j])
+                            comparable_strings_for_first_name.append(splits_by[j] + splits_by[i][0])
+                            comparable_strings_for_first_name.append(splits_by[j][0] + splits_by[i])
+                            comparable_strings_for_first_name.append(splits_by[i] + splits_by[j][0])
 
         comparable_strings_for_second_name = second.get_comparable_string()
-        if second.cleaned_name:
-            if not comparable_strings_for_second_name:
-                comparable_strings_for_second_name.append(second.cleaned_name.replace(" ", ""))
-                second_name = second.cleaned_name.strip()
-                if " " in second_name:
-                    second_name = re.sub(r"\s+", " ", second_name)
-                    splits_by = second_name.split(" ")
-                    included_reverse = False
-                    for i in range(len(splits_by)):
-                        for j in range(i, len(splits_by)):
-                            if not included_reverse:
-                                included_reverse = True
-                                comparable_strings_for_second_name.append(
-                                    (splits_by[1] + splits_by[0]).replace(" ", "")
-                                )
-                            if i != j:
-                                comparable_strings_for_second_name.append(splits_by[i][0] + splits_by[j])
-                                comparable_strings_for_second_name.append(splits_by[j] + splits_by[i][0])
-                                comparable_strings_for_second_name.append(splits_by[j][0] + splits_by[i])
-                                comparable_strings_for_second_name.append(splits_by[i] + splits_by[j][0])
+        if second.cleaned_name and not comparable_strings_for_second_name:
+            comparable_strings_for_second_name.append(second.cleaned_name.replace(" ", ""))
+            second_name = second.cleaned_name.strip()
+            if " " in second_name:
+                second_name = re.sub(r"\s+", " ", second_name)
+                splits_by = second_name.split(" ")
+                included_reverse = False
+                for i in range(len(splits_by)):
+                    for j in range(i, len(splits_by)):
+                        if not included_reverse:
+                            included_reverse = True
+                            comparable_strings_for_second_name.append((splits_by[1] + splits_by[0]).replace(" ", ""))
+                        if i != j:
+                            comparable_strings_for_second_name.append(splits_by[i][0] + splits_by[j])
+                            comparable_strings_for_second_name.append(splits_by[j] + splits_by[i][0])
+                            comparable_strings_for_second_name.append(splits_by[j][0] + splits_by[i])
+                            comparable_strings_for_second_name.append(splits_by[i] + splits_by[j][0])
 
         # if nothing to compare
         if (
@@ -156,9 +148,9 @@ class FuzzyMatcher:
             and comparable_strings_for_second_name
             and len(comparable_strings_for_first_name) > 1
             and len(comparable_strings_for_second_name) > 1
+            and (len(comparable_strings_for_first_name[0]) < 1 or len(comparable_strings_for_second_name[0]) < 1)
         ):
-            if len(comparable_strings_for_first_name[0]) < 1 or len(comparable_strings_for_second_name[0]) < 1:
-                return False
+            return False
 
         # compare generated names
         for first_name in comparable_strings_for_first_name:
@@ -184,19 +176,15 @@ class FuzzyMatcher:
                     ):
                         return True
 
-        if (
+        return (
             first.cleaned_email
             and second.cleaned_email
             and tversky.normalized_similarity(second.cleaned_email, first.cleaned_email) > 0.81
-        ):
-            return True
-
-        return False
+        )
 
 
 class FuzzyMatchingService:
-    """
-    This class is a PARTIAL port of SCQP Java implementation.
+    """The class is a PARTIAL port of SCQP Java implementation.
 
     Source: https://github.com/Semalab/backend-commitanalysis/blob/f7fa42fe092c46fa303f07d092d01f023c73357c/src/main/java/semalab/commitanalysis/runner/CommitAnalysisRunner.java#L468
     """
@@ -241,7 +229,7 @@ class FuzzyMatchingService:
         cls.save_linked_authors(organization, new_group_list)
 
     @classmethod
-    def calculate_parent_id(cls, group: List[int], id_to_score: Dict[int, float]) -> int:
+    def calculate_parent_id(cls, group: list[int], id_to_score: dict[int, float]) -> int:
         parent_id = group[0]
         current_max_score = id_to_score[parent_id]
 
@@ -252,7 +240,7 @@ class FuzzyMatchingService:
         return parent_id
 
     @classmethod
-    def get_organization_commiters(cls, organization: Organization) -> List[CommiterDTO]:
+    def get_organization_commiters(cls, organization: Organization) -> list[CommiterDTO]:
         authors = Author.objects.filter(organization=organization).values("pk", "external_id", "name", "email")
         commiters = []
         for author in authors:
@@ -268,7 +256,7 @@ class FuzzyMatchingService:
         return commiters
 
     @classmethod
-    def save_linked_authors(cls, organization: Organization, groups: List[List[int]]):
+    def save_linked_authors(cls, organization: Organization, groups: list[list[int]]):
         parent_authors = Author.objects.filter(organization=organization, linked_author__isnull=True).values_list(
             "pk", flat=True
         )
@@ -284,7 +272,7 @@ class FuzzyMatchingService:
                 continue
 
             # Use existing parent if any
-            parent_id = next((id for id in parent_authors if id in not_linked_authors))
+            parent_id = next(id for id in parent_authors if id in not_linked_authors)
             if parent_id:
                 not_linked_authors.remove(parent_id)
             else:

@@ -1,13 +1,11 @@
 import logging
 
 from django.core.management.base import BaseCommand, CommandError
-from sentry_sdk import capture_exception, push_scope
 from sentry_sdk.crons import monitor
 
 from compass.integrations.integrations import IntegrationFactory
 from mvp.mixins import InstrumentedCommandMixin, SingleInstanceCommandMixin
 from mvp.models import DataProviderConnection, Organization
-from mvp.utils import traceback_on_debug
 
 logger = logging.getLogger(__name__)
 
@@ -34,26 +32,27 @@ class Command(
 
         try:
             integration = IntegrationFactory().get_integration(provider_name)
-        except ValueError:
-            raise CommandError(f'Provider "{provider_name}" does not exist. Check casing and spelling.')
+        except ValueError as exc:
+            raise CommandError(f'Provider "{provider_name}" does not exist. Check casing and spelling.') from exc
 
         organization_id = options.get("orgid", 0)
+        organization = None
         if organization_id:
             try:
                 organization = Organization.objects.get(id=organization_id)
-            except Organization.DoesNotExist:
-                raise CommandError(f'Organization with ID "{organization_id}" does not exist.')
+            except Organization.DoesNotExist as exc:
+                raise CommandError(f'Organization with ID "{organization_id}" does not exist.') from exc
 
         qs = DataProviderConnection.objects.filter(provider=integration.provider, data__isnull=False)
 
-        if organization_id:
+        if organization:
             qs = qs.filter(organization=organization)
 
         connections = qs.all()
 
         if not connections:
             message = f'There are no "{provider_name}" connections'
-            if organization_id:
+            if organization:
                 message += f' for "{organization}"'
             raise CommandError(message)
 
@@ -80,12 +79,8 @@ class Command(
             integration.fetch_data(connection)
 
             logger.info(f'Successfully fetched data for "{organization}" from "{provider.name}"')
-        except Exception as error:
-            traceback_on_debug()
-
-            with push_scope() as scope:
-                scope.set_extra("organization", organization.name)
-                scope.set_extra("provider", provider.name)
-                capture_exception(error)
-
-            logger.warning(f'Error fetching data for "{organization}" from "{provider.name}"')
+        except Exception:
+            logger.exception(
+                f"Error in fetching data",
+                extra={"organization": organization.name, "provider": provider.name},
+            )

@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from sentry_sdk import capture_message, push_scope
 
@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ChartSeries:
     name: str
-    data: List[int | float]
+    data: list[int | float]
 
 
 @dataclass
 class ChartData:
-    categories: List[str]
-    series: List[ChartSeries]
+    categories: list[str]
+    series: list[ChartSeries]
     isPercentage: bool
 
 
@@ -94,10 +94,10 @@ class AICompositionService:
         self,
         since: datetime,
         until: datetime,
-        repositories: List[Repository] = [],
+        repositories: list[Repository] | None = None,
         identifier: Optional[str] = "",
         daily_charts: bool = False,
-    ) -> Tuple[List[Chart], List[Chart]]:
+    ) -> tuple[list[Chart], list[Chart]]:
         by_date, dates, _ = self.get_data_by_date_and_repository(
             since, until, repositories, add_previous_date=daily_charts
         )
@@ -122,9 +122,9 @@ class AICompositionService:
         self,
         since: datetime,
         until: datetime,
-        repositories: List[Repository] = [],
+        repositories: list[Repository] | None = None,
         add_previous_date=False,
-    ) -> Tuple[dict, List[str], dict]:
+    ) -> tuple[dict, list[str], dict]:
         dates, since_data, until_data, aggregate = self.get_dates(since, until, add_previous_date=add_previous_date)
 
         repositories = repositories or self.organization.repository_set.all()
@@ -155,7 +155,7 @@ class AICompositionService:
         dates = get_days(since_data, until_data, self.DATE_FORMAT_DAY)
 
         if aggregate:
-            dates = sorted(list(set(self.get_aggregated_week_date(date) for date in dates)))
+            dates = sorted({self.get_aggregated_week_date(date) for date in dates})
 
         return dates, since_data, until_data, aggregate
 
@@ -169,7 +169,7 @@ class AICompositionService:
             for _series in series
         ]
 
-    def get_composition(self, charts: List[Chart], previous_value_days=8) -> List:
+    def get_composition(self, charts: list[Chart], previous_value_days=8) -> list:
         if not charts:
             return []
 
@@ -188,7 +188,7 @@ class AICompositionService:
         self,
         since: datetime,
         until: datetime,
-        repositories: List[Repository] = [],
+        repositories: list[Repository] | None = None,
     ) -> dict:
         by_date, dates, by_repository = self.get_data_by_date_and_repository(
             since, until, repositories, add_previous_date=True
@@ -208,7 +208,7 @@ class AICompositionService:
         self,
         since: datetime,
         until: datetime,
-        repositories: List[Repository] = [],
+        repositories: list[Repository] | None = None,
     ) -> dict:
         _, dates, by_repository = self.get_data_by_date_and_repository(
             since, until, repositories, add_previous_date=True
@@ -227,9 +227,8 @@ class AICompositionService:
 
         return num_lines
 
-    def get_commits_by_repository(self, commits: List[dict]) -> dict:
-        """
-        There may be more than one commit per repository per day.
+    def get_commits_by_repository(self, commits: list[dict]) -> dict:
+        """There may be more than one commit per repository per day.
 
         We'll use the last one to calculate the data for that day.
 
@@ -264,12 +263,12 @@ class AICompositionService:
 
         return weekly
 
-    def get_commits_by_date(self, by_repository: dict, dates: List[str]) -> Tuple[dict, dict]:
-        empty_day = {field: 0 for field in self.FIELDS_LINES_NAMES}
+    def get_commits_by_date(self, by_repository: dict, dates: list[str]) -> tuple[dict, dict]:
+        empty_day = dict.fromkeys(self.FIELDS_LINES_NAMES, 0)
         by_date = {date: {**empty_day} for date in dates}
         for lines_by_date in by_repository.values():
-            first_date = list(lines_by_date.keys())[0]
-            first_value = list(lines_by_date.values())[0]
+            first_date = next(iter(lines_by_date.keys()))
+            first_value = next(iter(lines_by_date.values()))
             for date_index, date in enumerate(dates):
                 # Empty if date is older than previous day with data
                 # Otherwise, get previous day or first day available or empty if there's no data
@@ -289,12 +288,12 @@ class AICompositionService:
         # TODO: by_repository could be used for Repositories view since it's data for each repo
         return by_date, by_repository
 
-    def get_cumulative_series(self, by_date: dict, dates: List[str]) -> List[ChartSeries]:
+    def get_cumulative_series(self, by_date: dict, dates: list[str]) -> list[ChartSeries]:
         series = self.calculate_cumulative_percentages(by_date, dates)
 
         return [ChartSeries(name=series_name, data=values) for series_name, values in series.items()]
 
-    def calculate_cumulative_percentages(self, by_date: dict, dates: List[str]) -> dict:
+    def calculate_cumulative_percentages(self, by_date: dict, dates: list[str]) -> dict:
         series = {_series.label: [0] * len(dates) for _series in self.SERIES}
         for date, fields in by_date.items():
             if date not in dates or not (total_lines := fields[self.FIELD_NAME_TOTAL_NUM_LINES]):
@@ -323,14 +322,13 @@ class AICompositionService:
 
         return series
 
-    def get_daily_series(self, by_date: dict, dates: List[str]) -> List[ChartSeries]:
+    def get_daily_series(self, by_date: dict, dates: list[str]) -> list[ChartSeries]:
         percentages, _ = self.calculate_daily_data(by_date, dates)
 
         return [ChartSeries(name=series_name, data=values) for series_name, values in percentages.items()]
 
-    def calculate_daily_data(self, by_date: dict, dates: List[str]) -> Tuple[dict, dict]:
-        """
-        This method aims to return the total of GenAI code pushed per date, in % and num lines.
+    def calculate_daily_data(self, by_date: dict, dates: list[str]) -> tuple[dict, dict]:
+        """Aim to return the total of GenAI code pushed per date, in % and num lines.
 
         Because we do NOT analyze all commits, we can't get the exact number yet.
 
@@ -428,16 +426,14 @@ class AICompositionService:
         self,
         since: datetime,
         until: datetime,
-        repositories: List[Repository],
-    ) -> List[dict]:
-        """
+        repositories: list[Repository],
+    ) -> list[dict]:
+        """Fetch commits for a date range, ensuring data propagation.
+
         The AI Engine does analysis nightly, but a repository may not have commits every day.
-
         Thus, the last analysis done on a repository propagates until there's a new commit.
-
         For that reason, we'll fetch the closest commit to the since date.
         """
-
         commits = list(self.get_date_range_commits(since, until, repositories))
 
         # Get repositories missing the first date
@@ -469,7 +465,7 @@ class AICompositionService:
         self,
         since: datetime,
         until: datetime,
-        repositories: List[Repository],
+        repositories: list[Repository],
     ):
         qs = (
             RepositoryCommit.objects.filter(
@@ -492,10 +488,8 @@ class AICompositionService:
 
         return qs.all()
 
-    def get_closest_commits(self, until: datetime, repository_ids: List[int]):
-        """
-        Get the most recent commit per repository.
-        """
+    def get_closest_commits(self, until: datetime, repository_ids: list[int]):
+        """Get the most recent commit per repository."""
         qs = (
             RepositoryCommit.objects.filter(
                 date_time__lt=until,
@@ -520,7 +514,7 @@ class AICompositionService:
 
         return round_half_up(ai_lines / total_lines * 100, num_decimals)
 
-    def format_ai_values(self, value: int | float, previous_value: Optional[int | float] = 0):
+    def format_ai_values(self, value: float, previous_value: Optional[int | float] = 0):
         whole, decimal = get_whole_decimal(value)
         return {
             "value": value,
