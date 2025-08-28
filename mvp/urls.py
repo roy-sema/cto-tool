@@ -179,7 +179,7 @@ urlpatterns = [
         name="contextualization_data",
     ),
     # legacy routes
-    path("join-list/", lambda request: redirect("signup"), name="join_list"),
+    path("join-list/", lambda request: redirect("request_access"), name="join_list"),
     # Redirect legacy URLs to new ones
     re_path(
         r"^pulls/(.*)$",

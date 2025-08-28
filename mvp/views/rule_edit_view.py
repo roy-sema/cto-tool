@@ -43,9 +43,8 @@ class RuleEditView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequiredMi
                 self.save_forms(form, formset, data)
                 messages.success(request, "Rule updated!")
                 return self.redirect_to_view()
-            else:
-                if formset.non_form_errors():
-                    messages.error(request, "Rule conditions are invalid")
+            if formset.non_form_errors():
+                messages.error(request, "Rule conditions are invalid")
         except IntegrityError as e:
             messages.error(request, "Rule name should be unique")
 

@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     @staticmethod
     def send_notification(integration: MessageIntegration, body: str) -> bool:
-        """
-        Sends a notification using the specified integration.
-        """
+        """Send a notification using the specified integration."""
         if integration.service == MessageIntegrationServiceChoices.MS_TEAMS:
             NotificationService.send_teams_notification(integration, body)
         else:

@@ -21,7 +21,7 @@ class OtlpLoggingHandler(LoggingHandler):
     @staticmethod
     def _get_attributes(record: logging.LogRecord):
         attributes = LoggingHandler._get_attributes(record)
-        return {k: v if isinstance(v, (bool, str, bytes, int, float)) else str(v) for k, v in attributes.items()}
+        return {k: v if isinstance(v, bool | str | bytes | int | float) else str(v) for k, v in attributes.items()}
 
 
 def get_otel_attributes_from_parent_span(*attrs: str) -> dict[str, Any]:
@@ -40,18 +40,20 @@ def start_span_in_linked_trace(
 ):
     attributes = attributes or {}
 
-    with tracer.start_as_current_span(
-        prefix + name,
-        attributes=attributes,
-        kind=trace.SpanKind.CLIENT,
-    ) as parent:
-        with tracer.start_as_current_span(
+    with (
+        tracer.start_as_current_span(
+            prefix + name,
+            attributes=attributes,
+            kind=trace.SpanKind.CLIENT,
+        ) as parent,
+        tracer.start_as_current_span(
             name,
             attributes=attributes,
             #  empty context means that new trace is created
             context=Context(),
             kind=trace.SpanKind.SERVER,
             links=[trace.Link(parent.get_span_context())],
-        ) as span:
-            parent.add_link(span.get_span_context())
-            yield span
+        ) as span,
+    ):
+        parent.add_link(span.get_span_context())
+        yield span

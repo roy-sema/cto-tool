@@ -48,8 +48,7 @@ class BaseImportCsvCommand(ABC, BaseCommand):
 
     def import_csv(self, file_path, delimiter=None):
         self.pre_import()
-        num_rows = process_csv_file(file_path, self.process_row, delimiter=delimiter)
-        return num_rows
+        return process_csv_file(file_path, self.process_row, delimiter=delimiter)
 
     def get_int_value(self, row, column, default=0):
         try:

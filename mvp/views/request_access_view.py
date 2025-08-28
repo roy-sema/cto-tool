@@ -45,7 +45,7 @@ class RequestAccessView(DecodePublicIdMixin, generic.CreateView):
             org_plural = "organizations" if len(organizations) > 1 else "organization"
             message += f" for {org_plural} '{name_list}'"
 
-        EmailService.send_email(
+        EmailService().send_email(
             f"{settings.APP_NAME} new account request",
             message,
             settings.DEFAULT_FROM_EMAIL,

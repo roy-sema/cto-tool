@@ -35,8 +35,8 @@ class Command(
 
     @monitor(monitor_slug="download_repositories")
     def handle(self, *args, **options):
-        organization_id = options.get("orgid", None)
-        repository_name = options.get("reponame", None)
+        organization_id = options.get("orgid")
+        repository_name = options.get("reponame")
         force = options.get("force", False)
 
         DownloadRepositoriesTask().run(

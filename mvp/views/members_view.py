@@ -1,3 +1,5 @@
+import logging
+
 import posthog
 from django.conf import settings
 from django.contrib import messages
@@ -13,6 +15,8 @@ from mvp.forms import BulkInviteForm, UserInvitationForm
 from mvp.mixins import DecodePublicIdMixin
 from mvp.models import CustomUser, Group, OrgRole, UserInvitation
 from mvp.services import EmailService
+
+logger = logging.getLogger(__name__)
 
 
 class UsersView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequiredMixin, View):
@@ -198,7 +202,7 @@ class UsersView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequiredMixin
 
         html_content = self.get_email_content(request, invitation, tool_name)
         plain_text_content = strip_tags(html_content)
-        EmailService.send_email(
+        EmailService().send_email(
             subject=f"Your invitation to {tool_name}",
             message=plain_text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -226,26 +230,30 @@ class UsersView(LoginRequiredMixin, DecodePublicIdMixin, PermissionRequiredMixin
                 "label": "Owner",
                 "description": "Full access to all sections and can manage members.",
             },
-            OrgRole.SETTINGS_EDITOR: {
-                "label": "Settings Editor",
-                "description": "Access to settings.",
-            },
             # TODO disabled for now, might remove it later
+            # OrgRole.SETTINGS_EDITOR: {
+            #     "label": "Settings Editor",
+            #     "description": "Access to settings.",
+            # },
             # OrgRole.COMPLIANCE_LEADER: {
             #     "label": "Compliance Leader",
             #     "description": "Access to Compliance Standards and Settings",
             # },
-            OrgRole.ENGINEERING_LEADER: {
-                "label": "Engineering Leader",
-                "description": f"Access to {settings.APP_NAME} and Settings",
-            },
-            OrgRole.DEVELOPER: {
-                "label": "Developer",
-                "description": f"Access to {settings.APP_NAME}",
+            # OrgRole.ENGINEERING_LEADER: {
+            #     "label": "Engineering Leader",
+            #     "description": f"Access to {settings.APP_NAME} and Settings",
+            # },
+            # OrgRole.DEVELOPER: {
+            #     "label": "Developer",
+            #     "description": f"Access to {settings.APP_NAME}",
+            # },
+            OrgRole.USER: {
+                "label": "User",
+                "description": "Full access to all sections.",
             },
         }
 
-        groups = Group.objects.all()
+        groups = Group.objects.filter(name__in=list(roles))
         for group in groups:
             if group.name in roles:
                 roles[group.name]["id"] = group.pk

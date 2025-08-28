@@ -357,9 +357,10 @@ Parameters:
 - `--orgid`: Narrow execution just to given organization ID.
 - `--day-interval`: Day interval to run the pipelines for. accepted values [1, 7, 14]. default: 14
 - `--pipelines`: Specific pipelines to run. Any of : 'a', 'bc', 'anomaly_insights', 'd'.
-- `--by-group`: Calls the pipelines twice: first for the entire organization as whole, and then by repository groups.
 - `--import-only`: Only imports the data, doesn't run the pipelines.
 - `--dry-run`: Don't save any data, just show what commands would be executed.
+- `--force_anomaly_insights`: Save insights even if it has already been executed today.
+- `--force-pipeline-a`: Don't use cached results in db and update them.
 
 
 ### DEPRECATED

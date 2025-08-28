@@ -17,15 +17,20 @@ class Command(BaseCommand):
     help = "Generate and send the daily message notifications to organizations that set up message integration."
 
     def add_arguments(self, parser):
-        parser.add_argument("--orgid", type=int, help="Narrow execution just to given organization ID.")
+        parser.add_argument(
+            "--orgids",
+            type=int,
+            nargs="+",
+            help="Narrow execution just to given organization IDs (space-separated).",
+        )
         parser.add_argument("--skip-orgids", type=str, nargs="+", help="Skip orgs (space-separated).")
         parser.add_argument("--service", type=str, help="Service to send notifications through (e.g., 'teams').")
 
     @monitor(monitor_slug="send_daily_message_notification")
     def handle(self, *args, **options):
-        organization_id = options.get("orgid", 0)
-        skip_orgids = options.get("skip_orgids", None)
-        service = options.get("service", None)
+        organization_ids = options.get("orgids")
+        skip_orgids = options.get("skip_orgids")
+        service = options.get("service")
 
         if service and service not in MessageIntegrationServiceChoices.values:
             logger.error(
@@ -33,8 +38,8 @@ class Command(BaseCommand):
             )
             return
 
-        if organization_id:
-            message_integrations = MessageIntegration.objects.filter(organization__id=organization_id)
+        if organization_ids:
+            message_integrations = MessageIntegration.objects.filter(organization__id__in=organization_ids)
         else:
             message_integrations = MessageIntegration.objects.filter(
                 organization__contextualization_enabled=True, enabled=True

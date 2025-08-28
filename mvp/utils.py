@@ -18,7 +18,6 @@ from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.utils import timezone
 from requests.exceptions import HTTPError
-from sentry_sdk import capture_exception, push_scope
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +70,7 @@ def get_weeks(since, until, date_format=None):
 
 
 def get_since_until_last_record_months(last_record, num_months):
-    """
-    From num_months months ago (first day of monty) until today,
-    or from the next day after the last record until today
-    """
+    """Get the start and end dates for a given number of months up to today based on the last record's date."""
     today = get_tz_date(datetime.utcnow().date())
 
     if last_record:
@@ -98,24 +94,28 @@ def retry_on_status_code(max_retries, delay, status_codes, exp_base=2):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            retries = 0
-            while retries <= max_retries:
+            last_exception = None
+            for attempt in range(max_retries + 1):
                 try:
                     response = func(*args, **kwargs)
-                    if response.status_code in status_codes:
-                        raise HTTPError(response=response)
-                    return response
+                    if response.status_code not in status_codes:
+                        return response
+                    # Create exception for potential raising
+                    last_exception = HTTPError(response=response)
                 except HTTPError as error:
-                    code = error.response.status_code
-                    if code not in status_codes:
-                        raise
-                    if retries == max_retries:
+                    last_exception = error
+                    if error.response.status_code not in status_codes:
                         raise
 
-                    retries += 1
-                    seconds = delay * (exp_base ** (retries - 1))
+                # Don't sleep after the last attempt
+                if attempt < max_retries:
+                    seconds = delay * (exp_base**attempt)
+                    code = last_exception.response.status_code
                     logger.warning(f"Request failed with status {code}. Retrying in {seconds}s...")
                     time.sleep(seconds)
+
+            # If we exit the loop, we have an error to raise
+            raise last_exception
 
         return wrapper
 
@@ -126,24 +126,25 @@ def retry_on_exceptions(max_retries=3, delay=10, exp_base=2, exceptions=(Excepti
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            retries = 0
-            while retries <= max_retries:
+            last_exception = None
+            for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
                 except exceptions as error:
-                    if retries == max_retries:
-                        with push_scope() as scope:
-                            scope.set_extra("retries", retries)
-                            scope.set_extra("delay", delay)
-                            scope.set_extra("exp_base", exp_base)
-                            logger.warning(f"Max retries ({max_retries}) exceeded. Function '{func.__name__}' failed.")
-                            capture_exception(error)
-                            raise
+                    last_exception = error
 
-                    retries += 1
-                    seconds = delay * (exp_base ** (retries - 1))
-                    logger.warning(f"Operation failed. Retrying in {seconds}s...")
-                    time.sleep(seconds)
+                    # Don't sleep after the last attempt
+                    if attempt < max_retries:
+                        seconds = delay * (exp_base**attempt)
+                        logger.warning(f"Operation failed. Retrying in {seconds}s...")
+                        time.sleep(seconds)
+
+            # If we exit the loop, log and raise the last exception
+            logger.exception(
+                f"Max retries ({max_retries}) exceeded. Function '{func.__name__}' failed",
+                extra={"retries": max_retries, "delay": delay, "exp_base": exp_base},
+            )
+            raise last_exception
 
         return wrapper
 
@@ -169,25 +170,21 @@ def traceback_on_debug():
 
 
 def round_half_up(num, d):
-    """
-    Source: https://github.com/Semalab/tools/blob/19ce10668b265909315d3c1a5b922c6ea6f3afad/scqp-cli/sc/Report/generate_hc/functions/generic_functions.py#L37
-    """
+    """Source: https://github.com/Semalab/tools/blob/19ce10668b265909315d3c1a5b922c6ea6f3afad/scqp-cli/sc/Report/generate_hc/functions/generic_functions.py#L37."""
     if math.isnan(float(num)):
         return num
-    elif type(num) == int:
+    if type(num) is int:
         return float(num)
-    else:
-        multiplier = 10 ** (d)
-        num = Decimal(str(num))
-        if num >= 0:
-            num = Decimal(str(num)) * multiplier
-            new_num = Decimal(num) + Decimal("0.5")
-            return int(new_num) / multiplier
-        else:
-            new_num = round_half_up(str(Decimal(num) * -1), d) * -1
-            if new_num != int(num * multiplier) / multiplier:
-                new_num = Decimal(str(new_num)) + Decimal(str(2 / multiplier))
-            return float(new_num)
+    multiplier = 10 ** (d)
+    num = Decimal(str(num))
+    if num >= 0:
+        num = Decimal(str(num)) * multiplier
+        new_num = Decimal(num) + Decimal("0.5")
+        return int(new_num) / multiplier
+    new_num = round_half_up(str(Decimal(num) * -1), d) * -1
+    if new_num != int(num * multiplier) / multiplier:
+        new_num = Decimal(str(new_num)) + Decimal(str(2 / multiplier))
+    return float(new_num)
 
 
 def set_csv_field_size_limit():
@@ -198,10 +195,10 @@ def set_csv_field_size_limit():
         try:
             csv.field_size_limit(max_size)
             break
-        except OverflowError as error:
+        except OverflowError:
             max_size = int(max_size / 10)
             if not max_size:
-                capture_exception(error)
+                logger.exception("Failed to set csv field size limit")
                 break
 
 
@@ -209,7 +206,7 @@ def process_csv_file(file_path, processor, encoding="utf-8", delimiter=None):
     set_csv_field_size_limit()
 
     num_rows = 0
-    with open(file_path, "r", encoding=encoding, errors="ignore") as csvfile:
+    with open(file_path, encoding=encoding, errors="ignore") as csvfile:
         if delimiter:
             reader = csv.DictReader(csvfile, delimiter=delimiter)
         else:
@@ -256,9 +253,7 @@ def normalize_end_date(end_date: datetime):
 
 @retry_on_exceptions(max_retries=5, delay=1)
 def shred_path(path):
-    """
-    Recursively delete a directory and its contents using `rm`.
-    """
+    """Recursively delete a directory and its contents using `rm`."""
     subprocess.run(["rm", "-rf", path], check=True)
 
 
@@ -292,13 +287,14 @@ def remove_empty_lines_from_text(content: str) -> str:
     return content.strip()
 
 
-def get_daily_message_template_context(organization, data, no_commits_message=False):
+def get_daily_message_template_context(organization, data, no_commits_message=False, no_data_after_filter=False):
     last_updated = datetime.fromtimestamp(data["last_updated"], tz=pytz.UTC) if data["last_updated"] else None
     return {
         "site_domain": settings.SITE_DOMAIN,
         "organization": organization,
         "last_updated": last_updated,
         "no_commits_message": no_commits_message,
+        "no_data_after_filter": no_data_after_filter,
         "data": data,
         "message_date": last_updated.date() if last_updated else None,
     }

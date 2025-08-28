@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from bs4 import BeautifulSoup
 from django.conf import settings
@@ -172,19 +172,14 @@ class TestUserRolesMixin:
         self.assertTrue(response)
 
     def test_redirect_after_login(self):
-        """
-        Assert user is redirected to a page they can see after login
-        """
+        """Assert user is redirected to a page they can see after login."""
         self.login()
 
         response = self.client.get(settings.LOGIN_REDIRECT_URL, follow=True)
         self.assertEqual(response.status_code, 200)
 
     def test_user_can_only_see_allowed_views(self):
-        """
-        Assert user can see views they have permission to access,
-        and cannot see views they don't have permission to.
-        """
+        """Assert user can see views they have permission to access, and cannot see views they don't have permission to."""
         exclude_views = [
             *self.AUTHORIZATION_VIEWS,  # logged users don't need to see authorization views
             "connect_bitbucket",  # this is a callback for BitBucket Oauth consumer
@@ -254,9 +249,7 @@ class TestUserRolesMixin:
             )
 
     def test_visible_items_on_sidebar(self):
-        """
-        Assert the sidebar only shows the items the user has permission to access.
-        """
+        """Assert the sidebar only shows the items the user has permission to access."""
         self.login()
 
         # TODO test settings page separately

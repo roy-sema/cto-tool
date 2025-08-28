@@ -210,7 +210,7 @@ class RepositoryFileSerializer(serializers.ModelSerializer):
         if not os.path.exists(file_path):
             return []
 
-        with open(file_path, "r", errors="replace") as code_file:
+        with open(file_path, errors="replace") as code_file:
             return code_file.readlines()
 
     def get_chunks(self, obj):
@@ -473,10 +473,10 @@ class AuthorGroupSerializer(serializers.ModelSerializer):
         # only show group rules if stats are available
         if stats.get("code_num_lines"):
             all_rules += instance.rule_list()
-        rules_list = list(zip(*RuleService.get_stats_rules_list(stats, all_rules)))
+        rules_list = list(zip(*RuleService.get_stats_rules_list(stats, all_rules), strict=False))
         rules, colors = rules_list if len(rules_list) == 2 else ([], [])
         rules_serialized = RuleSerializer(rules, many=True).data
-        return list(zip(rules_serialized, colors))
+        return list(zip(rules_serialized, colors, strict=False))
 
 
 class JiraProjectSerializer(PublicIdMixin, serializers.ModelSerializer):

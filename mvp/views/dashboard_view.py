@@ -124,15 +124,13 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return sum([instance.total_num_lines() for instance in instances])
 
     def get_code_attestation_percentages(self, organization, count=3):
-        """
-        Gets the code attestation percentages for the organization and its repository groups.
+        """Get the code attestation percentages for the organization and its repository groups.
 
         Always 5 queries !
         - 2: organization.get_attested_num_lines
         - 2: organization.repositorygroup_set.filter
         - 1: Repository.get_attested_num_of_lines_by_sha
         """
-
         code_attestation_percentages = {
             "Overall": {
                 "percentage": (
@@ -144,13 +142,8 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, View):
             }
         }
 
-        groups = (
-            organization.repositorygroup_set.filter(repository__isnull=False)
-            .prefetch_related("repository_set")
-            .distinct()
-        )
-
-        repositories = [repos for group in groups for repos in group.repository_set.all()]
+        groups = organization.repositorygroup_set.filter(repositories__isnull=False).distinct()
+        repositories = Repository.objects.filter(repository_group__in=groups)
 
         num_lines_by_sha = Repository.get_attested_num_of_lines_by_sha(repositories)
 

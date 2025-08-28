@@ -71,7 +71,8 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
 
         # create this file so the autodiscovery script handles the analysis
         config_path = os.path.join(org_directory, "config.json")
-        json.dump({}, open(config_path, "w"))
+        with open(config_path, "w") as f:
+            json.dump({}, f)
 
         os.makedirs(org_directory, exist_ok=True)
 

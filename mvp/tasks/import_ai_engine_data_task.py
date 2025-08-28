@@ -8,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import IntegrityError
 from django.utils import timezone
-from sentry_sdk import capture_exception, capture_message, push_scope
 
 from compass.integrations.integrations import (
     get_git_provider_integration,
@@ -18,6 +17,8 @@ from mvp.models import (
     Author,
     AuthorStat,
     CodeGenerationLabelChoices,
+    DataProviderConnection,
+    Organization,
     Repository,
     RepositoryAuthor,
     RepositoryCommit,
@@ -30,7 +31,7 @@ from mvp.models import (
 from mvp.services import FuzzyMatchingService, GroupsAICodeService
 from mvp.services.email_service import EmailService
 from mvp.tasks import ExportGBOMTask
-from mvp.utils import process_csv_file, traceback_on_debug
+from mvp.utils import process_csv_file
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,11 @@ class ImportAIEngineDataTask:
                 updated = self.process_repository(repository, commit_sha=commit_sha, erase=erase)
                 if updated:
                     organizations[repository.organization.pk] = repository.organization
-            except Exception as e:
-                traceback_on_debug()
-                with push_scope() as scope:
-                    scope.set_extra("repository", {"id": repository.pk, "name": repository.name})
-                    capture_exception(e)
+            except Exception:
+                logger.exception(
+                    "Failed to process repository",
+                    extra={"repository_id": repository.id, "repository": repository.name},
+                )
 
         for organization in organizations.values():
             self.update_organization(organization)
@@ -96,21 +97,25 @@ class ImportAIEngineDataTask:
             )
             return False
 
-        with push_scope() as scope:
-            scope.set_extra("repository", {"id": repository.id, "name": repository.name})
-            scope.set_extra("csv", repository.last_analysis_file)
+        # first import data from the last or given commit
+        sha = commit_sha or repository.last_commit_sha
+        commit = self.get_commit_by_sha(repository, sha)
 
-            # first import data from the last or given commit
-            sha = commit_sha or repository.last_commit_sha
-            commit = self.get_commit_by_sha(repository, sha)
-            if commit:
-                updated = self.process_commit(repository, commit, erase=erase)
+        updated = self.process_commit(repository, commit, erase=erase) if commit else False
 
-            self.import_pending_commits(repository, sha, erase=erase)
+        self.import_pending_commits(repository, sha, erase=erase)
 
-            if not commit:
-                logger.warning(f"Commit '{sha}' not found for '{repository.name}'")
-                return False
+        if not commit:
+            logger.warning(
+                f"Commit not found for repository",
+                extra={
+                    "organization": repository.organization.name,
+                    "repository": repository.name,
+                    "commit_sha": sha,
+                    "csv": repository.last_analysis_file,
+                },
+            )
+            return False
 
         if updated:
             logger.info(f"Imported '{repository.name}' analysis results.")
@@ -202,14 +207,11 @@ class ImportAIEngineDataTask:
             )
             return True
 
-        except Exception as e:
-            traceback_on_debug()
-            with push_scope() as scope:
-                scope.set_extra("repository", {"id": repository.id, "name": repository.name})
-                scope.set_extra("sha", commit.sha)
-                scope.set_extra("csv", csv_path)
-                capture_exception(e)
-            logger.exception("Could not process CSV")
+        except Exception:
+            logger.exception(
+                "Could not process CSV",
+                extra={"repository": repository.name, "sha": commit.sha, "csv": csv_path},
+            )
             commit.status = RepositoryCommitStatusChoices.FAILURE
             commit.save()
             return False
@@ -383,10 +385,9 @@ class ImportAIEngineDataTask:
 
             author = self._authors.get(author_id)
             if not author:
-                with push_scope() as scope:
-                    scope.set_extra("author_id", author_id)
-                    scope.set_extra("commit_sha", commit_sha)
-                    capture_message("Author not found in authors CSV")
+                logger.warning(
+                    "Author not found in authors CSV", extra={"author_id": author_id, "commit_sha": commit_sha}
+                )
 
                 author = self.get_or_create_author(author_id, author_id, author_id, None)
                 self._authors[author_id] = author
@@ -480,7 +481,7 @@ class ImportAIEngineDataTask:
         author = self.get_or_create_author(external_id, name, email, login)
         self._authors[external_id] = author
 
-    def get_or_create_author(self, external_id: str, name: str, email: str, login: str) -> RepositoryAuthor:
+    def get_or_create_author(self, external_id: str, name: str, email: str, login: str | None) -> RepositoryAuthor:
         name, email, login = self.clean_author_data(name, email, login)
         author, created = Author.objects.get_or_create(
             organization=self.repository.organization,
@@ -488,7 +489,7 @@ class ImportAIEngineDataTask:
             external_id=external_id,
             defaults={"name": name, "email": email, "login": login},
         )
-        if not created and author.name != name or author.email != email or author.login != login:
+        if (not created and author.name != name) or author.email != email or author.login != login:
             author.name = name
             author.email = email
             author.login = login
@@ -534,7 +535,7 @@ class ImportAIEngineDataTask:
             ],
         )
 
-        # as authors are based on git blame, it's possible that some of them disapear over time
+        # as authors are based on git blame, it's possible that some of them disappear over time
         # set not found authors stats to 0
         RepositoryAuthor.objects.filter(repository=repository).exclude(
             id__in=[author.id for author in authors.values()]
@@ -548,20 +549,29 @@ class ImportAIEngineDataTask:
             code_ai_pure_percentage=0,
         )
 
-    def notify_first_analysis_complete(self, organization):
+    def notify_first_analysis_complete(self, organization: Organization):
+        # TODO add another flag for first_import_email_sent and fix logic
         if not organization.first_analysis_done and organization.all_repos_analyzed():
-            # TODO add another flag for first_import_email_sent and fix logic
-            delivered = EmailService.send_import_done_email(organization)
+            EmailService().send_import_done_email(organization)
 
             organization.first_analysis_done = True
             organization.save()
 
-    def is_repository_connected(self, repository):
+    def is_repository_connected(self, repository: Repository) -> bool:
         integration = get_git_provider_integration(repository.provider)
         if not integration:
             return False
 
-        return integration().is_repository_connected(repository)
+        integration = integration()
+
+        connection = DataProviderConnection.objects.filter(
+            organization=repository.organization, provider=repository.provider
+        ).first()
+
+        if not connection or not integration.is_connection_connected(connection):
+            return False
+
+        return integration.is_repository_connected(repository)
 
     def set_not_evaluated_files_from_metadata(self, commit, evaluated_files):
         # AI Engine will not report non-source files
@@ -575,7 +585,7 @@ class ImportAIEngineDataTask:
             if file_path not in evaluated_files:
                 commit.not_evaluated_num_files += 1
 
-    def load_metadata(self, metadata_path):
+    def load_metadata(self, metadata_path) -> dict:
         if not metadata_path or not os.path.exists(metadata_path):
             logger.warning(f"Failed to find metadata path: {metadata_path}")
             return {}
@@ -583,12 +593,8 @@ class ImportAIEngineDataTask:
         try:
             with open(metadata_path) as file:
                 return json.load(file)
-        except Exception as e:
-            with push_scope() as scope:
-                scope.set_extra("metadata_path", metadata_path)
-                traceback_on_debug()
-                capture_exception(e)
-                logger.exception("Failed to read metadata file")
+        except Exception:
+            logger.exception("Failed to read metadata file", extra={"metadata_path": metadata_path})
             return {}
 
     def get_attestation_map(self, repository):

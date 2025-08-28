@@ -7,6 +7,7 @@ from mvp.models import (
     CodeGenerationLabelChoices,
     RepositoryFile,
     RepositoryPullRequest,
+    Rule,
 )
 from mvp.utils import get_whole_decimal
 
@@ -75,7 +76,7 @@ class PullRequestService:
         if not os.path.exists(file_path):
             return []
 
-        with open(file_path, "r") as code_file:
+        with open(file_path) as code_file:
             return code_file.readlines()
 
     def get_pull_request_ai_composition(self, instance, rule_list):
@@ -112,8 +113,8 @@ class PullRequestService:
     def get_all_rules(self, organization, repository):
         rules = list(RuleService.get_organization_rules(organization))
 
-        if repository.group_id:
-            rules += list(repository.group.rules.prefetch_related("conditions").all())
+        if repository.repository_group.exists():
+            rules += list(Rule.objects.filter(repositorygroup__in=repository.repository_group.all()))
 
         return rules
 
@@ -138,9 +139,7 @@ class PullRequestService:
             row.extend([(None, None)] * (max_length - len(row)))
 
         # invert rows and columns
-        matrix = list(map(list, zip(*matrix)))
-
-        return matrix
+        return list(map(list, zip(*matrix, strict=False)))
 
     def get_code_generation_labels(self):
         return {choice.value: choice.label for choice in self.LABELS_ORDERED}

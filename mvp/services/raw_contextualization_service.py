@@ -7,10 +7,7 @@ from mvp.services import ContextualizationDayInterval, ContextualizationService
 
 
 class RawContextualizationService:
-    """
-    Collects all the contextualization data for a given organization and day interval,
-    returning it in a raw dictionary format.
-    """
+    """Collect all the contextualization data for a given organization and day interval, returning it in a raw dictionary format."""
 
     DATE_FORMAT = "%Y-%m-%d"
 

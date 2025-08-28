@@ -54,7 +54,7 @@ class Command(SingleInstanceCommandMixin, InstrumentedCommandMixin, BaseCommand)
                 continue
 
             emails_sent_to_orgs.append(org.name)
-            EmailService.send_email(
+            EmailService().send_email(
                 subject=f"{settings.APP_NAME} Summary Insights",
                 message=justification_email,
                 from_email=settings.DEFAULT_FROM_EMAIL,
